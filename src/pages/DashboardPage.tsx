@@ -1,30 +1,4 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-
 function DashboardPage() {
-  const [supabaseStatus, setSupabaseStatus] = useState('Checking...')
-
-  useEffect(() => {
-    const checkSupabaseConnection = async () => {
-      try {
-        const { error } = await supabase.auth.getSession()
-
-        if (error) {
-          setSupabaseStatus('Connection failed')
-          console.error('Supabase connection error:', error)
-          return
-        }
-
-        setSupabaseStatus('Connected')
-      } catch (error) {
-        setSupabaseStatus('Connection failed')
-        console.error('Supabase connection error:', error)
-      }
-    }
-
-    checkSupabaseConnection()
-  }, [])
-
   return (
     <>
       <header className="topbar">
@@ -134,9 +108,7 @@ function DashboardPage() {
           </p>
         </div>
 
-        <div className="ai-status">
-          Supabase: {supabaseStatus}
-        </div>
+        <div className="ai-status">Planned</div>
       </section>
     </>
   )
