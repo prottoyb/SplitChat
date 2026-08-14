@@ -1,6 +1,31 @@
+import { useEffect, useState } from 'react'
 import './App.css'
+import { supabase } from './lib/supabase'
 
 function App() {
+  const [supabaseStatus, setSupabaseStatus] = useState('Checking...')
+
+  useEffect(() => {
+    const checkSupabaseConnection = async () => {
+      try {
+        const { error } = await supabase.auth.getSession()
+
+        if (error) {
+          setSupabaseStatus('Connection failed')
+          console.error('Supabase connection error:', error)
+          return
+        }
+
+        setSupabaseStatus('Connected')
+      } catch (error) {
+        setSupabaseStatus('Connection failed')
+        console.error('Supabase connection error:', error)
+      }
+    }
+
+    checkSupabaseConnection()
+  }, [])
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -61,6 +86,7 @@ function App() {
         <section className="summary-grid">
           <article className="summary-card">
             <div className="summary-icon">↓</div>
+
             <div>
               <p>You are owed</p>
               <h3>$0.00</h3>
@@ -70,6 +96,7 @@ function App() {
 
           <article className="summary-card">
             <div className="summary-icon">↑</div>
+
             <div>
               <p>You owe</p>
               <h3>$0.00</h3>
@@ -79,6 +106,7 @@ function App() {
 
           <article className="summary-card">
             <div className="summary-icon">◎</div>
+
             <div>
               <p>Active groups</p>
               <h3>0</h3>
@@ -108,7 +136,9 @@ function App() {
                 expenses for.
               </p>
 
-              <button className="secondary-button">Create your first group</button>
+              <button className="secondary-button">
+                Create your first group
+              </button>
             </div>
           </article>
 
@@ -144,7 +174,9 @@ function App() {
             </p>
           </div>
 
-          <div className="ai-status">Planned</div>
+          <div className="ai-status">
+            Supabase: {supabaseStatus}
+          </div>
         </section>
       </main>
     </div>
