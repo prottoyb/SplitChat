@@ -69,6 +69,7 @@ button {
   width: 100%;
   border: 0;
   background: transparent;
+  text-decoration: none;
   color: #94a3b8;
   padding: 12px 14px;
   display: flex;
