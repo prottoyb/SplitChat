@@ -1,6 +1,54 @@
-import { NavLink, Outlet } from 'react-router'
+import { useState } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { supabase } from '../lib/supabase'
 
 function AppLayout() {
+  const navigate = useNavigate()
+  const { session, profile } = useAuth()
+
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  const user = session?.user
+
+  const metadataName =
+    typeof user?.user_metadata?.full_name === 'string'
+      ? user.user_metadata.full_name.trim()
+      : ''
+
+  const profileName = profile?.full_name.trim() ?? ''
+
+  const displayName =
+    profileName ||
+    metadataName ||
+    user?.email?.split('@')[0] ||
+    'SplitChat user'
+
+  const initials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('') || 'SC'
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true)
+
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        throw error
+      }
+
+      navigate('/login', { replace: true })
+    } catch (error) {
+      console.error('Unable to sign out:', error)
+      setIsSigningOut(false)
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -57,11 +105,19 @@ function AppLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="profile-avatar">PB</div>
+          <div className="profile-avatar">{initials}</div>
 
           <div className="profile-details">
-            <strong>Prottoy</strong>
-            <span>Account</span>
+            <strong>{displayName}</strong>
+
+            <button
+              type="button"
+              className="text-button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? 'Signing out...' : 'Sign out'}
+            </button>
           </div>
         </div>
       </aside>

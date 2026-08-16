@@ -1,0 +1,492 @@
+.breadcrumb {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #777c89;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.breadcrumb:hover {
+  color: #6549ed;
+}
+
+.groupRole {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #634bd3;
+  background: #efecff;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.successMessage,
+.errorMessage {
+  margin-bottom: 22px;
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.successMessage {
+  border: 1px solid #cde7d7;
+  color: #297149;
+  background: #f1faf5;
+}
+
+.errorMessage {
+  border: 1px solid #efd0d0;
+  color: #a13f3f;
+  background: #fff4f4;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  border: 1px solid #e4e6eb;
+  border-radius: 16px;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.statCard > span {
+  display: block;
+  margin-bottom: 10px;
+  color: #8a8f9c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.statCard strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #1c1e26;
+  font-size: 22px;
+}
+
+.statCard p {
+  margin: 0;
+  color: #969aa5;
+  font-size: 11px;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 22px;
+}
+
+.panel {
+  border: 1px solid #e4e6eb;
+  border-radius: 18px;
+  padding: 24px;
+  background: #ffffff;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.panelHeader h3 {
+  margin: 2px 0 0;
+  color: #1d1f27;
+  font-size: 19px;
+}
+
+.memberCount {
+  display: grid;
+  min-width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 999px;
+  color: #6750d8;
+  background: #f1efff;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.memberList {
+  display: grid;
+}
+
+.memberRow {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 16px 0;
+  border-top: 1px solid #eff0f3;
+}
+
+.memberRow:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.memberAvatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  color: #654bea;
+  background: #efecff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.memberInfo {
+  min-width: 0;
+}
+
+.memberInfo strong {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 4px;
+  color: #292b34;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberInfo span {
+  color: #989ca7;
+  font-size: 11px;
+}
+
+.ownerBadge,
+.memberBadge {
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ownerBadge {
+  color: #654bd5;
+  background: #f0edff;
+}
+
+.memberBadge {
+  color: #5d6575;
+  background: #f0f1f4;
+}
+
+.panelDescription {
+  margin: -4px 0 22px;
+  color: #777d8a;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.addMemberForm {
+  display: grid;
+  gap: 15px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  color: #383b46;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.field input {
+  width: 100%;
+  height: 47px;
+  box-sizing: border-box;
+  border: 1px solid #dfe1e7;
+  border-radius: 11px;
+  outline: none;
+  padding: 0 14px;
+  color: #20222a;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.field input:focus {
+  border-color: #7357ff;
+  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.11);
+}
+
+.addMemberForm button {
+  width: 100%;
+}
+
+.infoBox {
+  margin-top: 22px;
+  border: 1px solid #e7e5f5;
+  border-radius: 12px;
+  padding: 14px;
+  background: #faf9ff;
+}
+
+.infoBox strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #51469a;
+  font-size: 11px;
+}
+
+.infoBox p {
+  margin: 0;
+  color: #82818d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.memberNotice {
+  padding: 25px 10px;
+  text-align: center;
+}
+
+.stateIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  color: #7054f6;
+  background: #f0edff;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.memberNotice h4 {
+  margin: 0 0 8px;
+  color: #252731;
+  font-size: 15px;
+}
+
+.memberNotice p {
+  margin: 0;
+  color: #878c98;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.stateCard {
+  display: grid;
+  min-height: 500px;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.stateCard h2 {
+  margin: 0 0 8px;
+  color: #22242c;
+}
+
+.stateCard p {
+  max-width: 430px;
+  margin: 0 0 18px;
+  color: #818692;
+  font-size: 13px;
+}
+
+.backLink {
+  color: #6549ed;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Membership controls */
+
+.memberControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.removeButton,
+.confirmRemoveButton,
+.cancelActionButton,
+.leaveButton,
+.confirmLeaveButton {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.removeButton {
+  border: 1px solid #ead5d5;
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: #a34848;
+  background: #fffafa;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.removeButton:hover {
+  background: #fff1f1;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.confirmRemoveButton {
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: #ffffff;
+  background: #ae4040;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.confirmRemoveButton:hover:not(:disabled) {
+  background: #963535;
+}
+
+.cancelActionButton {
+  border: 1px solid #e0e2e7;
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: #686d79;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cancelActionButton:hover:not(:disabled) {
+  background: #f5f6f8;
+}
+
+.confirmRemoveButton:disabled,
+.cancelActionButton:disabled,
+.leaveButton:disabled,
+.confirmLeaveButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Leave group */
+
+.leaveSection {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #eeeef2;
+}
+
+.leaveButton {
+  width: 100%;
+  border: 1px solid #e7caca;
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: #a33d3d;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.leaveButton:hover {
+  background: #fff5f5;
+}
+
+.leaveConfirmation {
+  border: 1px solid #edd0d0;
+  border-radius: 12px;
+  padding: 15px;
+  background: #fff8f8;
+}
+
+.leaveConfirmation strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #8d3434;
+  font-size: 12px;
+}
+
+.leaveConfirmation p {
+  margin: 0 0 14px;
+  color: #876d6d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.leaveActions {
+  display: flex;
+  gap: 8px;
+}
+
+.confirmLeaveButton {
+  flex: 1;
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: #ffffff;
+  background: #aa3d3d;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.confirmLeaveButton:hover:not(:disabled) {
+  background: #913232;
+}
+
+.leaveActions .cancelActionButton {
+  flex: 1;
+}
+
+/* Responsive */
+
+@media (max-width: 1000px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 700px) {
+  .memberRow {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .memberControls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-left: 55px;
+  }
+}
