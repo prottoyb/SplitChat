@@ -90,6 +90,7 @@ function GroupDetailsPage() {
 
     if (groupError) {
       console.error('Unable to load group:', groupError)
+
       setGroup(null)
       setMembers([])
       setErrorMessage('Unable to load this group.')
@@ -234,6 +235,7 @@ function GroupDetailsPage() {
           'Unable to add member:',
           error,
         )
+
         setErrorMessage(error.message)
         return
       }
@@ -309,6 +311,7 @@ function GroupDetailsPage() {
           'Unable to remove member:',
           error,
         )
+
         setErrorMessage(error.message)
         return
       }
@@ -377,6 +380,7 @@ function GroupDetailsPage() {
           'Unable to leave group:',
           error,
         )
+
         setErrorMessage(error.message)
         return
       }
@@ -465,8 +469,17 @@ function GroupDetailsPage() {
           </p>
         </div>
 
-        <div className={styles.groupRole}>
-          {isOwner ? 'Owner' : 'Member'}
+        <div className={styles.headerActions}>
+          <div className={styles.groupRole}>
+            {isOwner ? 'Owner' : 'Member'}
+          </div>
+
+          <Link
+            to="expenses/new"
+            className="primary-button"
+          >
+            + Add expense
+          </Link>
         </div>
       </header>
 
@@ -485,7 +498,9 @@ function GroupDetailsPage() {
       <section className={styles.overviewGrid}>
         <article className={styles.statCard}>
           <span>Members</span>
+
           <strong>{members.length}</strong>
+
           <p>
             People currently sharing this group
           </p>
@@ -493,6 +508,7 @@ function GroupDetailsPage() {
 
         <article className={styles.statCard}>
           <span>Your role</span>
+
           <strong>
             {isOwner ? 'Owner' : 'Member'}
           </strong>
@@ -528,6 +544,7 @@ function GroupDetailsPage() {
               <p className="eyebrow">
                 MEMBERS
               </p>
+
               <h3>Group members</h3>
             </div>
 
@@ -665,9 +682,11 @@ function GroupDetailsPage() {
                                 setErrorMessage(
                                   '',
                                 )
+
                                 setSuccessMessage(
                                   '',
                                 )
+
                                 setPendingRemovalUserId(
                                   member.userId,
                                 )

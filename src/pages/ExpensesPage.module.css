@@ -1,0 +1,277 @@
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  border: 1px solid #e4e6eb;
+  border-radius: 16px;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.statCard > span {
+  display: block;
+  margin-bottom: 10px;
+  color: #8a8f9c;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.statCard strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #1c1e26;
+  font-size: 21px;
+}
+
+.statCard p {
+  margin: 0;
+  color: #969aa5;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.expensePanel {
+  border: 1px solid #e4e6eb;
+  border-radius: 18px;
+  padding: 24px;
+  background: #ffffff;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.panelHeader h3 {
+  margin: 2px 0 0;
+  color: #1d1f27;
+  font-size: 19px;
+}
+
+.expenseCount {
+  display: grid;
+  min-width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 999px;
+  color: #6750d8;
+  background: #f1efff;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.expenseList {
+  display: grid;
+}
+
+.expenseRow {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 15px;
+  padding: 20px 0;
+  border-top: 1px solid #eff0f3;
+}
+
+.expenseRow:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.expenseIcon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  color: #654bea;
+  background: #efecff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.expenseMain {
+  min-width: 0;
+}
+
+.expenseTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.expenseTitleRow h4 {
+  margin: 0 0 6px;
+  color: #252731;
+  font-size: 14px;
+}
+
+.expenseMeta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  color: #9296a1;
+  font-size: 10px;
+}
+
+.groupLink {
+  color: #684edf;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.groupLink:hover {
+  text-decoration: underline;
+}
+
+.expenseAmount {
+  color: #1f2129;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.expenseDetails {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: #8b8f99;
+  font-size: 10px;
+}
+
+.expenseDetails strong {
+  color: #50535d;
+}
+
+.detailsLink {
+  margin-left: auto;
+  color: #6549ed;
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.detailsLink:hover {
+  text-decoration: underline;
+}
+
+.expenseNotes {
+  margin: 12px 0 0;
+  border-left: 2px solid #e4e0ff;
+  padding-left: 10px;
+  color: #777c87;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.emptyState {
+  display: grid;
+  min-height: 480px;
+  place-items: center;
+  align-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 17px;
+  color: #654bea;
+  background: #efecff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.emptyState h3 {
+  margin: 2px 0 8px;
+  color: #242630;
+  font-size: 19px;
+}
+
+.emptyState > p:not(.eyebrow) {
+  max-width: 390px;
+  margin: 0 0 20px;
+  color: #858a96;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.stateCard {
+  display: grid;
+  min-height: 500px;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.stateIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  color: #7054f6;
+  background: #f0edff;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.stateCard h2 {
+  margin: 0 0 8px;
+  color: #22242c;
+}
+
+.stateCard p {
+  max-width: 430px;
+  margin: 0 0 18px;
+  color: #818692;
+  font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .overviewGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .expensePanel {
+    padding: 18px;
+  }
+
+  .expenseTitleRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .expenseDetails {
+    gap: 8px 14px;
+  }
+
+  .detailsLink {
+    width: 100%;
+    margin-top: 4px;
+    margin-left: 0;
+  }
+}
