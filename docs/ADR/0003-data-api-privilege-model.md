@@ -1,6 +1,6 @@
 # ADR-0003: Data API privilege model
 
-**Status:** Proposed · **Date:** 2026-09-26 · **Detail:** design §A2, §A6, M2/M6/M8/M10
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** design §A2, §A6, M2/M6/M8/M10
 
 ## Context
 Postgres default privileges give `anon` and `authenticated` ALL on every new

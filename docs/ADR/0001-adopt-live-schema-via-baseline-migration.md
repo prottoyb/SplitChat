@@ -1,6 +1,6 @@
 # ADR-0001: Adopt the live Supabase schema via a repaired baseline migration
 
-**Status:** Proposed (Phase 1 design gate) · **Date:** 2026-09-26 · **Detail:** `docs/phase1/design.md` §A1
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** `docs/phase1/design.md` §A1
 
 ## Context
 The production `public` schema was built by hand and has no migration history

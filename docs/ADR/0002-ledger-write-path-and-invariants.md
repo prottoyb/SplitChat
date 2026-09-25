@@ -1,6 +1,6 @@
 # ADR-0002: Ledger write path and where financial invariants are enforced
 
-**Status:** Proposed · **Date:** 2026-09-26 · **Detail:** design §A3, M1/M3/M4
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** design §A3, M1/M3/M4
 
 ## Context
 `expenses` and `expense_splits` are writable directly by `authenticated`

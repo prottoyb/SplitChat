@@ -1,6 +1,6 @@
 # ADR-0007: Database migration test environment
 
-**Status:** Proposed · **Date:** 2026-09-26 · **Detail:** design §C, §D
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** design §C, §D
 
 ## Context
 No Docker, no Supabase CLI, no CI, no pgTAP. PostgreSQL 17 is installed

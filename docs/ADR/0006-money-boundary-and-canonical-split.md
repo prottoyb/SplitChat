@@ -1,6 +1,6 @@
 # ADR-0006: Integer cents at the API boundary and canonical equal-split allocation
 
-**Status:** Proposed · **Date:** 2026-09-26 · **Detail:** design §A7, §A8, M12
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** design §A7, §A8, M12
 
 ## Context
 Storage is `numeric(12,2)` (exact). The client sends `cents/100` as a JSON

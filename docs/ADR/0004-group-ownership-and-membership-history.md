@@ -1,6 +1,6 @@
 # ADR-0004: Group ownership source of truth and membership history
 
-**Status:** Proposed · **Date:** 2026-09-26 · **Detail:** design §A2, §A4, §A5, M7/M9/M10
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** design §A2, §A4, §A5, M7/M9/M10
 
 ## Context
 Ownership is recorded twice (`groups.created_by`, `group_members.role`) with

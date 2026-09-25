@@ -1,7 +1,8 @@
 # Phase 1 — Database & security hardening design
 
-**Status:** Proposed — awaiting the Phase 1 design approval gate. Amended
-after design review round 1 (see "Review resolutions", which take precedence).
+**Status:** **Approved** 2026-09-26, subject to "Operator decisions at design
+approval" below. Amended after design review round 1 (see "Review
+resolutions"). Both sections take precedence over conflicting text.
 **Scope:** design only. No migration has been written or applied; no live
 database operation has been performed for Phase 1.
 **Inputs:** `supabase/baseline/` (Phase 0, commit `cb2db08`), Phase 0 reviews,
@@ -370,6 +371,45 @@ M11 is proposed for prod. Fallback if it is not permitted: keep M5's RESTRICT
 (owner deletion blocked), and route account deletion through an explicit
 `request_account_deletion` RPC that performs the tombstone/ownership checks
 before an operator deletes the auth user — to be designed only if needed.
+
+## Operator decisions at design approval (2026-09-26)
+
+The design is **approved** subject to these decisions, which take precedence
+over the rest of this file.
+
+- **G1: former-member visibility.** Active members browse only **active**
+  members. `private.my_group_peer_ids()` returns active peers only, and
+  `profiles` RLS is `self OR active peer`. Former members get no directory.
+  To keep history intelligible, M8 adds
+  `get_ledger_identities(p_group_id uuid) RETURNS TABLE(user_id uuid,
+  display_name text)` (SECURITY DEFINER, `search_path=''`, authenticated
+  only). It is authorization-first: it raises `not_found_or_forbidden`
+  unless the caller is an active member. It returns **only** users
+  referenced by that group's ledger (`expenses.paid_by`,
+  `expenses.created_by`, `expense_splits.user_id`, and future settlements)
+  who are not active peers. It returns only the display name, which is the
+  tombstone "Deleted user" for deleted accounts; no avatar, email or
+  timestamps. Tests: a former member with no ledger rows is never returned;
+  an outsider gets `not_found_or_forbidden`; S9 differential.
+- **G2: no Admin role.** Roles are Owner and Member only.
+  `private.is_active_owner_of` stays the single extension point.
+- **G3: Supabase CLI.** A pinned exact-version devDependency
+  (`supabase` npm package, `--save-exact`), used without Docker.
+- **G4: SplitChat-Dev.** Creating one separate free-tier Supabase project
+  is approved, provided there is no billing, plan upgrade or add-on, and no
+  production data or secrets. Deleting it later is gated.
+- **G5: hosting.** Not decided in Phase 1; the frontend is treated as
+  local/dev. Frontend-dependent migrations (M10, M14) are implemented and
+  tested together with the frontend, rehearsed locally and in SplitChat-Dev,
+  and stay **blocked for production** until a compatible frontend
+  deployment exists. The required order is documented per batch.
+- **M16: deferred** to Phase 8.
+- **Production batches:** production operations may be proposed as
+  declared batches of tightly related, fully reviewed migrations, each with
+  the evidence package: exact operation, reviewed SQL, pre-checks, local
+  and SplitChat-Dev results, QA/Security and Senior verdicts, impact,
+  locking, rollback, and post-apply verification. Each batch still needs
+  its own explicit execution approval immediately before it is applied.
 
 ## Review resolutions (design review round 1)
 

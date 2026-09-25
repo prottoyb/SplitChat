@@ -1,6 +1,6 @@
 # ADR-0005: Account deletion preserves the historical ledger
 
-**Status:** Proposed · **Date:** 2026-09-26 · **Detail:** design §A5, M5/M11, CA-2
+**Status:** Accepted 2026-09-26 (Phase 1 design approval) · **Date:** 2026-09-26 · **Detail:** design §A5, M5/M11, CA-2
 
 ## Context
 Deleting an owner's auth user cascades `groups` → `expenses` →
