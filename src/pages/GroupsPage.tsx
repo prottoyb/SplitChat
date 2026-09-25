@@ -1,11 +1,10 @@
 import {
-  useCallback,
   useEffect,
   useState,
   type FormEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import { supabase } from '../lib/supabase'
 import styles from './GroupsPage.module.css'
 
@@ -32,30 +31,46 @@ function GroupsPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const loadGroups = useCallback(async () => {
-    setIsLoading(true)
-    setErrorMessage('')
+  const [reloadKey, setReloadKey] = useState(0)
 
-    const { data, error } = await supabase
-      .from('groups')
-      .select('id, name, description, created_by, created_at, updated_at')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Unable to load groups:', error)
-      setErrorMessage('Unable to load your groups.')
-      setGroups([])
-      setIsLoading(false)
-      return
-    }
-
-    setGroups(data ?? [])
-    setIsLoading(false)
-  }, [])
+  const reload = () => {
+    setReloadKey((key) => key + 1)
+  }
 
   useEffect(() => {
+    let cancelled = false
+
+    const loadGroups = async () => {
+      setIsLoading(true)
+      setErrorMessage('')
+
+      const { data, error } = await supabase
+        .from('groups')
+        .select('id, name, description, created_by, created_at, updated_at')
+        .order('created_at', { ascending: false })
+
+      if (cancelled) {
+        return
+      }
+
+      if (error) {
+        console.error('Unable to load groups:', error)
+        setErrorMessage('Unable to load your groups.')
+        setGroups([])
+        setIsLoading(false)
+        return
+      }
+
+      setGroups(data ?? [])
+      setIsLoading(false)
+    }
+
     void loadGroups()
-  }, [loadGroups])
+
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
 
   const resetForm = () => {
     setName('')
@@ -115,7 +130,7 @@ function GroupsPage() {
         throw error
       }
 
-      await loadGroups()
+      reload()
 
       resetForm()
       setShowCreateForm(false)

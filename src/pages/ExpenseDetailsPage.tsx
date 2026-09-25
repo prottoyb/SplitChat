@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -8,7 +7,7 @@ import {
   Link,
   useParams,
 } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import { supabase } from '../lib/supabase'
 import styles from './ExpenseDetailsPage.module.css'
 
@@ -130,266 +129,285 @@ function ExpenseDetailsPage() {
   const [errorMessage, setErrorMessage] =
     useState('')
 
-  const loadExpense = useCallback(async () => {
-    if (!expenseId) {
-      setErrorMessage(
-        'Expense ID is missing.',
-      )
-      setIsLoading(false)
-      return
-    }
+  useEffect(() => {
+    let cancelled = false
 
-    setIsLoading(true)
-    setErrorMessage('')
-
-    const {
-      data: expenseData,
-      error: expenseError,
-    } = await supabase
-      .from('expenses')
-      .select(
-        `
-        id,
-        group_id,
-        description,
-        amount,
-        expense_date,
-        paid_by,
-        created_by,
-        split_type,
-        notes,
-        created_at,
-        updated_at
-        `,
-      )
-      .eq('id', expenseId)
-      .limit(1)
-
-    if (expenseError) {
-      console.error(
-        'Unable to load expense:',
-        expenseError,
-      )
-
-      setDetails(null)
-
-      setErrorMessage(
-        'Unable to load this expense.',
-      )
-
-      setIsLoading(false)
-      return
-    }
-
-    const loadedExpense =
-      (expenseData?.[0] as
-        | Expense
-        | undefined) ?? null
-
-    if (!loadedExpense) {
-      setDetails(null)
-
-      setErrorMessage(
-        'This expense does not exist or you do not have access to it.',
-      )
-
-      setIsLoading(false)
-      return
-    }
-
-    const [
-      groupResult,
-      splitResult,
-    ] = await Promise.all([
-      supabase
-        .from('groups')
-        .select(
-          'id, name, description',
+    const loadExpense = async () => {
+      if (!expenseId) {
+        setErrorMessage(
+          'Expense ID is missing.',
         )
-        .eq(
-          'id',
-          loadedExpense.group_id,
-        )
-        .limit(1),
+        setIsLoading(false)
+        return
+      }
 
-      supabase
-        .from('expense_splits')
+      setIsLoading(true)
+      setErrorMessage('')
+
+      const {
+        data: expenseData,
+        error: expenseError,
+      } = await supabase
+        .from('expenses')
         .select(
           `
-          expense_id,
-          user_id,
-          share_amount,
-          percentage,
-          created_at
+          id,
+          group_id,
+          description,
+          amount,
+          expense_date,
+          paid_by,
+          created_by,
+          split_type,
+          notes,
+          created_at,
+          updated_at
           `,
         )
-        .eq(
-          'expense_id',
-          loadedExpense.id,
-        )
-        .order('created_at', {
-          ascending: true,
-        }),
-    ])
+        .eq('id', expenseId)
+        .limit(1)
 
-    if (groupResult.error) {
-      console.error(
-        'Unable to load expense group:',
-        groupResult.error,
-      )
+      if (cancelled) {
+        return
+      }
 
-      setDetails(null)
-
-      setErrorMessage(
-        'Unable to load the expense group.',
-      )
-
-      setIsLoading(false)
-      return
-    }
-
-    if (splitResult.error) {
-      console.error(
-        'Unable to load expense splits:',
-        splitResult.error,
-      )
-
-      setDetails(null)
-
-      setErrorMessage(
-        'Unable to load the expense split information.',
-      )
-
-      setIsLoading(false)
-      return
-    }
-
-    const loadedGroup =
-      (groupResult.data?.[0] as
-        | Group
-        | undefined) ?? null
-
-    if (!loadedGroup) {
-      setDetails(null)
-
-      setErrorMessage(
-        'The group for this expense is unavailable.',
-      )
-
-      setIsLoading(false)
-      return
-    }
-
-    const loadedSplits =
-      (splitResult.data ??
-        []) as ExpenseSplit[]
-
-    const profileIds = Array.from(
-      new Set([
-        loadedExpense.paid_by,
-        loadedExpense.created_by,
-        ...loadedSplits.map(
-          (split) => split.user_id,
-        ),
-      ]),
-    )
-
-    let profiles: Profile[] = []
-
-    if (profileIds.length > 0) {
-      const {
-        data: profileData,
-        error: profileError,
-      } = await supabase
-        .from('profiles')
-        .select(
-          'id, full_name, avatar_url',
-        )
-        .in('id', profileIds)
-
-      if (profileError) {
+      if (expenseError) {
         console.error(
-          'Unable to load expense profiles:',
-          profileError,
+          'Unable to load expense:',
+          expenseError,
         )
 
         setDetails(null)
 
         setErrorMessage(
-          'Unable to load the expense member information.',
+          'Unable to load this expense.',
         )
 
         setIsLoading(false)
         return
       }
 
-      profiles =
-        (profileData ?? []) as Profile[]
+      const loadedExpense =
+        (expenseData?.[0] as
+          | Expense
+          | undefined) ?? null
+
+      if (!loadedExpense) {
+        setDetails(null)
+
+        setErrorMessage(
+          'This expense does not exist or you do not have access to it.',
+        )
+
+        setIsLoading(false)
+        return
+      }
+
+      const [
+        groupResult,
+        splitResult,
+      ] = await Promise.all([
+        supabase
+          .from('groups')
+          .select(
+            'id, name, description',
+          )
+          .eq(
+            'id',
+            loadedExpense.group_id,
+          )
+          .limit(1),
+
+        supabase
+          .from('expense_splits')
+          .select(
+            `
+            expense_id,
+            user_id,
+            share_amount,
+            percentage,
+            created_at
+            `,
+          )
+          .eq(
+            'expense_id',
+            loadedExpense.id,
+          )
+          .order('created_at', {
+            ascending: true,
+          }),
+      ])
+
+      if (cancelled) {
+        return
+      }
+
+      if (groupResult.error) {
+        console.error(
+          'Unable to load expense group:',
+          groupResult.error,
+        )
+
+        setDetails(null)
+
+        setErrorMessage(
+          'Unable to load the expense group.',
+        )
+
+        setIsLoading(false)
+        return
+      }
+
+      if (splitResult.error) {
+        console.error(
+          'Unable to load expense splits:',
+          splitResult.error,
+        )
+
+        setDetails(null)
+
+        setErrorMessage(
+          'Unable to load the expense split information.',
+        )
+
+        setIsLoading(false)
+        return
+      }
+
+      const loadedGroup =
+        (groupResult.data?.[0] as
+          | Group
+          | undefined) ?? null
+
+      if (!loadedGroup) {
+        setDetails(null)
+
+        setErrorMessage(
+          'The group for this expense is unavailable.',
+        )
+
+        setIsLoading(false)
+        return
+      }
+
+      const loadedSplits =
+        (splitResult.data ??
+          []) as ExpenseSplit[]
+
+      const profileIds = Array.from(
+        new Set([
+          loadedExpense.paid_by,
+          loadedExpense.created_by,
+          ...loadedSplits.map(
+            (split) => split.user_id,
+          ),
+        ]),
+      )
+
+      let profiles: Profile[] = []
+
+      if (profileIds.length > 0) {
+        const {
+          data: profileData,
+          error: profileError,
+        } = await supabase
+          .from('profiles')
+          .select(
+            'id, full_name, avatar_url',
+          )
+          .in('id', profileIds)
+
+        if (cancelled) {
+          return
+        }
+
+        if (profileError) {
+          console.error(
+            'Unable to load expense profiles:',
+            profileError,
+          )
+
+          setDetails(null)
+
+          setErrorMessage(
+            'Unable to load the expense member information.',
+          )
+
+          setIsLoading(false)
+          return
+        }
+
+        profiles =
+          (profileData ?? []) as Profile[]
+      }
+
+      const profileMap = new Map(
+        profiles.map((profile) => [
+          profile.id,
+          profile.full_name?.trim() ||
+            'SplitChat member',
+        ]),
+      )
+
+      const displaySplits: DisplaySplit[] =
+        loadedSplits.map((split) => ({
+          userId: split.user_id,
+
+          fullName:
+            profileMap.get(split.user_id) ||
+            'SplitChat member',
+
+          shareAmount:
+            Number(split.share_amount),
+
+          percentage:
+            split.percentage === null
+              ? null
+              : Number(split.percentage),
+        }))
+
+      setDetails({
+        expense: loadedExpense,
+
+        group: loadedGroup,
+
+        payerName:
+          profileMap.get(
+            loadedExpense.paid_by,
+          ) || 'SplitChat member',
+
+        creatorName:
+          profileMap.get(
+            loadedExpense.created_by,
+          ) || 'SplitChat member',
+
+        splits: displaySplits,
+      })
+
+      setIsLoading(false)
     }
 
-    const profileMap = new Map(
-      profiles.map((profile) => [
-        profile.id,
-        profile.full_name?.trim() ||
-          'SplitChat member',
-      ]),
-    )
+    void loadExpense()
 
-    const displaySplits: DisplaySplit[] =
-      loadedSplits.map((split) => ({
-        userId: split.user_id,
-
-        fullName:
-          profileMap.get(split.user_id) ||
-          'SplitChat member',
-
-        shareAmount:
-          Number(split.share_amount),
-
-        percentage:
-          split.percentage === null
-            ? null
-            : Number(split.percentage),
-      }))
-
-    setDetails({
-      expense: loadedExpense,
-
-      group: loadedGroup,
-
-      payerName:
-        profileMap.get(
-          loadedExpense.paid_by,
-        ) || 'SplitChat member',
-
-      creatorName:
-        profileMap.get(
-          loadedExpense.created_by,
-        ) || 'SplitChat member',
-
-      splits: displaySplits,
-    })
-
-    setIsLoading(false)
+    return () => {
+      cancelled = true
+    }
   }, [expenseId])
 
-  useEffect(() => {
-    void loadExpense()
-  }, [loadExpense])
+  const userId = session?.user.id
 
   const yourShare = useMemo(() => {
-    if (!details || !session?.user.id) {
+    if (!details || !userId) {
       return null
     }
 
     const split = details.splits.find(
       (item) =>
-        item.userId ===
-        session.user.id,
+        item.userId === userId,
     )
 
     return split?.shareAmount ?? null
-  }, [details, session?.user.id])
+  }, [details, userId])
 
   const splitTotal = useMemo(() => {
     if (!details) {

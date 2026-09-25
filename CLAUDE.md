@@ -210,7 +210,7 @@ Expense-splitting app for groups. Follow the AI Software Team V3 rules above for
 
 - **Stack:** React 19 + TypeScript + Vite, React Router, CSS Modules (`*.module.css` beside each page), Supabase (`@supabase/supabase-js`) for auth, database and RLS. No backend server of our own.
 - **Layout:** `src/pages/` routes, `src/layouts/` shells, `src/auth/` (AuthContext, ProtectedRoute), `src/lib/supabase.ts` client.
-- **Checks (run before claiming done):** `npm run lint` and `npm run build` (`tsc -b && vite build`). No test runner exists yet; adding one (e.g. Vitest) is a dependency change, so treat it as significant and propose it first.
+- **Checks (run before claiming done):** `npm run lint`, `npm run build` (`tsc -b && vite build`) and `npm test`. Tests use Vitest + React Testing Library (jsdom); `npm run test:watch` for watch mode. Tests sit beside the code as `*.test.ts(x)`; shared setup and the Supabase mock are in `src/test/`. Pure money/split logic lives in `src/lib/` and must stay covered by unit tests.
 - **Secrets:** `.env.local` holds Supabase config and is git-ignored. Never commit it or print its values; only the public anon key belongs in the client, never a service-role key.
 - **SENSITIVE by default:** anything touching auth, group membership, Supabase RLS/policies, or who can see/edit another member's expenses (tenant isolation between groups). Use `project-security-review`.
 - **Database:** schema/RLS changes are destructive or multi-consumer risk; keep SQL migrations in `supabase/migrations/` and get execution approval before applying anything to the live project.

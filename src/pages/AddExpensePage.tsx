@@ -1,13 +1,20 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
   type FormEvent,
 } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import { supabase } from '../lib/supabase'
+import {
+  calculateEqualSplit,
+  validateExpenseInput,
+} from '../lib/expenseSplit'
+import {
+  centsToAmount,
+  parseAmountToCents,
+} from '../lib/money'
 import styles from './AddExpensePage.module.css'
 
 type Group = {
@@ -87,148 +94,168 @@ function AddExpensePage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const loadExpenseContext = useCallback(async () => {
-    if (!groupId) {
-      setErrorMessage('Group ID is missing.')
-      setIsLoading(false)
-      return
-    }
+  const userId = session?.user.id
 
-    setIsLoading(true)
-    setErrorMessage('')
+  useEffect(() => {
+    let cancelled = false
 
-    const { data: groupData, error: groupError } =
-      await supabase
-        .from('groups')
-        .select('id, name, description')
-        .eq('id', groupId)
-        .limit(1)
+    const loadExpenseContext = async () => {
+      if (!groupId) {
+        setErrorMessage('Group ID is missing.')
+        setIsLoading(false)
+        return
+      }
 
-    if (groupError) {
-      console.error(
-        'Unable to load expense group:',
-        groupError,
-      )
+      setIsLoading(true)
+      setErrorMessage('')
 
-      setGroup(null)
-      setMembers([])
-      setErrorMessage('Unable to load this group.')
-      setIsLoading(false)
-      return
-    }
-
-    const loadedGroup = groupData?.[0] ?? null
-
-    if (!loadedGroup) {
-      setGroup(null)
-      setMembers([])
-      setErrorMessage(
-        'This group does not exist or you do not have access to it.',
-      )
-      setIsLoading(false)
-      return
-    }
-
-    const {
-      data: membershipData,
-      error: membershipError,
-    } = await supabase
-      .from('group_members')
-      .select('group_id, user_id, role, joined_at')
-      .eq('group_id', groupId)
-      .order('joined_at', { ascending: true })
-
-    if (membershipError) {
-      console.error(
-        'Unable to load expense members:',
-        membershipError,
-      )
-
-      setGroup(loadedGroup)
-      setMembers([])
-      setErrorMessage('Unable to load the group members.')
-      setIsLoading(false)
-      return
-    }
-
-    const memberships =
-      (membershipData ?? []) as GroupMembership[]
-
-    const memberIds = memberships.map(
-      (membership) => membership.user_id,
-    )
-
-    let profiles: MemberProfile[] = []
-
-    if (memberIds.length > 0) {
-      const { data: profileData, error: profileError } =
+      const { data: groupData, error: groupError } =
         await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', memberIds)
+          .from('groups')
+          .select('id, name, description')
+          .eq('id', groupId)
+          .limit(1)
 
-      if (profileError) {
+      if (cancelled) {
+        return
+      }
+
+      if (groupError) {
         console.error(
-          'Unable to load expense member profiles:',
-          profileError,
+          'Unable to load expense group:',
+          groupError,
         )
 
-        setGroup(loadedGroup)
+        setGroup(null)
+        setMembers([])
+        setErrorMessage('Unable to load this group.')
+        setIsLoading(false)
+        return
+      }
+
+      const loadedGroup = groupData?.[0] ?? null
+
+      if (!loadedGroup) {
+        setGroup(null)
         setMembers([])
         setErrorMessage(
-          'Unable to load the group member profiles.',
+          'This group does not exist or you do not have access to it.',
         )
         setIsLoading(false)
         return
       }
 
-      profiles = (profileData ?? []) as MemberProfile[]
-    }
+      const {
+        data: membershipData,
+        error: membershipError,
+      } = await supabase
+        .from('group_members')
+        .select('group_id, user_id, role, joined_at')
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: true })
 
-    const profileMap = new Map(
-      profiles.map((profile) => [profile.id, profile]),
-    )
+      if (cancelled) {
+        return
+      }
 
-    const displayMembers: DisplayMember[] =
-      memberships.map((membership) => {
-        const profile = profileMap.get(
-          membership.user_id,
+      if (membershipError) {
+        console.error(
+          'Unable to load expense members:',
+          membershipError,
         )
 
-        return {
-          userId: membership.user_id,
-          fullName:
-            profile?.full_name?.trim() ||
-            'SplitChat member',
-          avatarUrl: profile?.avatar_url ?? null,
-          role: membership.role,
+        setGroup(loadedGroup)
+        setMembers([])
+        setErrorMessage('Unable to load the group members.')
+        setIsLoading(false)
+        return
+      }
+
+      const memberships =
+        (membershipData ?? []) as GroupMembership[]
+
+      const memberIds = memberships.map(
+        (membership) => membership.user_id,
+      )
+
+      let profiles: MemberProfile[] = []
+
+      if (memberIds.length > 0) {
+        const { data: profileData, error: profileError } =
+          await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', memberIds)
+
+        if (cancelled) {
+          return
         }
-      })
 
-    setGroup(loadedGroup)
-    setMembers(displayMembers)
+        if (profileError) {
+          console.error(
+            'Unable to load expense member profiles:',
+            profileError,
+          )
 
-    setParticipantIds(
-      displayMembers.map((member) => member.userId),
-    )
+          setGroup(loadedGroup)
+          setMembers([])
+          setErrorMessage(
+            'Unable to load the group member profiles.',
+          )
+          setIsLoading(false)
+          return
+        }
 
-    const currentUserIsMember = displayMembers.some(
-      (member) =>
-        member.userId === session?.user.id,
-    )
+        profiles = (profileData ?? []) as MemberProfile[]
+      }
 
-    if (currentUserIsMember && session?.user.id) {
-      setPaidBy(session.user.id)
-    } else {
-      setPaidBy(displayMembers[0]?.userId ?? '')
+      const profileMap = new Map(
+        profiles.map((profile) => [profile.id, profile]),
+      )
+
+      const displayMembers: DisplayMember[] =
+        memberships.map((membership) => {
+          const profile = profileMap.get(
+            membership.user_id,
+          )
+
+          return {
+            userId: membership.user_id,
+            fullName:
+              profile?.full_name?.trim() ||
+              'SplitChat member',
+            avatarUrl: profile?.avatar_url ?? null,
+            role: membership.role,
+          }
+        })
+
+      setGroup(loadedGroup)
+      setMembers(displayMembers)
+
+      setParticipantIds(
+        displayMembers.map((member) => member.userId),
+      )
+
+      const currentUserIsMember = displayMembers.some(
+        (member) =>
+          member.userId === userId,
+      )
+
+      if (currentUserIsMember && userId) {
+        setPaidBy(userId)
+      } else {
+        setPaidBy(displayMembers[0]?.userId ?? '')
+      }
+
+      setIsLoading(false)
     }
 
-    setIsLoading(false)
-  }, [groupId, session?.user.id])
-
-  useEffect(() => {
     void loadExpenseContext()
-  }, [loadExpenseContext])
+
+    return () => {
+      cancelled = true
+    }
+  }, [groupId, userId])
 
   const selectedMembers = useMemo(
     () =>
@@ -239,37 +266,22 @@ function AddExpensePage() {
   )
 
   const splitPreview = useMemo<SplitPreview[]>(() => {
-    const numericAmount = Number(amount)
+    const parsedAmount = parseAmountToCents(amount)
 
-    if (
-      !Number.isFinite(numericAmount) ||
-      numericAmount <= 0 ||
-      selectedMembers.length === 0
-    ) {
+    if (!parsedAmount.ok) {
       return []
     }
 
-    const totalCents = Math.round(
-      numericAmount * 100,
+    const shares = calculateEqualSplit(
+      parsedAmount.cents,
+      selectedMembers.length,
     )
 
-    const baseCents = Math.floor(
-      totalCents / selectedMembers.length,
-    )
-
-    const remainder =
-      totalCents % selectedMembers.length
-
-    return selectedMembers.map((member, index) => {
-      const shareCents =
-        baseCents + (index < remainder ? 1 : 0)
-
-      return {
-        userId: member.userId,
-        fullName: member.fullName,
-        shareAmount: shareCents / 100,
-      }
-    })
+    return selectedMembers.map((member, index) => ({
+      userId: member.userId,
+      fullName: member.fullName,
+      shareAmount: centsToAmount(shares[index]),
+    }))
   }, [amount, selectedMembers])
 
   const toggleParticipant = (userId: string) => {
@@ -309,86 +321,22 @@ function AddExpensePage() {
       return
     }
 
-    const cleanDescription = description.trim()
-    const cleanNotes = notes.trim()
+    const validation = validateExpenseInput({
+      description,
+      amount,
+      expenseDate,
+      paidBy,
+      participantIds,
+      notes,
+      memberIds: members.map((member) => member.userId),
+    })
 
-    if (!cleanDescription) {
-      setErrorMessage(
-        'Please enter an expense description.',
-      )
+    if (!validation.ok) {
+      setErrorMessage(validation.error)
       return
     }
 
-    if (cleanDescription.length > 120) {
-      setErrorMessage(
-        'Expense description cannot exceed 120 characters.',
-      )
-      return
-    }
-
-    if (!amount.trim()) {
-      setErrorMessage('Please enter an amount.')
-      return
-    }
-
-    const amountNumber = Number(amount)
-
-    if (
-      !Number.isFinite(amountNumber) ||
-      amountNumber <= 0
-    ) {
-      setErrorMessage(
-        'Expense amount must be greater than zero.',
-      )
-      return
-    }
-
-    const decimalPart =
-      amount.trim().split('.')[1] ?? ''
-
-    if (decimalPart.length > 2) {
-      setErrorMessage(
-        'Expense amount can have at most 2 decimal places.',
-      )
-      return
-    }
-
-    if (!expenseDate) {
-      setErrorMessage(
-        'Please select the expense date.',
-      )
-      return
-    }
-
-    if (!paidBy) {
-      setErrorMessage('Please select who paid.')
-      return
-    }
-
-    if (participantIds.length === 0) {
-      setErrorMessage(
-        'Please select at least one participant.',
-      )
-      return
-    }
-
-    const totalCents = Math.round(
-      amountNumber * 100,
-    )
-
-    if (totalCents < participantIds.length) {
-      setErrorMessage(
-        'The amount is too small to split between the selected participants.',
-      )
-      return
-    }
-
-    if (cleanNotes.length > 500) {
-      setErrorMessage(
-        'Notes cannot exceed 500 characters.',
-      )
-      return
-    }
+    const expense = validation.value
 
     try {
       setIsSubmitting(true)
@@ -397,12 +345,12 @@ function AddExpensePage() {
         'create_equal_split_expense',
         {
           p_group_id: groupId,
-          p_description: cleanDescription,
-          p_amount: amountNumber,
-          p_expense_date: expenseDate,
-          p_paid_by: paidBy,
-          p_participant_ids: participantIds,
-          p_notes: cleanNotes || null,
+          p_description: expense.description,
+          p_amount: centsToAmount(expense.amountCents),
+          p_expense_date: expense.expenseDate,
+          p_paid_by: expense.paidBy,
+          p_participant_ids: expense.participantIds,
+          p_notes: expense.notes,
         },
       )
 

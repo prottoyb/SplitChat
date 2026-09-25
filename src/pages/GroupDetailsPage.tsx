@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useState,
   type FormEvent,
@@ -9,7 +8,7 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import { supabase } from '../lib/supabase'
 import styles from './GroupDetailsPage.module.css'
 
@@ -69,132 +68,156 @@ function GroupDetailsPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const loadGroup = useCallback(async () => {
-    if (!groupId) {
-      setErrorMessage('Group ID is missing.')
-      setIsLoading(false)
-      return
-    }
+  const [reloadKey, setReloadKey] = useState(0)
 
-    setIsLoading(true)
-    setErrorMessage('')
+  const reload = () => {
+    setReloadKey((key) => key + 1)
+  }
 
-    const { data: groupData, error: groupError } =
-      await supabase
-        .from('groups')
-        .select(
-          'id, name, description, created_by, created_at, updated_at',
-        )
-        .eq('id', groupId)
-        .limit(1)
+  useEffect(() => {
+    let cancelled = false
 
-    if (groupError) {
-      console.error('Unable to load group:', groupError)
-
-      setGroup(null)
-      setMembers([])
-      setErrorMessage('Unable to load this group.')
-      setIsLoading(false)
-      return
-    }
-
-    const loadedGroup = groupData?.[0] ?? null
-
-    if (!loadedGroup) {
-      setGroup(null)
-      setMembers([])
-      setErrorMessage(
-        'This group does not exist or you do not have access to it.',
-      )
-      setIsLoading(false)
-      return
-    }
-
-    const {
-      data: membershipData,
-      error: membershipError,
-    } = await supabase
-      .from('group_members')
-      .select('group_id, user_id, role, joined_at')
-      .eq('group_id', groupId)
-      .order('joined_at', { ascending: true })
-
-    if (membershipError) {
-      console.error(
-        'Unable to load group members:',
-        membershipError,
-      )
-
-      setGroup(loadedGroup)
-      setMembers([])
-      setErrorMessage('Unable to load the group members.')
-      setIsLoading(false)
-      return
-    }
-
-    const memberships =
-      (membershipData ?? []) as GroupMembership[]
-
-    const memberIds = memberships.map(
-      (membership) => membership.user_id,
-    )
-
-    let profiles: MemberProfile[] = []
-
-    if (memberIds.length > 0) {
-      const {
-        data: profileData,
-        error: profileError,
-      } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', memberIds)
-
-      if (profileError) {
-        console.error(
-          'Unable to load member profiles:',
-          profileError,
-        )
-
-        setGroup(loadedGroup)
-        setMembers([])
-        setErrorMessage('Unable to load member profiles.')
+    const loadGroup = async () => {
+      if (!groupId) {
+        setErrorMessage('Group ID is missing.')
         setIsLoading(false)
         return
       }
 
-      profiles = (profileData ?? []) as MemberProfile[]
-    }
+      setIsLoading(true)
+      setErrorMessage('')
 
-    const profileMap = new Map(
-      profiles.map((profile) => [profile.id, profile]),
-    )
+      const { data: groupData, error: groupError } =
+        await supabase
+          .from('groups')
+          .select(
+            'id, name, description, created_by, created_at, updated_at',
+          )
+          .eq('id', groupId)
+          .limit(1)
 
-    const displayMembers: DisplayMember[] =
-      memberships.map((membership) => {
-        const profile = profileMap.get(
-          membership.user_id,
+      if (cancelled) {
+        return
+      }
+
+      if (groupError) {
+        console.error('Unable to load group:', groupError)
+
+        setGroup(null)
+        setMembers([])
+        setErrorMessage('Unable to load this group.')
+        setIsLoading(false)
+        return
+      }
+
+      const loadedGroup = groupData?.[0] ?? null
+
+      if (!loadedGroup) {
+        setGroup(null)
+        setMembers([])
+        setErrorMessage(
+          'This group does not exist or you do not have access to it.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      const {
+        data: membershipData,
+        error: membershipError,
+      } = await supabase
+        .from('group_members')
+        .select('group_id, user_id, role, joined_at')
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: true })
+
+      if (cancelled) {
+        return
+      }
+
+      if (membershipError) {
+        console.error(
+          'Unable to load group members:',
+          membershipError,
         )
 
-        return {
-          userId: membership.user_id,
-          fullName:
-            profile?.full_name?.trim() ||
-            'SplitChat member',
-          avatarUrl: profile?.avatar_url ?? null,
-          role: membership.role,
-          joinedAt: membership.joined_at,
+        setGroup(loadedGroup)
+        setMembers([])
+        setErrorMessage('Unable to load the group members.')
+        setIsLoading(false)
+        return
+      }
+
+      const memberships =
+        (membershipData ?? []) as GroupMembership[]
+
+      const memberIds = memberships.map(
+        (membership) => membership.user_id,
+      )
+
+      let profiles: MemberProfile[] = []
+
+      if (memberIds.length > 0) {
+        const {
+          data: profileData,
+          error: profileError,
+        } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', memberIds)
+
+        if (cancelled) {
+          return
         }
-      })
 
-    setGroup(loadedGroup)
-    setMembers(displayMembers)
-    setIsLoading(false)
-  }, [groupId])
+        if (profileError) {
+          console.error(
+            'Unable to load member profiles:',
+            profileError,
+          )
 
-  useEffect(() => {
+          setGroup(loadedGroup)
+          setMembers([])
+          setErrorMessage('Unable to load member profiles.')
+          setIsLoading(false)
+          return
+        }
+
+        profiles = (profileData ?? []) as MemberProfile[]
+      }
+
+      const profileMap = new Map(
+        profiles.map((profile) => [profile.id, profile]),
+      )
+
+      const displayMembers: DisplayMember[] =
+        memberships.map((membership) => {
+          const profile = profileMap.get(
+            membership.user_id,
+          )
+
+          return {
+            userId: membership.user_id,
+            fullName:
+              profile?.full_name?.trim() ||
+              'SplitChat member',
+            avatarUrl: profile?.avatar_url ?? null,
+            role: membership.role,
+            joinedAt: membership.joined_at,
+          }
+        })
+
+      setGroup(loadedGroup)
+      setMembers(displayMembers)
+      setIsLoading(false)
+    }
+
     void loadGroup()
-  }, [loadGroup])
+
+    return () => {
+      cancelled = true
+    }
+  }, [groupId, reloadKey])
 
   const handleAddMember = async (
     event: FormEvent<HTMLFormElement>,
@@ -242,7 +265,7 @@ function GroupDetailsPage() {
 
       setMemberEmail('')
 
-      await loadGroup()
+      reload()
 
       setSuccessMessage(
         'Member added successfully. They can now access this group.',
@@ -318,7 +341,7 @@ function GroupDetailsPage() {
 
       setPendingRemovalUserId(null)
 
-      await loadGroup()
+      reload()
 
       setSuccessMessage(
         `${member.fullName} was removed from the group.`,

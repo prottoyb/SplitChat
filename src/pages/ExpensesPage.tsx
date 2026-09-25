@@ -1,11 +1,10 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import { supabase } from '../lib/supabase'
 import styles from './ExpensesPage.module.css'
 
@@ -97,225 +96,245 @@ function ExpensesPage() {
   const [errorMessage, setErrorMessage] =
     useState('')
 
-  const loadExpenses = useCallback(async () => {
-    const userId = session?.user.id
+  const userId = session?.user.id
 
-    if (!userId) {
-      setExpenses([])
-      setErrorMessage(
-        'Your session information is unavailable.',
-      )
-      setIsLoading(false)
-      return
-    }
+  const [reloadKey, setReloadKey] = useState(0)
 
-    setIsLoading(true)
-    setErrorMessage('')
-
-    const {
-      data: expenseData,
-      error: expenseError,
-    } = await supabase
-      .from('expenses')
-      .select(
-        `
-        id,
-        group_id,
-        description,
-        amount,
-        expense_date,
-        paid_by,
-        created_by,
-        split_type,
-        notes,
-        created_at,
-        updated_at
-        `,
-      )
-      .order('expense_date', {
-        ascending: false,
-      })
-      .order('created_at', {
-        ascending: false,
-      })
-
-    if (expenseError) {
-      console.error(
-        'Unable to load expenses:',
-        expenseError,
-      )
-
-      setExpenses([])
-      setErrorMessage(
-        'Unable to load your expenses.',
-      )
-      setIsLoading(false)
-      return
-    }
-
-    const loadedExpenses =
-      (expenseData ?? []) as Expense[]
-
-    if (loadedExpenses.length === 0) {
-      setExpenses([])
-      setIsLoading(false)
-      return
-    }
-
-    const groupIds = Array.from(
-      new Set(
-        loadedExpenses.map(
-          (expense) => expense.group_id,
-        ),
-      ),
-    )
-
-    const profileIds = Array.from(
-      new Set(
-        loadedExpenses.map(
-          (expense) => expense.paid_by,
-        ),
-      ),
-    )
-
-    const expenseIds = loadedExpenses.map(
-      (expense) => expense.id,
-    )
-
-    const [
-      groupResult,
-      profileResult,
-      splitResult,
-    ] = await Promise.all([
-      supabase
-        .from('groups')
-        .select('id, name')
-        .in('id', groupIds),
-
-      supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', profileIds),
-
-      supabase
-        .from('expense_splits')
-        .select(
-          'expense_id, user_id, share_amount',
-        )
-        .in('expense_id', expenseIds)
-        .eq('user_id', userId),
-    ])
-
-    if (groupResult.error) {
-      console.error(
-        'Unable to load expense groups:',
-        groupResult.error,
-      )
-
-      setExpenses([])
-      setErrorMessage(
-        'Unable to load expense group information.',
-      )
-      setIsLoading(false)
-      return
-    }
-
-    if (profileResult.error) {
-      console.error(
-        'Unable to load expense profiles:',
-        profileResult.error,
-      )
-
-      setExpenses([])
-      setErrorMessage(
-        'Unable to load expense member information.',
-      )
-      setIsLoading(false)
-      return
-    }
-
-    if (splitResult.error) {
-      console.error(
-        'Unable to load your expense shares:',
-        splitResult.error,
-      )
-
-      setExpenses([])
-      setErrorMessage(
-        'Unable to load your expense shares.',
-      )
-      setIsLoading(false)
-      return
-    }
-
-    const groups =
-      (groupResult.data ?? []) as Group[]
-
-    const profiles =
-      (profileResult.data ?? []) as Profile[]
-
-    const userSplits =
-      (splitResult.data ?? []) as ExpenseSplit[]
-
-    const groupMap = new Map(
-      groups.map((group) => [
-        group.id,
-        group.name,
-      ]),
-    )
-
-    const profileMap = new Map(
-      profiles.map((profile) => [
-        profile.id,
-        profile.full_name?.trim() ||
-          'SplitChat member',
-      ]),
-    )
-
-    const splitMap = new Map(
-      userSplits.map((split) => [
-        split.expense_id,
-        Number(split.share_amount),
-      ]),
-    )
-
-    const displayExpenses: DisplayExpense[] =
-      loadedExpenses.map((expense) => ({
-        id: expense.id,
-
-        groupId: expense.group_id,
-
-        groupName:
-          groupMap.get(expense.group_id) ||
-          'SplitChat group',
-
-        description: expense.description,
-
-        amount: Number(expense.amount),
-
-        expenseDate: expense.expense_date,
-
-        paidById: expense.paid_by,
-
-        paidByName:
-          profileMap.get(expense.paid_by) ||
-          'SplitChat member',
-
-        splitType: expense.split_type,
-
-        notes: expense.notes,
-
-        yourShare:
-          splitMap.get(expense.id) ?? null,
-      }))
-
-    setExpenses(displayExpenses)
-    setIsLoading(false)
-  }, [session?.user.id])
+  const reload = () => {
+    setReloadKey((key) => key + 1)
+  }
 
   useEffect(() => {
+    let cancelled = false
+
+    const loadExpenses = async () => {
+      if (!userId) {
+        setExpenses([])
+        setErrorMessage(
+          'Your session information is unavailable.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      setIsLoading(true)
+      setErrorMessage('')
+
+      const {
+        data: expenseData,
+        error: expenseError,
+      } = await supabase
+        .from('expenses')
+        .select(
+          `
+          id,
+          group_id,
+          description,
+          amount,
+          expense_date,
+          paid_by,
+          created_by,
+          split_type,
+          notes,
+          created_at,
+          updated_at
+          `,
+        )
+        .order('expense_date', {
+          ascending: false,
+        })
+        .order('created_at', {
+          ascending: false,
+        })
+
+      if (cancelled) {
+        return
+      }
+
+      if (expenseError) {
+        console.error(
+          'Unable to load expenses:',
+          expenseError,
+        )
+
+        setExpenses([])
+        setErrorMessage(
+          'Unable to load your expenses.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      const loadedExpenses =
+        (expenseData ?? []) as Expense[]
+
+      if (loadedExpenses.length === 0) {
+        setExpenses([])
+        setIsLoading(false)
+        return
+      }
+
+      const groupIds = Array.from(
+        new Set(
+          loadedExpenses.map(
+            (expense) => expense.group_id,
+          ),
+        ),
+      )
+
+      const profileIds = Array.from(
+        new Set(
+          loadedExpenses.map(
+            (expense) => expense.paid_by,
+          ),
+        ),
+      )
+
+      const expenseIds = loadedExpenses.map(
+        (expense) => expense.id,
+      )
+
+      const [
+        groupResult,
+        profileResult,
+        splitResult,
+      ] = await Promise.all([
+        supabase
+          .from('groups')
+          .select('id, name')
+          .in('id', groupIds),
+
+        supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', profileIds),
+
+        supabase
+          .from('expense_splits')
+          .select(
+            'expense_id, user_id, share_amount',
+          )
+          .in('expense_id', expenseIds)
+          .eq('user_id', userId),
+      ])
+
+      if (cancelled) {
+        return
+      }
+
+      if (groupResult.error) {
+        console.error(
+          'Unable to load expense groups:',
+          groupResult.error,
+        )
+
+        setExpenses([])
+        setErrorMessage(
+          'Unable to load expense group information.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      if (profileResult.error) {
+        console.error(
+          'Unable to load expense profiles:',
+          profileResult.error,
+        )
+
+        setExpenses([])
+        setErrorMessage(
+          'Unable to load expense member information.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      if (splitResult.error) {
+        console.error(
+          'Unable to load your expense shares:',
+          splitResult.error,
+        )
+
+        setExpenses([])
+        setErrorMessage(
+          'Unable to load your expense shares.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      const groups =
+        (groupResult.data ?? []) as Group[]
+
+      const profiles =
+        (profileResult.data ?? []) as Profile[]
+
+      const userSplits =
+        (splitResult.data ?? []) as ExpenseSplit[]
+
+      const groupMap = new Map(
+        groups.map((group) => [
+          group.id,
+          group.name,
+        ]),
+      )
+
+      const profileMap = new Map(
+        profiles.map((profile) => [
+          profile.id,
+          profile.full_name?.trim() ||
+            'SplitChat member',
+        ]),
+      )
+
+      const splitMap = new Map(
+        userSplits.map((split) => [
+          split.expense_id,
+          Number(split.share_amount),
+        ]),
+      )
+
+      const displayExpenses: DisplayExpense[] =
+        loadedExpenses.map((expense) => ({
+          id: expense.id,
+
+          groupId: expense.group_id,
+
+          groupName:
+            groupMap.get(expense.group_id) ||
+            'SplitChat group',
+
+          description: expense.description,
+
+          amount: Number(expense.amount),
+
+          expenseDate: expense.expense_date,
+
+          paidById: expense.paid_by,
+
+          paidByName:
+            profileMap.get(expense.paid_by) ||
+            'SplitChat member',
+
+          splitType: expense.split_type,
+
+          notes: expense.notes,
+
+          yourShare:
+            splitMap.get(expense.id) ?? null,
+        }))
+
+      setExpenses(displayExpenses)
+      setIsLoading(false)
+    }
+
     void loadExpenses()
-  }, [loadExpenses])
+
+    return () => {
+      cancelled = true
+    }
+  }, [userId, reloadKey])
 
   const totalSpend = useMemo(
     () =>
@@ -378,7 +397,7 @@ function ExpensesPage() {
           type="button"
           className="primary-button"
           onClick={() =>
-            void loadExpenses()
+            reload()
           }
         >
           Try again
