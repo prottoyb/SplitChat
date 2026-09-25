@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code local overrides
+.claude/settings.local.json
+.claude/agent-memory/
