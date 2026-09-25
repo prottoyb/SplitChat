@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | CP1+CP2 done: harness, M0 baseline and round-trip proof, characterisation tests. Next: review of CP1/CP2, then **CP3 M1** |
+| Sub-phase | Urgent batch M1–M5 implemented (CP3–CP7). In review. Next: **production batch 1 preparation** (needs operator), then M6+ locally |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | None until the first **production** operation or the Phase 1 completion report. The team works autonomously inside the approved phase |
@@ -93,19 +93,37 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
   - Characterisation cases `tests/db/cases/0x0_*.sql` reproduce QS-1…QS-7
     locally. Assertions tagged `KNOWN-BAD[Mx]` are flipped by migration Mx.
 
+- CP1/CP2 reviews: QA/Security PASS; Senior APPROVE WITH CONDITIONS.
+  Fixes are in `acd4593` (pushed).
+- Runner verifies every migration's rollback: up → down (schema equals the
+  previous state, ACL order ignored) → up.
+- **M1** `acb0aaa`: expense and split identity columns are immutable for
+  every role (QS-1).
+- **M2** `be80d69`: anon loses EXECUTE on the oracle and the expense RPC;
+  `search_path=''` on all definer functions; clients can't execute trigger
+  functions (QS-2/8/10).
+- **M3** `0e55f0d`: no direct client writes to expenses/splits; the six
+  write policies are dropped (QS-3).
+- **M4** `25c313e`: deferred balance check plus a membership guard, as
+  SECURITY DEFINER private functions; `split_type='equal'`.
+- **M5** `6c552d2`: `groups.created_by` FK is RESTRICT (QS-4, interim).
+- `supabase/ops/batch1_prechecks.sql`: read-only aggregate pre-checks
+  Q1–Q8 for production batch 1.
+
 ## In progress
 
-- Independent review of CP1/CP2 (QA/Security + Senior) before the backup
-  push.
+- M1–M5 reviews: QA/Security PASS, Senior APPROVE WITH CONDITIONS (condition B1-SR-1 = reviewed pre-check script: supabase/ops/batch1_prechecks.sql). No CRITICAL/HIGH.
 
 ## Next steps (design §E)
 
-1. Address CP1/CP2 review findings, then push.
-2. CP3–CP7: M1…M5 (urgent batch), each with a `.down.sql` in
-   `supabase/rollbacks/` and flipped `KNOWN-BAD` assertions.
-3. Then M6–M15 per design §B. Create SplitChat-Dev (needs the operator's
-   Supabase login) before the first production batch and before M11
-   (CA-2).
+1. Address the M1–M5 review findings, then push.
+2. **Production batch 1** needs the operator:
+   - create SplitChat-Dev (requires their Supabase login or access token);
+   - rehearse repair of M0 and M1–M5 there;
+   - then present the evidence package and get approval for the prod
+     read-only pre-checks, repair, and apply.
+3. Meanwhile, continue M6–M10 locally (design §B). M11 is gated on the
+   SplitChat-Dev CA-2 proof.
 
 ## How to run
 
@@ -116,8 +134,9 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Validation status
 
-At CP1+CP2: lint ✅, build ✅ (known >500 kB chunk warning), test ✅ 84/84,
-npm audit ✅ 0, **test:db ✅ round-trip + 9/9 cases, 48 assertions**.
+At CP7 (`6c552d2`): lint ✅, build ✅ (known >500 kB chunk warning),
+test ✅ 84/84, npm audit ✅ 0, **test:db ✅ round-trip, 5 rollback checks,
+13/13 cases, 86 assertions**.
 
 ## Unresolved risks
 
@@ -129,6 +148,10 @@ npm audit ✅ 0, **test:db ✅ round-trip + 9/9 cases, 48 assertions**.
   - HIGH QS-4 owner-deletion cascade;
   - MEDIUM: blanket grants incl. TRUNCATE, email enumeration,
     remainder-cent order mismatch.
+- **Local branch interim (by design, closed in M8):** after M2,
+  signed-in users can still call `split_chat_is_group_member(group, user)`,
+  which the current RLS policies need. Anonymous access is already
+  removed.
 - **Project:**
   - no migration history on prod;
   - no CI;
