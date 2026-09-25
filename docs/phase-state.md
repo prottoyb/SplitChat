@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | Urgent batch M1–M5 implemented (CP3–CP7). In review. Next: **production batch 1 preparation** (needs operator), then M6+ locally |
+| Sub-phase | M1–M5 reviewed and rehearsed on SplitChat-Dev (all green). Reviews of the rehearsal in progress; next: **production batch 1 approval report** (human gate), then M6+ locally |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | None until the first **production** operation or the Phase 1 completion report. The team works autonomously inside the approved phase |
@@ -55,9 +55,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 - G2: no Admin role; roles are Owner and Member.
 - G3: Supabase CLI pinned `supabase@2.117.0` (devDependency). No Docker.
   Use `--db-url`.
-- G4: one free SplitChat-Dev project is approved (no billing, no prod data
-  or secrets). Not yet created; needs the operator's Supabase login or
-  access token.
+- G4: **SplitChat-Dev created**: ref `opviwtyfssxoheigflxw` (free tier, ap-northeast-1). Production is ref `jhftlnsccurhfgneltgi`, never targeted by rehearsal tooling. Dev password and keys live only in git-ignored `.env.splitchat-dev.local`; synthetic run state is in `.splitchat-dev-rehearsal.json.local`. Rehearsal tools: `scripts/rehearsal/dev.mjs` (sentinel-verified target) and `api.mjs`. Deleting SplitChat-Dev requires human approval.
 - G5: hosting is undecided. M10/M14 are blocked for prod until a compatible
   frontend deployment exists.
 - M16 is deferred to Phase 8.
@@ -112,31 +110,34 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## In progress
 
-- M1–M5 reviews: QA/Security PASS, Senior APPROVE WITH CONDITIONS (condition B1-SR-1 = reviewed pre-check script: supabase/ops/batch1_prechecks.sql). No CRITICAL/HIGH.
+- M1–M5 reviews: QA/Security PASS, Senior APPROVE WITH CONDITIONS (the condition was a reviewed pre-check script: supabase/ops/batch1_prechecks.sql). No CRITICAL/HIGH.
+- **SplitChat-Dev rehearsal of batch 1 is complete; all green.** Evidence: `docs/phase1/batch1-rehearsal.md`.
+  - Dev after M0 is identical to the production dump.
+  - repair → dry-run → push worked without Docker.
+  - The ledger was unchanged by the push.
+  - Post-checks 17/17; real-API checks 24/24.
+  - Dev after M5 is identical to the harness.
+  - CA-2 is proven for trigger creation; GoTrue deletion firing M11's
+    trigger is still to be proven when M11 exists.
+- QA/Security and Senior review of the rehearsal evidence.
 
 ## Next steps (design §E)
 
-1. Address the M1–M5 review findings, then push.
-2. **Production batch 1** needs the operator:
-   - create SplitChat-Dev (requires their Supabase login or access token);
-   - rehearse repair of M0 and M1–M5 there;
-   - then present the evidence package and get approval for the prod
-     read-only pre-checks, repair, and apply.
-3. Meanwhile, continue M6–M10 locally (design §B). M11 is gated on the
-   SplitChat-Dev CA-2 proof.
+1. Address review findings, push, then present the **production batch 1
+   approval report** and stop at the human gate.
+2. While waiting (or after), continue M6–M10 locally. M11 needs a
+   SplitChat-Dev GoTrue-deletion proof of its trigger.
 
 ## How to run
 
-- `npm run test:db` runs every case. Add `-- --case 030` for one case, or
-  `-- --keep` to keep the cluster.
+- `npm run test:db` runs every case. Add `-- --case 030` for one case, `-- --keep` to keep the cluster, or `-- --export-dump <file>` to write the expected post-migration schema.
+- Rehearsal: `node scripts/rehearsal/dev.mjs <init|check|sql|file|readonly|dump|cli ...>`, `node scripts/rehearsal/api.mjs <seed|verify>`, and `node scripts/rehearsal/compare-dumps.mjs <expected> <actual>`.
 - Needs PostgreSQL 17 binaries (default Windows path, or set
   `SPLITCHAT_PG_BIN`).
 
 ## Validation status
 
-At CP7 (`6c552d2`): lint ✅, build ✅ (known >500 kB chunk warning),
-test ✅ 84/84, npm audit ✅ 0, **test:db ✅ round-trip, 5 rollback checks,
-13/13 cases, 86 assertions**.
+At the rehearsal checkpoint: lint ✅, build ✅ (known >500 kB chunk warning), test ✅ 84/84, npm audit ✅ 0, **test:db ✅ round-trip, 5 rollback checks, 13/13 cases, 86 assertions**; **SplitChat-Dev ✅** (see `docs/phase1/batch1-rehearsal.md`).
 
 ## Unresolved risks
 

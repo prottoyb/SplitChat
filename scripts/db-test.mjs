@@ -15,7 +15,7 @@
 // asserts the server address is loopback, the port matches, and the
 // cluster's system identifier equals the one recorded right after initdb.
 //
-// Usage: npm run test:db [-- --keep] [-- --case <substring>]
+// Usage: npm run test:db [-- --keep] [-- --case <substring>] [-- --export-dump <file>]
 // PG binaries: SPLITCHAT_PG_BIN, else the default PostgreSQL 17 install
 // location on Windows, else PATH.
 
@@ -30,6 +30,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const keep = args.includes('--keep')
 const caseFilter = args.includes('--case') ? args[args.indexOf('--case') + 1] : null
+const exportDump = args.includes('--export-dump') ? args[args.indexOf('--export-dump') + 1] : null
 
 const SUPERUSER = 'cluster_admin'
 const TEMPLATE_DB = 'splitchat_template'
@@ -89,7 +90,7 @@ function freePort() {
   })
 }
 
-function normaliseDump(text) {
+export function normaliseDump(text) {
   return text
     .replace(/\r\n/g, '\n')
     .split('\n')
@@ -101,7 +102,7 @@ function normaliseDump(text) {
 
 // ACL entry order carries no meaning, but revoking and re-granting reorders
 // it. Rollback comparisons sort each consecutive GRANT/REVOKE run.
-function sortAclRuns(text) {
+export function sortAclRuns(text) {
   const out = []
   let run = []
   const flush = () => {
@@ -319,6 +320,11 @@ async function main() {
       cluster.assertTarget(TEMPLATE_DB)
       cluster.mustPsql(TEMPLATE_DB, 'postgres', { file, extra: ['-1'] })
       console.log(`applied  ${path.basename(file)}`)
+    }
+    if (exportDump) {
+      // Expected post-migration schema, for comparison with a rehearsal/production dump.
+      fs.writeFileSync(exportDump, cluster.dumpPublic(TEMPLATE_DB))
+      console.log(`expected schema written to ${exportDump}`)
     }
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'helpers.sql') })
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'fixtures', 'seed.sql'), extra: ['-1'] })
