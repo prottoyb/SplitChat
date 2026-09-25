@@ -6,7 +6,7 @@ SET LOCAL ROLE authenticated;
 SELECT tests.assert_raises(
   $$UPDATE public.expenses SET group_id = '10000000-0000-4000-8000-000000000002'
      WHERE id = '20000000-0000-4000-8000-000000000001'$$,
-  'P0001', 'FIXED[M1]: creator can no longer move expense X1 from G1 to G2', 'immutable_field');
+  '42501', 'FIXED[M1,M3]: creator can no longer move expense X1 from G1 to G2');
 RESET ROLE;
 
 SELECT tests.login('00000000-0000-4000-8000-00000000000c');  -- Cara: G2 only
