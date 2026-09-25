@@ -36,6 +36,7 @@ const TEMPLATE_DB = 'splitchat_template'
 const ROUNDTRIP_DB = 'splitchat_m0'
 const BASELINE_DUMP = path.join(root, 'supabase', 'baseline', 'public_schema.sql')
 const MIGRATIONS_DIR = path.join(root, 'supabase', 'migrations')
+const ROLLBACKS_DIR = path.join(root, 'supabase', 'rollbacks')
 const SHIM_DIR = path.join(root, 'tests', 'db', 'shim')
 const CASES_DIR = path.join(root, 'tests', 'db', 'cases')
 
@@ -46,7 +47,12 @@ function pgBin(name) {
     process.env.SPLITCHAT_PG_BIN ||
     (process.platform === 'win32' ? 'C:\\Program Files\\PostgreSQL\\17\\bin' : '')
   const exe = process.platform === 'win32' ? `${name}.exe` : name
-  return dir ? path.join(dir, exe) : exe
+  if (!dir) return exe
+  const full = path.join(dir, exe)
+  if (!fs.existsSync(full)) {
+    throw new Error(`${full} not found. Install PostgreSQL 17 or set SPLITCHAT_PG_BIN to its bin directory.`)
+  }
+  return full
 }
 
 // An environment that cannot point libpq anywhere but where we say.
@@ -136,6 +142,26 @@ class Cluster {
     return run(pgBin('psql'), a, { env: env ?? this.env })
   }
 
+  // Database lifecycle statements run on the maintenance database; each is
+  // preceded by its own target check (review CP-QS-1).
+  createDb(name, clause) {
+    this.assertTarget('postgres')
+    this.mustPsql('postgres', SUPERUSER, { sql: `CREATE DATABASE ${name} ${clause}` })
+    this.assertTarget(name)
+  }
+
+  dropDb(name) {
+    this.assertTarget('postgres')
+    this.mustPsql('postgres', SUPERUSER, { sql: `DROP DATABASE ${name}` })
+  }
+
+  dumpPublic(db) {
+    this.assertTarget(db)
+    const r = run(pgBin('pg_dump'), ['--schema-only', '--schema=public', '--schema=private', '-d', this.conn(db, SUPERUSER)], { env: this.env })
+    if (r.status !== 0) throw new Error(`pg_dump failed on ${db}:\n${r.stderr}`)
+    return normaliseDump(r.stdout)
+  }
+
   mustPsql(db, user, opts) {
     const r = this.psql(db, user, opts)
     if (r.status !== 0) {
@@ -182,20 +208,45 @@ function spoofCheck(cluster) {
   cluster.assertTarget('postgres', env)
 }
 
+// Every migration after the baseline must ship a rollback that restores the
+// previous schema exactly, and must re-apply cleanly afterwards
+// (up -> down -> up; design §B).
+function checkRollbacks(cluster, migrations) {
+  for (let k = 1; k < migrations.length; k++) {
+    const base = path.basename(migrations[k], '.sql')
+    const down = path.join(ROLLBACKS_DIR, `${base}.down.sql`)
+    if (!fs.existsSync(down)) throw new Error(`missing rollback supabase/rollbacks/${base}.down.sql`)
+    const db = `rollback_${k}`
+    cluster.createDb(db, 'OWNER postgres')
+    cluster.mustPsql(db, SUPERUSER, { file: path.join(SHIM_DIR, '01_database.sql') })
+    for (const file of migrations.slice(0, k)) cluster.mustPsql(db, 'postgres', { file, extra: ['-1'] })
+    const before = cluster.dumpPublic(db)
+    cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
+    cluster.mustPsql(db, 'postgres', { file: down, extra: ['-1'] })
+    if (cluster.dumpPublic(db) !== before) {
+      throw new Error(`rollback ${base}.down.sql does not restore the previous schema exactly`)
+    }
+    cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
+    cluster.dropDb(db)
+    console.log(`pass  rollback up/down/up  ${base}`)
+  }
+}
+
 function runCases(cluster) {
   const files = listSql(CASES_DIR).filter((f) => !caseFilter || path.basename(f).includes(caseFilter))
   const results = []
   for (const [i, file] of files.entries()) {
     const name = path.basename(file)
     const db = `case_${i}`
-    cluster.mustPsql('postgres', SUPERUSER, { sql: `CREATE DATABASE ${db} TEMPLATE ${TEMPLATE_DB}` })
-    cluster.assertTarget(db)
+    // If anything below throws, case_<i> is left behind on purpose: the whole
+    // disposable cluster is then kept for diagnosis or deleted (CP-SR-1).
+    cluster.createDb(db, `TEMPLATE ${TEMPLATE_DB}`)
     const r = cluster.psql(db, SUPERUSER, { file })
     const oks = (r.stderr.match(/NOTICE:\s+ok: /g) ?? []).length
     const failure = r.status !== 0 ? (r.stderr.split('\n').find((l) => /ERROR/.test(l)) ?? r.stderr.trim()) : null
     results.push({ name, oks, failure })
     console.log(`${failure ? 'FAIL' : 'pass'}  ${name}  (${oks} assertions)${failure ? `\n      ${failure}` : ''}`)
-    cluster.mustPsql('postgres', SUPERUSER, { sql: `DROP DATABASE ${db}` })
+    cluster.dropDb(db)
   }
   return results
 }
@@ -216,10 +267,10 @@ async function main() {
     if (migrations.length === 0) throw new Error('no migrations found')
 
     // Round-trip: the baseline migration alone must reproduce the Phase 0 dump.
-    cluster.mustPsql('postgres', SUPERUSER, { sql: `CREATE DATABASE ${ROUNDTRIP_DB} OWNER postgres` })
-    cluster.assertTarget(ROUNDTRIP_DB)
+    cluster.createDb(ROUNDTRIP_DB, 'OWNER postgres')
     cluster.mustPsql(ROUNDTRIP_DB, SUPERUSER, { file: path.join(SHIM_DIR, '01_database.sql') })
     cluster.mustPsql(ROUNDTRIP_DB, 'postgres', { file: migrations[0], extra: ['-1'] })
+    cluster.assertTarget(ROUNDTRIP_DB)
     const dump = run(pgBin('pg_dump'), ['--schema-only', '--schema=public', '-d', cluster.conn(ROUNDTRIP_DB, SUPERUSER)], { env: cluster.env })
     if (dump.status !== 0) throw new Error(`pg_dump failed:\n${dump.stderr}`)
     const expected = normaliseDump(fs.readFileSync(BASELINE_DUMP, 'utf8'))
@@ -234,8 +285,9 @@ async function main() {
     console.log(`pass  baseline round-trip (${path.basename(migrations[0])} == supabase/baseline/public_schema.sql)`)
 
     // Full migration chain + fixtures into the template database.
-    cluster.mustPsql('postgres', SUPERUSER, { sql: `CREATE DATABASE ${TEMPLATE_DB} OWNER postgres` })
-    cluster.assertTarget(TEMPLATE_DB)
+    checkRollbacks(cluster, migrations)
+
+    cluster.createDb(TEMPLATE_DB, 'OWNER postgres')
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(SHIM_DIR, '01_database.sql') })
     const selftest = cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(SHIM_DIR, '02_selftest.sql') })
     if (!/ok: shim roles/.test(selftest.stderr)) throw new Error('shim self-test did not report success')

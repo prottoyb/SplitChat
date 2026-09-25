@@ -26,3 +26,6 @@ dist-ssr
 # Claude Code local overrides
 .claude/settings.local.json
 .claude/agent-memory/
+
+# Supabase CLI local state
+supabase/.temp/
