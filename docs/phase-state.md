@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | Setup done (product docs, pinned CLI). Next: **CP1 local DB test harness** |
+| Sub-phase | CP1+CP2 done: harness, M0 baseline and round-trip proof, characterisation tests. Next: review of CP1/CP2, then **CP3 M1** |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | None until the first **production** operation or the Phase 1 completion report. The team works autonomously inside the approved phase |
@@ -76,24 +76,48 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
   2.117.0 installed (`migration list/repair`, `db push` support
   `--db-url`); `npm audit` 0 vulnerabilities.
 
+- **CP1+CP2** (one commit; the harness can't run without a migration):
+  - `npm run test:db` → `scripts/db-test.mjs`: a throwaway PG17 cluster on
+    loopback with the DS-8 positive-target guard (scrubbed env, own
+    connection strings, then loopback, port and system-identifier
+    assertions before any SQL, plus a spoof self-test).
+  - Shim `tests/db/shim/` with a self-test against the prod role
+    inventory. Helpers in `tests/db/helpers.sql`; fixture in
+    `tests/db/fixtures/seed.sql`.
+  - M0 `supabase/migrations/20260926000000_baseline_public_schema.sql`,
+    generated verbatim from the dump by reordering blocks (tables before
+    SQL functions, so no session settings) plus ACL normalisation for
+    platform default privileges.
+  - The round-trip is exact: a fresh apply dumps identically to the Phase 0
+    capture. A mutation check confirmed it detects ACL drift.
+  - Characterisation cases `tests/db/cases/0x0_*.sql` reproduce QS-1…QS-7
+    locally. Assertions tagged `KNOWN-BAD[Mx]` are flipped by migration Mx.
+
 ## In progress
 
-- Nothing uncommitted.
+- Independent review of CP1/CP2 (QA/Security + Senior) before the backup
+  push.
 
 ## Next steps (design §E)
 
-1. **CP1** harness: `scripts/db-test.mjs` (positive-target guard,
-   `initdb` temp cluster), `tests/db/shim` + self-test, `tests` helpers,
-   seed, `npm run test:db`.
-2. **CP2** M0 baseline migration, round-trip diff proof, characterisation
-   tests.
-3. CP3+ M1…M15 per design §B. SplitChat-Dev rehearsal before any prod
-   batch. Needed for M11 (CA-2).
+1. Address CP1/CP2 review findings, then push.
+2. CP3–CP7: M1…M5 (urgent batch), each with a `.down.sql` in
+   `supabase/rollbacks/` and flipped `KNOWN-BAD` assertions.
+3. Then M6–M15 per design §B. Create SplitChat-Dev (needs the operator's
+   Supabase login) before the first production batch and before M11
+   (CA-2).
+
+## How to run
+
+- `npm run test:db` runs every case. Add `-- --case 030` for one case, or
+  `-- --keep` to keep the cluster.
+- Needs PostgreSQL 17 binaries (default Windows path, or set
+  `SPLITCHAT_PG_BIN`).
 
 ## Validation status
 
-At the setup checkpoint: lint ✅, build ✅ (known >500 kB chunk warning),
-test ✅ 84/84, npm audit ✅ 0. `test:db` doesn't exist yet (CP1).
+At CP1+CP2: lint ✅, build ✅ (known >500 kB chunk warning), test ✅ 84/84,
+npm audit ✅ 0, **test:db ✅ round-trip + 9/9 cases, 48 assertions**.
 
 ## Unresolved risks
 
