@@ -321,7 +321,7 @@ async function main() {
       console.log(`applied  ${path.basename(file)}`)
     }
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'helpers.sql') })
-    cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'fixtures', 'seed.sql') })
+    cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'fixtures', 'seed.sql'), extra: ['-1'] })
 
     const results = runCases(cluster)
     const failures = results.filter((r) => r.failure)
