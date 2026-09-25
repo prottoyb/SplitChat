@@ -99,6 +99,26 @@ function normaliseDump(text) {
     .trim()
 }
 
+// ACL entry order carries no meaning, but revoking and re-granting reorders
+// it. Rollback comparisons sort each consecutive GRANT/REVOKE run.
+function sortAclRuns(text) {
+  const out = []
+  let run = []
+  const flush = () => {
+    out.push(...run.sort())
+    run = []
+  }
+  for (const line of text.split('\n')) {
+    if (/^(GRANT|REVOKE) /.test(line)) run.push(line)
+    else {
+      flush()
+      out.push(line)
+    }
+  }
+  flush()
+  return out.join('\n')
+}
+
 class Cluster {
   constructor(tmpDir, port) {
     this.tmpDir = tmpDir
@@ -220,11 +240,15 @@ function checkRollbacks(cluster, migrations) {
     cluster.createDb(db, 'OWNER postgres')
     cluster.mustPsql(db, SUPERUSER, { file: path.join(SHIM_DIR, '01_database.sql') })
     for (const file of migrations.slice(0, k)) cluster.mustPsql(db, 'postgres', { file, extra: ['-1'] })
-    const before = cluster.dumpPublic(db)
+    const before = sortAclRuns(cluster.dumpPublic(db))
     cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
     cluster.mustPsql(db, 'postgres', { file: down, extra: ['-1'] })
-    if (cluster.dumpPublic(db) !== before) {
-      throw new Error(`rollback ${base}.down.sql does not restore the previous schema exactly`)
+    const after = sortAclRuns(cluster.dumpPublic(db))
+    if (after !== before) {
+      const a = before.split('\n')
+      const b = after.split('\n')
+      const at = a.findIndex((line, idx) => line !== b[idx])
+      throw new Error(`rollback ${base}.down.sql does not restore the previous schema exactly; first difference at line ${at + 1}:\n  before:   ${a[at]}\n  after:    ${b[at]}`)
     }
     cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
     cluster.dropDb(db)
