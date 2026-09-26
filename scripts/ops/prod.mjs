@@ -152,6 +152,13 @@ function stageApprovedMigrations() {
   if (process.env.SPLITCHAT_PROD_APPROVAL !== 'batch1') {
     throw new Error('REFUSING: write needs SPLITCHAT_PROD_APPROVAL=batch1 (set only after explicit human execution approval)')
   }
+  // Only migrations are staged. Refuse if the project gains any other CLI
+  // input (config, roles, seed, functions) that staging would not cover.
+  for (const extra of ['config.toml', 'roles.sql', 'seed.sql', 'functions']) {
+    if (fs.existsSync(path.join(root, 'supabase', extra))) {
+      throw new Error(`REFUSING: supabase/${extra} exists but is not part of the reviewed batch 1 staging`)
+    }
+  }
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'splitchat-prod-stage-'))
   const staged = path.join(workdir, 'supabase', 'migrations')
   fs.mkdirSync(staged, { recursive: true })
@@ -200,6 +207,7 @@ function verify(t, dir) {
   let ok = gate('history = M0..M5', JSON.stringify(remoteVersions(t)) === JSON.stringify(Object.keys(BATCH1.migrations).sort().map((f) => f.slice(0, 14))))
   const postSql = fs.readFileSync(path.join(OPS, 'batch1_postchecks.sql'), 'utf8')
   const names = [...postSql.matchAll(/^\s*\('([^']+)',\s*$/gm)].map((m) => m[1])
+  if (new Set(names).size !== names.length) throw new Error('REFUSING: duplicate post-check names')
   const post = readonly(t, postSql)
   fs.writeFileSync(path.join(dir, 'postchecks.txt'), post)
   const results = new Map([...post.matchAll(/^\s*(.+?)\s*\|\s*([tf])\s*$/gm)].map((m) => [m[1], m[2]]))
