@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | Production batch 2 pre-flight 6/6 PASS and dry-run = exactly M6–M10 (read-only, approved). **AWAITING operator approval of the batch 2 push.** Evidence dir: scratchpad/prod-batch2-preflight (its ledger_before.txt is the verify baseline) |
+| Sub-phase | **Production batch 2 COMPLETE** (M6–M10 applied, VERIFY PASSED 22/22, 2026-09-26). Production is at M0–M10. Next: wait for the next Phase 1 approval boundary (M11+ scope) |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | **Production batch 2 approval.** Operations: `prod.mjs preflight → dry-run → push → verify`, each with `--batch batch2`; the push needs `SPLITCHAT_PROD_APPROVAL=batch2` and `SPLITCHAT_FRONTEND_ATTESTATION`. Runbook: `docs/phase1/batch2-rehearsal.md` |
+| Next human gate | **Operator approval of the next Phase 1 scope** (M11+: ledger-preserving account deletion — needs the SplitChat-Dev GoTrue deletion proof, CA-2; M12 cents/canonical split; M13 edit/delete RPCs; M14; M15). No production operation without a new approval |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -124,7 +124,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Next steps (design §E)
 
-1. On approval: run the batch 2 production procedure exactly as in the approval report; stop at any ABORT/REFUSING; keep the evidence directory; report. Then continue M11+ locally (M11 needs the SplitChat-Dev GoTrue deletion proof).
+1. Wait for operator approval of the M11+ scope. Then implement locally, rehearse on SplitChat-Dev, review, and propose batch 3. Production M7/M8 are now fix-forward only after any leave/remove activity.
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
@@ -141,12 +141,9 @@ At the batch 2 re-rehearsal checkpoint: lint ✅, build ✅, test ✅ 117/117, n
 
 ## Unresolved risks
 
-- **Production after batch 1 (2026-09-26):** QS-1, QS-2, QS-3 and QS-4 (interim) are CLOSED. Residuals, each with its closing migration:
-  - authenticated-only `split_chat_is_group_member` / helpers (M8);
-  - owner email enumeration and adding unconfirmed accounts (M9);
-  - owner direct member insert (M6) and delete (M10);
-  - an owner's group deletion cascading expenses (M6/M11/M15);
-  - latent table privileges (M6);
+- **Production after batch 2 (2026-09-26):** QS-1–QS-6 and QS-9 are closed; the anonymous and signed-in membership oracles are gone; least privilege is in place; membership history is soft, with one owner per group. Remaining items and the migration that closes each:
+  - owner learns that an email exists only when that account is added (by design);
+  - the expenses FK still CASCADEs from groups, though no client can delete groups any more (M11 makes it RESTRICT);
   - remainder-cent order mismatch (M12);
   - owner account deletion refused with an Auth 500 until M11.
 - **Local branch interim (by design, closed in M8):** after M2,

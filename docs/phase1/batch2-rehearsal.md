@@ -288,3 +288,23 @@ identical to commit `4dc6d6e`.
   - `prod_before.sql`: `129b1259e4ae9976194f027846618f3da10f2c36676224d4822e6993c3a77367`
   - `ledger_before.txt`: `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`
   - `prechecks.txt`: `2e24b1259cdd6858ee37e0f8f744235d48ba46c48e6694323a165b9a94ef4f4a`
+
+## PRODUCTION BATCH 2 EXECUTED: 2026-09-26, operator-approved
+
+Target: `jhftlnsccurhfgneltgi`. Tool, migrations and ops files were at commit
+`f297591`, unchanged.
+
+| Step | Result |
+|---|---|
+| `push --batch batch2` (`SPLITCHAT_FRONTEND_ATTESTATION=no-live-frontend`) | Attestation logged; M6 → M10 applied from the verified staging copy; exit 0. No lock waits, no lock-timeout errors, no warnings beyond the CLI's routine "new version available" notice |
+| `verify --batch batch2` (read-only, against the pre-flight evidence) | **VERIFY PASSED**: history = M0..M10 (11 versions); **22/22** named post-checks true; ledger unchanged (`ledger_after.txt` byte-identical to `ledger_before.txt`, SHA-256 `a40ebff5…c108155`); schema == reviewed post-M10 schema |
+
+Post-apply evidence SHA-256:
+
+- `postchecks.txt`: `d4954c15a51202540790a32b9c0f462543f5d4d77f0946752a21af862505dd49`
+- `ledger_after.txt`: `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`
+- `prod_after.sql`: `96bc16b69fdcea966601d14c9351c701ab60c92d9bc2a85faff85bb982fa6cfb`
+
+No rollback, cancellation or data repair was performed. From now on,
+after any leave or remove activity in production, M7/M8 are fix-forward
+only.
