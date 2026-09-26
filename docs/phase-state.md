@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | Production preflight #2 PASSED (6/6; evidence dir scratchpad/prod-batch1-preflight2, whose ledger_before.txt is the verify baseline). **Awaiting operator approval of the batch 1 writes (repair-m0, push)** |
+| Sub-phase | **Production batch 1 COMPLETE** (M0 repaired, M1–M5 applied, VERIFY PASSED, 2026-09-26). Next: M6+ locally (lock_timeout convention), then prepare batch 2. No production operation without new approval |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | **Production batch 1 execution approval.** Operations: prod.mjs preflight → repair-m0 → dry-run → push → verify. Runbook: docs/phase1/batch1-rehearsal.md |
+| Next human gate | Any further production operation (batch 2+), and Phase 1 completion. Local M6+ work continues autonomously |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -130,7 +130,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Next steps (design §E)
 
-1. On approval: run the production procedure exactly as in the approval report (SPLITCHAT_PROD_APPROVAL=batch1 only for repair-m0/push), keep the evidence directory, and report. On any ABORT/REFUSING, stop.
+1. Continue M6–M10 locally: harness, rollbacks, reviews, SplitChat-Dev rehearsal. Every new migration starts with `SET LOCAL lock_timeout = '5s';`. Then propose production batch 2 with a new manifest in prod.mjs (BATCH2) and a new evidence package.
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
@@ -147,14 +147,14 @@ At the rehearsal checkpoint: lint ✅, build ✅ (known >500 kB chunk warning), 
 
 ## Unresolved risks
 
-- **Production, all pre-existing and unchanged (nothing live has been
-  modified):**
-  - CRITICAL QS-1 cross-group expense move;
-  - CRITICAL QS-2 anon membership oracle;
-  - HIGH QS-3 split-sum bypass;
-  - HIGH QS-4 owner-deletion cascade;
-  - MEDIUM: blanket grants incl. TRUNCATE, email enumeration,
-    remainder-cent order mismatch.
+- **Production after batch 1 (2026-09-26):** QS-1, QS-2, QS-3 and QS-4 (interim) are CLOSED. Residuals, each with its closing migration:
+  - authenticated-only `split_chat_is_group_member` / helpers (M8);
+  - owner email enumeration and adding unconfirmed accounts (M9);
+  - owner direct member insert (M6) and delete (M10);
+  - an owner's group deletion cascading expenses (M6/M11/M15);
+  - latent table privileges (M6);
+  - remainder-cent order mismatch (M12);
+  - owner account deletion refused with an Auth 500 until M11.
 - **Local branch interim (by design, closed in M8):** after M2,
   signed-in users can still call `split_chat_is_group_member(group, user)`,
   which the current RLS policies need. Anonymous access is already

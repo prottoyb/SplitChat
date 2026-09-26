@@ -230,6 +230,29 @@ Evidence SHA-256:
 - `ledger_before.txt`: `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`
 - `prechecks.txt`: `d13d30e4ce2d0302f9cdf72b225fb6f4245c3aacfc946c927e1bf707fc2929a9`
 
+## PRODUCTION BATCH 1 EXECUTED: 2026-09-26, operator-approved
+
+Target: `jhftlnsccurhfgneltgi`. Each step used `scripts/ops/prod.mjs` at
+commit `80a45cc` (migrations and tool unchanged, confirmed before
+starting).
+
+| Step | Command | Result |
+|---|---|---|
+| 1 | `repair-m0` (write) | Guards passed (manifest, empty history, exact drift re-checked). M0 `20260926000000` recorded as applied; `public` unchanged |
+| 2 | `identify` + `dry-run` (read-only) | History present; would push exactly M1–M5 |
+| 3 | `push` (write) | M1 → M5 applied from the verified staging copy, exit 0. No lock waits, and no cancellation needed |
+| 4 | `verify` (read-only) | **VERIFY PASSED**: history = M0..M5; 17/17 named post-checks true; ledger unchanged (the after-snapshot is byte-identical to preflight #2); schema matches the reviewed post-M5 schema |
+
+Post-apply evidence SHA-256:
+
+- `postchecks.txt`: `f2c26790c45e1ab19ede09ce9fb3254e473b8d6073ed8bbf26efbc03722e6d1d`
+- `ledger_after.txt`: `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`
+  (identical to `ledger_before.txt`)
+- `prod_after.sql`: `7271ce08ffff99eabaa96d4c1b3f7fe74971e106e83e46630e8bb26a446581b8`
+
+QS-1, QS-2, QS-3 and QS-4 (interim) are **closed in production**. No
+rollback was performed.
+
 ## Residual behaviour after batch 1 (M1–M5), and why it is acceptable temporarily
 
 Still callable or possible for **signed-in** users after batch 1. Anonymous
