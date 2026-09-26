@@ -246,3 +246,22 @@ Three reviews, none with CRITICAL or HIGH findings:
 - Remainder-cent order mismatch between the preview and the RPC (**M12**).
 - The expense RPC still returns raw human-readable error messages
   (legacy); these are mapped when M12 introduces v2.
+
+## Review round 2 (confirmation of the round 1 fixes)
+
+- **QA/Security: PASS.** "QA/Security approves production batch 2."
+  - The advisory lock closes the race: it is transaction-scoped and keyed
+    only by the caller's own id, so it cannot be used to block another
+    user, and there is no deadlock cycle.
+  - The attestation gate is injection-safe (argv, hex-validated).
+  - LOW note: the concurrency check is a rehearsal script, not CI.
+- **Senior Review: APPROVE.** "Senior Review approves production batch 2."
+  - Conditions B2-SR-1/2/3 are resolved.
+  - The re-rehearsal record is judged honest and adequate.
+  - LOW notes:
+    - the SQL assertion only pins that the lock is present, not where it
+      sits;
+    - the attestation relies on the operator's statement of what is live.
+- **Tracked follow-ups (LOW):**
+  - move the 30-way concurrency check into CI once CI exists;
+  - tighten the lock-ordering assertion.

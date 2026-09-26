@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **Batch 2 (M6–M10) done:** reviewed (round 1 resolved, incl. the M9 rate-limit race fix and the frontend attestation gate) and re-rehearsed clean on SplitChat-Dev. Next: confirmation review of the fixes, then the production batch 2 approval report (human gate) |
+| Sub-phase | **AWAITING HUMAN APPROVAL: production batch 2** (M6–M10). Implemented, rehearsed clean on SplitChat-Dev, QA/Security and Senior both approve (round 2). Production unchanged since batch 1 |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | **Production batch 2 approval** (after reviews). M11+ is not started |
+| Next human gate | **Production batch 2 approval.** Operations: `prod.mjs preflight → dry-run → push → verify`, each with `--batch batch2`; the push needs `SPLITCHAT_PROD_APPROVAL=batch2` and `SPLITCHAT_FRONTEND_ATTESTATION`. Runbook: `docs/phase1/batch2-rehearsal.md` |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -124,7 +124,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Next steps (design §E)
 
-1. Address batch 2 review findings; push; present the **production batch 2 approval report** and stop. Ordering: the frontend at `2919523`+ is required whenever M9/M10 are live.
+1. On approval: run the batch 2 production procedure exactly as in the approval report; stop at any ABORT/REFUSING; keep the evidence directory; report. Then continue M11+ locally (M11 needs the SplitChat-Dev GoTrue deletion proof).
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
