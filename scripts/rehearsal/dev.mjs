@@ -2,11 +2,13 @@
 // Tier-2 rehearsal tool for the SplitChat-Dev Supabase project (ADR-0007).
 // It can only ever act on SplitChat-Dev:
 //   - target settings come from the git-ignored .env.splitchat-dev.local,
-//     never from DB_URL or any PG* variable (all scrubbed from children);
+//     never from DB_URL or any PG*/SUPABASE_* variable (all scrubbed from
+//     children); the password travels only as PGPASSWORD, never in argv;
 //   - the production project ref is refused outright;
 //   - positive identification: on first contact (`init`) a sentinel schema
 //     carrying the dev ref is created, and only if the database has no app
-//     tables; every later command first verifies that sentinel.
+//     tables; every later command first verifies that sentinel. The ref
+//     check above is the primary control; the sentinel is defence in depth.
 // Passwords and keys are never printed; output is redacted.
 //
 // Usage: node scripts/rehearsal/dev.mjs <init|check|sql|file|dump|cli> [...]
@@ -38,7 +40,9 @@ export function loadDevTarget() {
   if (env.SPLITCHAT_DEV_URL !== `https://${ref}.supabase.co`) throw new Error('dev URL does not match dev ref')
   const password = env.SPLITCHAT_DEV_DB_PASSWORD
   const host = env.SPLITCHAT_DEV_POOLER_HOST
-  const dbUrl = `postgresql://postgres.${ref}:${encodeURIComponent(password)}@${host}:5432/postgres?sslmode=require`
+  // No password in the URL: it reaches child processes only as PGPASSWORD,
+  // never on a command line (review R1-SR-4).
+  const dbUrl = `postgresql://postgres.${ref}@${host}:5432/postgres?sslmode=require`
   return { ref, dbUrl, password, url: env.SPLITCHAT_DEV_URL, anonKey: env.SPLITCHAT_DEV_ANON_KEY, serviceKey: env.SPLITCHAT_DEV_SERVICE_ROLE_KEY }
 }
 
@@ -56,10 +60,11 @@ function redact(text, t) {
     .replace(/sbp_[A-Za-z0-9]+/g, '<redacted-token>')
 }
 
-const childEnv = isolatedEnv(process.env, os.tmpdir())
+const CLI_JS = path.join(root, 'node_modules', 'supabase', 'dist', 'supabase.js')
+const envFor = (t) => ({ ...isolatedEnv(process.env, os.tmpdir()), PGPASSWORD: t.password })
 
 function psql(t, args) {
-  const r = spawnSync(pgBin('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-d', t.dbUrl, ...args], { encoding: 'utf8', env: childEnv, maxBuffer: 64 * 1024 * 1024 })
+  const r = spawnSync(pgBin('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-d', t.dbUrl, ...args], { encoding: 'utf8', env: envFor(t), maxBuffer: 64 * 1024 * 1024 })
   if (r.error) throw r.error
   return { status: r.status, out: redact(r.stdout, t), err: redact(r.stderr, t) }
 }
@@ -128,7 +133,7 @@ function main() {
       break
     }
     case 'dump': {
-      const d = spawnSync(pgBin('pg_dump'), ['--schema-only', '--schema=public', '--schema=private', '-d', t.dbUrl], { encoding: 'utf8', env: childEnv, maxBuffer: 64 * 1024 * 1024 })
+      const d = spawnSync(pgBin('pg_dump'), ['--schema-only', '--schema=public', '--schema=private', '-d', t.dbUrl], { encoding: 'utf8', env: envFor(t), maxBuffer: 64 * 1024 * 1024 })
       r = { status: d.status, out: redact(d.stdout, t), err: redact(d.stderr, t) }
       if (rest[0] && d.status === 0) {
         fs.writeFileSync(rest[0], r.out)
@@ -137,7 +142,8 @@ function main() {
       break
     }
     case 'cli': {
-      const c = spawnSync('npx', ['--no-install', 'supabase', ...rest, '--db-url', t.dbUrl], { encoding: 'utf8', env: childEnv, shell: process.platform === 'win32', maxBuffer: 64 * 1024 * 1024 })
+      // Pinned CLI run directly with node: no shell, no password in argv.
+      const c = spawnSync(process.execPath, [CLI_JS, ...rest, '--db-url', t.dbUrl], { encoding: 'utf8', env: envFor(t), maxBuffer: 64 * 1024 * 1024 })
       r = { status: c.status, out: redact(c.stdout, t), err: redact(c.stderr, t) }
       break
     }

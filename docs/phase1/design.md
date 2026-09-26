@@ -86,6 +86,10 @@ Conversion from the dump:
   rolls back.
 - Migration files contain no `BEGIN`/`COMMIT` and nothing that can't run in a
   single transaction (no `CONCURRENTLY`).
+- From M6 onward, every migration's first statement is
+  `SET LOCAL lock_timeout = '5s';`. The CLI runs each file in its own
+  transaction (proven in the batch 1 rehearsal), and the pooler drops
+  connection-level settings, so the timeout has to be set in the file.
 
 Proof: in the local harness, applying M0 and dumping `public` must equal the
 baseline after normalisation, with every exclusion listed.

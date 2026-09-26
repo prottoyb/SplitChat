@@ -41,7 +41,7 @@ const ROLLBACKS_DIR = path.join(root, 'supabase', 'rollbacks')
 const SHIM_DIR = path.join(root, 'tests', 'db', 'shim')
 const CASES_DIR = path.join(root, 'tests', 'db', 'cases')
 
-const FORBIDDEN_ENV = /^(PG.*|DATABASE_URL|DB_URL|SUPABASE_DB_URL|SUPABASE_ACCESS_TOKEN|POSTGRES_.*)$/i
+const FORBIDDEN_ENV = /^(PG.*|SUPABASE_.*|DATABASE_URL|DB_URL|POSTGRES_.*)$/i
 
 function pgBin(name) {
   const dir =

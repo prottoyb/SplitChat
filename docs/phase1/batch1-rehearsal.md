@@ -81,6 +81,63 @@ touched**.
 | `20260926130000_enforce_ledger_invariants.sql` | `288fdd9b0ae0e868` | `f5b87e5fc5f6` |
 | `20260926140000_restrict_owner_deletion_cascade.sql` | `f74b73c6ccbb2484` | `57edd5cef50c` |
 
+## Round 2: review conditions resolved
+
+Reviews of round 1 found no CRITICAL or HIGH issues: QA/Security PASS,
+Senior APPROVE WITH CONDITIONS. Their conditions were addressed as follows.
+
+| Finding | Resolution | Evidence |
+|---|---|---|
+| R1-SR-1: drift check against production immediately before repair | `prod.mjs preflight` dumps live production and requires an **exact** match with the Phase 0 capture, aborting otherwise | Dress rehearsal: the gate aborted on SplitChat-Dev, whose ACL entry order had changed after the rollback reset (identical when ACL order is ignored). The gate is strict. |
+| R1-SR-2 / R1-QS-2: prove production has no migration history | preflight requires both no `supabase_migrations` table and an empty remote `migration list`; `repair-m0` refuses if history exists; `push` refuses unless the remote history is exactly `[M0]` | Dress rehearsal: a second `push` was refused |
+| R1-SR-3: behaviour on a mid-batch failure | Rehearsed on SplitChat-Dev with throwaway probe migrations (see below) | Each file is its own transaction; a failing file is atomic; the push stops at the first failure; re-push after a fix applies only the remainder |
+| R1-QS-1: lock contention | preflight lock check (`supabase/ops/lock_check.sql`); a monitored apply (below). Connection-level `lock_timeout` is impossible because the pooler drops startup options (tested: it read back `0`) | Lock check passes on dev (0/0) |
+| R1-SR-4 / R1-QS-4: password in argv, `shell:true` | The password now travels only as `PGPASSWORD`; URLs are password-free; the pinned CLI runs as `node node_modules/supabase/dist/supabase.js` with no shell | The CLI with a password-free `--db-url` works (tested) |
+| R1-QS-3: scrub every `SUPABASE_*` variable | `FORBIDDEN_ENV` now covers `SUPABASE_.*` | Lint and harness pass |
+| R1-QS-5: sentinel role | Documented: the ref check is the primary control, the sentinel is defence in depth | n/a |
+
+### Mid-batch failure rehearsal (SplitChat-Dev, throwaway copy of the migrations dir)
+
+- **T1 (valid):** committed and recorded. Inside it, `SET LOCAL
+  lock_timeout = '1234ms'` read back `1234ms`, which proves the CLI wraps
+  each file in a transaction.
+- **T2 (a valid INSERT, then an error):** push failed (42P01). T2's INSERT
+  was **rolled back** and T2 was **not recorded**.
+- **T3:** not attempted; the push stops at the first failure.
+- **Recovery:** fixing T2 and pushing again applied only T2 and T3.
+- **Cleanup:** probe history was reverted with `migration repair --status
+  reverted` and the probe table dropped. SplitChat-Dev returned exactly to
+  the post-M5 schema (17/17 post-checks, identical to the harness).
+
+**Production recovery rule.** If file *k* fails, M1…M(k−1) remain applied
+and recorded, and M*k* leaves nothing behind. Stop and diagnose. Then
+either fix forward with a new reviewed migration, or apply the reviewed
+rollbacks for the applied files (each is a separate approved operation).
+Never edit an applied file.
+
+### Rollback path on real Supabase
+
+To dress-rehearse the production tool, SplitChat-Dev was reset to the
+production baseline by applying the five reviewed rollbacks
+(M5 → M1, all succeeded) and dropping its history schema. The rollbacks are
+therefore proven on real Supabase, not only in the local harness.
+
+### Dress rehearsal of the exact production tool (`scripts/ops/prod.mjs --rehearse-on-dev`)
+
+| Step | Result |
+|---|---|
+| `preflight` | Target, history, Q4/5/6/8 and lock gates PASS. The drift gate ABORTED (ACL-order artifact of the reset, see above). In production any ABORT stops the procedure |
+| `repair-m0` without `SPLITCHAT_PROD_APPROVAL` | refused |
+| `repair-m0` with approval | M0 recorded |
+| `dry-run` | exactly M1–M5 |
+| `push` with approval | M1–M5 applied |
+| `push` again | refused (history is no longer `[M0]`) |
+| `verify` | history = M0..M5; post-checks 17/17; ledger unchanged; schema == harness post-M5. **VERIFY PASSED** |
+
+The production-only guards (the prod-ref check, refusal of the dev URL and
+of the transaction pooler port) were tested separately and refuse as
+designed.
+
 ## Observations for production
 
 - The interim M5 behaviour makes a GoTrue deletion of a group owner fail
@@ -89,3 +146,14 @@ touched**.
 - Locks: every migration takes brief ACCESS EXCLUSIVE locks on
   `expenses`, `expense_splits` and `groups` (DDL). VALIDATE scans are tiny
   at production's size. Expected unavailability is well under a second.
+- Lock policy for batch 1: the batch 1 files stay exactly as reviewed and
+  rehearsed, so no in-file `lock_timeout`. Instead:
+  - the preflight lock check must be 0/0 immediately before `push`;
+  - the push is watched;
+  - if any file waits on a lock for more than 10 s, the operator cancels
+    it (`pg_cancel_backend`, itself a separately approved action). That
+    file rolls back atomically, as proven above, and the push is retried
+    later.
+  - **From M6 onward, every migration begins with
+    `SET LOCAL lock_timeout = '5s';`** (proven to work, since each file is
+    its own transaction).

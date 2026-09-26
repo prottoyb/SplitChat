@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | M1–M5 reviewed and rehearsed on SplitChat-Dev (all green). Reviews of the rehearsal in progress; next: **production batch 1 approval report** (human gate), then M6+ locally |
+| Sub-phase | Batch 1 (M0 repair + M1–M5) rehearsed, reviewed, and review conditions resolved (round 2). Next: **production batch 1 approval report**, the human gate. Then M6+ locally |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | None until the first **production** operation or the Phase 1 completion report. The team works autonomously inside the approved phase |
@@ -119,12 +119,18 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
   - Dev after M5 is identical to the harness.
   - CA-2 is proven for trigger creation; GoTrue deletion firing M11's
     trigger is still to be proven when M11 exists.
-- QA/Security and Senior review of the rehearsal evidence.
+- Rehearsal reviews, round 1: QA/Security PASS, Senior APPROVE WITH CONDITIONS; no CRITICAL/HIGH. Round-2 fixes are recorded in `docs/phase1/batch1-rehearsal.md`:
+  - `scripts/ops/prod.mjs` with preflight (exact drift, empty history, Q-gates, lock check) and verify;
+  - approval and SHA-256 manifest guards on writes;
+  - PGPASSWORD instead of the password in argv, no shell, `SUPABASE_*` scrubbed;
+  - a mid-batch failure rehearsal;
+  - reviewed rollbacks proven on real Supabase;
+  - a dress rehearsal of prod.mjs on SplitChat-Dev: VERIFY PASSED.
+- Convention from M6 onward: `SET LOCAL lock_timeout = '5s';` first in every migration.
 
 ## Next steps (design §E)
 
-1. Address review findings, push, then present the **production batch 1
-   approval report** and stop at the human gate.
+1. A quick QA/Security check of the round-2 tooling (prod.mjs), push, then present the **production batch 1 approval report** and stop at the human gate.
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
