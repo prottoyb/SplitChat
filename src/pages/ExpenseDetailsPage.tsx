@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { fetchLedgerIdentityNames } from '../lib/ledgerIdentities'
+import { formatCents, readCents } from '../lib/money'
 import { supabase } from '../lib/supabase'
 import styles from './ExpenseDetailsPage.module.css'
 
@@ -16,7 +17,7 @@ type Expense = {
   id: string
   group_id: string
   description: string
-  amount: number | string
+  amount_cents: number | string
   expense_date: string
   paid_by: string
   created_by: string
@@ -35,7 +36,7 @@ type Group = {
 type ExpenseSplit = {
   expense_id: string
   user_id: string
-  share_amount: number | string
+  share_cents: number | string
   percentage: number | string | null
   created_at: string
 }
@@ -49,23 +50,17 @@ type Profile = {
 type DisplaySplit = {
   userId: string
   fullName: string
-  shareAmount: number
+  shareCents: number
   percentage: number | null
 }
 
 type ExpenseDetails = {
   expense: Expense
+  amountCents: number
   group: Group
   payerName: string
   creatorName: string
   splits: DisplaySplit[]
-}
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-AU', {
-    style: 'currency',
-    currency: 'AUD',
-  }).format(amount)
 }
 
 function formatExpenseDate(date: string) {
@@ -155,7 +150,7 @@ function ExpenseDetailsPage() {
           id,
           group_id,
           description,
-          amount,
+          amount_cents,
           expense_date,
           paid_by,
           created_by,
@@ -225,7 +220,7 @@ function ExpenseDetailsPage() {
             `
             expense_id,
             user_id,
-            share_amount,
+            share_cents,
             percentage,
             created_at
             `,
@@ -294,6 +289,28 @@ function ExpenseDetailsPage() {
       const loadedSplits =
         (splitResult.data ??
           []) as ExpenseSplit[]
+
+      // Money arrives as integer cents; anything else is an unexpected
+      // response and is never displayed as an amount.
+      const amountCents = readCents(loadedExpense.amount_cents)
+
+      if (
+        amountCents === null ||
+        loadedSplits.some(
+          (split) => readCents(split.share_cents) === null,
+        )
+      ) {
+        console.error('Unexpected expense amount in response')
+
+        setDetails(null)
+
+        setErrorMessage(
+          'Unable to load this expense.',
+        )
+
+        setIsLoading(false)
+        return
+      }
 
       const profileIds = Array.from(
         new Set([
@@ -376,8 +393,8 @@ function ExpenseDetailsPage() {
             profileMap.get(split.user_id) ||
             'SplitChat member',
 
-          shareAmount:
-            Number(split.share_amount),
+          shareCents:
+            readCents(split.share_cents) ?? 0,
 
           percentage:
             split.percentage === null
@@ -387,6 +404,8 @@ function ExpenseDetailsPage() {
 
       setDetails({
         expense: loadedExpense,
+
+        amountCents,
 
         group: loadedGroup,
 
@@ -425,7 +444,7 @@ function ExpenseDetailsPage() {
         item.userId === userId,
     )
 
-    return split?.shareAmount ?? null
+    return split?.shareCents ?? null
   }, [details, userId])
 
   const splitTotal = useMemo(() => {
@@ -435,7 +454,7 @@ function ExpenseDetailsPage() {
 
     return details.splits.reduce(
       (total, split) =>
-        total + split.shareAmount,
+        total + split.shareCents,
       0,
     )
   }, [details])
@@ -523,9 +542,7 @@ function ExpenseDetailsPage() {
         <div
           className={styles.amountBadge}
         >
-          {formatCurrency(
-            Number(expense.amount),
-          )}
+          {formatCents(details.amountCents)}
         </div>
       </header>
 
@@ -536,9 +553,7 @@ function ExpenseDetailsPage() {
           <span>Total expense</span>
 
           <strong>
-            {formatCurrency(
-              Number(expense.amount),
-            )}
+            {formatCents(details.amountCents)}
           </strong>
 
           <p>
@@ -552,9 +567,7 @@ function ExpenseDetailsPage() {
           <strong>
             {yourShare === null
               ? 'Not included'
-              : formatCurrency(
-                  yourShare,
-                )}
+              : formatCents(yourShare)}
           </strong>
 
           <p>
@@ -710,8 +723,8 @@ function ExpenseDetailsPage() {
                         styles.shareAmount
                       }
                     >
-                      {formatCurrency(
-                        split.shareAmount,
+                      {formatCents(
+                        split.shareCents,
                       )}
                     </strong>
                   </div>
@@ -728,9 +741,7 @@ function ExpenseDetailsPage() {
             </span>
 
             <strong>
-              {formatCurrency(
-                splitTotal,
-              )}
+              {formatCents(splitTotal)}
             </strong>
           </div>
         </article>

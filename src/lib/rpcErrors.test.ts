@@ -10,6 +10,13 @@ describe('rpcErrorMessage', () => {
     ['member_not_found', /no longer a member/],
     ['invalid_email', /valid email/],
     ['auth_required', /sign in again/],
+    ['invalid_description', /description of up to 120/],
+    ['invalid_amount', /between \$0\.01 and/],
+    ['invalid_date', /expense date/],
+    ['invalid_payer', /payer must be a current member/],
+    ['invalid_participants', /distinct, current members/],
+    ['amount_too_small_to_split', /too small to split/],
+    ['invalid_notes', /500 characters/],
   ])('maps %s to user-facing text', (code, text) => {
     expect(rpcErrorMessage({ message: code }, 'fallback')).toMatch(text)
   })

@@ -25,23 +25,35 @@ ALTER TABLE public.expenses
 ALTER TABLE public.expense_splits
   ADD COLUMN share_cents bigint GENERATED ALWAYS AS ((share_amount * 100)::bigint) STORED;
 
+-- Errors (same codes as allocateEqualSplit): invalid_amount (null, <= 0,
+-- > 999999999999), invalid_participants (null/empty array or a null
+-- element), amount_too_small_to_split (fewer cents than distinct
+-- participants). Duplicates are removed before allocation.
 CREATE FUNCTION private.equal_split_cents(p_total_cents bigint, p_participant_ids uuid[])
 RETURNS TABLE(user_id uuid, share_cents bigint)
-LANGUAGE sql IMMUTABLE
+LANGUAGE plpgsql IMMUTABLE
 SET search_path = ''
 AS $$
-  WITH participants AS (
-    SELECT DISTINCT p AS user_id FROM unnest(p_participant_ids) AS p WHERE p IS NOT NULL
-  ), ordered AS (
-    SELECT user_id,
-           row_number() OVER (ORDER BY user_id) AS position,
-           count(*) OVER () AS n
-      FROM participants
-  )
-  SELECT user_id,
-         p_total_cents / n + CASE WHEN position <= p_total_cents % n THEN 1 ELSE 0 END
-    FROM ordered
-   ORDER BY user_id
+DECLARE
+  v_n bigint;
+BEGIN
+  IF p_total_cents IS NULL OR p_total_cents <= 0 OR p_total_cents > 999999999999 THEN
+    RAISE EXCEPTION 'invalid_amount' USING ERRCODE = 'P0001';
+  END IF;
+  IF coalesce(cardinality(p_participant_ids), 0) = 0 OR array_position(p_participant_ids, NULL) IS NOT NULL THEN
+    RAISE EXCEPTION 'invalid_participants' USING ERRCODE = 'P0001';
+  END IF;
+  SELECT count(DISTINCT p) INTO v_n FROM unnest(p_participant_ids) AS p;
+  IF p_total_cents < v_n THEN
+    RAISE EXCEPTION 'amount_too_small_to_split' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN QUERY
+    SELECT o.id,
+           p_total_cents / v_n + CASE WHEN o.position <= p_total_cents % v_n THEN 1 ELSE 0 END
+      FROM (SELECT d.id, row_number() OVER (ORDER BY d.id) AS position
+              FROM (SELECT DISTINCT p AS id FROM unnest(p_participant_ids) AS p) d) o
+     ORDER BY o.id;
+END
 $$;
 REVOKE ALL ON FUNCTION private.equal_split_cents(bigint, uuid[]) FROM PUBLIC, anon, authenticated, service_role;
 
@@ -128,14 +140,23 @@ CREATE OR REPLACE FUNCTION public.create_equal_split_expense(
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  v_cents bigint;
 BEGIN
-  IF p_amount IS NOT NULL AND p_amount <> round(p_amount, 2) THEN
-    RAISE EXCEPTION 'invalid_amount' USING ERRCODE = 'P0001';
+  -- An amount that is not a whole number of cents, or is out of range, is
+  -- passed on as -1 so v2 reports invalid_amount in its own check order
+  -- (authentication and authorization first) and the conversion below can
+  -- never overflow.
+  IF p_amount IS NULL THEN
+    v_cents := NULL;
+  ELSIF p_amount <> round(p_amount, 2) OR p_amount <= 0 OR p_amount > 9999999999.99 THEN
+    v_cents := -1;
+  ELSE
+    v_cents := (p_amount * 100)::bigint;
   END IF;
   -- The legacy RPC silently removed duplicate and null participants.
   RETURN public.create_equal_split_expense_v2(
-    p_group_id, p_description,
-    CASE WHEN p_amount IS NULL THEN NULL ELSE round(p_amount * 100)::bigint END,
+    p_group_id, p_description, v_cents,
     p_expense_date, p_paid_by,
     ARRAY(SELECT DISTINCT p FROM unnest(p_participant_ids) AS p WHERE p IS NOT NULL),
     p_notes);

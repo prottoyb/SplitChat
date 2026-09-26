@@ -16,6 +16,17 @@ const MESSAGES: Record<string, string> = {
     'Make another member the owner before leaving this group.',
   invalid_new_owner:
     'Ownership can only be given to another current member of this group.',
+  invalid_description:
+    'Please enter a description of up to 120 characters.',
+  invalid_amount:
+    'Please enter an amount between $0.01 and $9,999,999,999.99.',
+  invalid_date: 'Please select the expense date.',
+  invalid_payer: 'The payer must be a current member of this group.',
+  invalid_participants:
+    'Participants must be distinct, current members of this group.',
+  amount_too_small_to_split:
+    'The amount is too small to split between the selected participants.',
+  invalid_notes: 'Notes cannot exceed 500 characters.',
 }
 
 export type RpcError = { message?: string } | null | undefined

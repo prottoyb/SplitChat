@@ -3,7 +3,8 @@
 -- Function surface: exactly the client RPCs remain in public.
 SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
-  ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'get_ledger_identities',
+  ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'create_equal_split_expense_v2',
+        'get_ledger_identities',
         'leave_group', 'remove_group_member', 'transfer_group_ownership'],
   'public exposes only the client RPCs');
 SELECT tests.assert(
@@ -16,6 +17,7 @@ SELECT tests.assert_eq(
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   ARRAY['add_group_member_by_email(uuid,text)',
         'create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)',
+        'create_equal_split_expense_v2(uuid,text,bigint,date,uuid,uuid[],text)',
         'get_ledger_identities(uuid)', 'leave_group(uuid)',
         'private.my_active_group_ids()', 'private.my_group_peer_ids()',
         'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)'],
@@ -39,7 +41,7 @@ SELECT tests.assert_eq((SELECT count(*) FROM public.profiles), 1::bigint, 'forme
 SELECT tests.assert_raises(
   $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 1.00, current_date,
     '00000000-0000-4000-8000-00000000000e', ARRAY['00000000-0000-4000-8000-00000000000e']::uuid[])$$,
-  'P0001', 'former member cannot create expenses', 'You do not have access to this group.');
+  'P0001', 'former member cannot create expenses (stable code since M12)', 'not_found_or_forbidden');
 RESET ROLE;
 
 SELECT tests.login('00000000-0000-4000-8000-00000000000b');
@@ -57,8 +59,7 @@ SELECT tests.assert_raises(
   $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 3.00, current_date,
     '00000000-0000-4000-8000-00000000000b',
     ARRAY['00000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-00000000000e']::uuid[])$$,
-  'P0001', 'former member cannot be a new participant',
-  'One or more selected participants are not members of this group.');
+  'P0001', 'former member cannot be a new participant (stable code since M12)', 'invalid_participants');
 ROLLBACK;
 
 -- G1: a former member with no ledger rows is never returned.

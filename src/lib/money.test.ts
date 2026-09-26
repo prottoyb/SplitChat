@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  centsToAmount,
-  formatCurrency,
+  formatCents,
   parseAmountToCents,
+  readCents,
 } from './money'
 
 describe('parseAmountToCents', () => {
@@ -85,27 +85,39 @@ describe('parseAmountToCents', () => {
   })
 })
 
-describe('centsToAmount', () => {
-  it('converts cents to the decimal amount sent to the database', () => {
-    expect(centsToAmount(1050)).toBe(10.5)
-    expect(centsToAmount(1)).toBe(0.01)
-    expect(centsToAmount(115)).toBe(1.15)
+describe('formatCents', () => {
+  it.each([
+    [123450, '$1,234.50'],
+    [0, '$0.00'],
+    [1, '$0.01'],
+    [115, '$1.15'],
+    [-2505, '-$25.05'],
+    [999_999_999_999, '$9,999,999,999.99'],
+    [Number.MAX_SAFE_INTEGER, '$90,071,992,547,409.91'],
+  ])('formats %i cents as %s', (cents, text) => {
+    expect(formatCents(cents)).toBe(text)
   })
 
-  it('matches Number() of the original decimal text', () => {
-    for (const text of ['10.5', '0.07', '1.15', '19.99', '8.2']) {
-      const parsed = parseAmountToCents(text)
-
-      expect(parsed.ok && centsToAmount(parsed.cents)).toBe(
-        Number(text),
-      )
-    }
+  it('refuses values that are not safe integer cents', () => {
+    expect(() => formatCents(10.5)).toThrow(RangeError)
+    expect(() => formatCents(Number.NaN)).toThrow(RangeError)
   })
 })
 
-describe('formatCurrency', () => {
-  it('formats amounts as Australian dollars', () => {
-    expect(formatCurrency(1234.5)).toBe('$1,234.50')
-    expect(formatCurrency(0)).toBe('$0.00')
+describe('readCents', () => {
+  it.each([
+    [1050, 1050],
+    ['1050', 1050],
+    ['-3', -3],
+    [0, 0],
+  ])('reads %j as %i', (value, cents) => {
+    expect(readCents(value)).toBe(cents)
   })
+
+  it.each([null, undefined, 10.5, '10.50', '', 'abc', Number.NaN, 2 ** 60, '1234567890123456'])(
+    'rejects %j',
+    (value) => {
+      expect(readCents(value)).toBeNull()
+    },
+  )
 })

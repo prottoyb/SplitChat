@@ -23,15 +23,15 @@ let supabaseMock: ReturnType<typeof createSupabaseMock>
 function seedExpense() {
   supabaseMock.setTable('expenses', [
     {
-      id: 'x1', group_id: 'g1', description: 'Snacks', amount: 10, expense_date: '2026-09-20',
+      id: 'x1', group_id: 'g1', description: 'Snacks', amount_cents: 1001, expense_date: '2026-09-20',
       paid_by: 'u5', created_by: 'u5', split_type: 'equal', notes: null,
       created_at: '2026-09-20T10:00:00Z', updated_at: '2026-09-20T10:00:00Z',
     },
   ])
   supabaseMock.setTable('groups', [{ id: 'g1', name: 'Flat', description: null }])
   supabaseMock.setTable('expense_splits', [
-    { expense_id: 'x1', user_id: 'u1', share_amount: 5, percentage: null, created_at: '2026-09-20T10:00:00Z' },
-    { expense_id: 'x1', user_id: 'u5', share_amount: 5, percentage: null, created_at: '2026-09-20T10:00:00Z' },
+    { expense_id: 'x1', user_id: 'u1', share_cents: 501, percentage: null, created_at: '2026-09-20T10:00:00Z' },
+    { expense_id: 'x1', user_id: 'u5', share_cents: 500, percentage: null, created_at: '2026-09-20T10:00:00Z' },
   ])
   supabaseMock.setTable('profiles', [{ id: 'u1', full_name: 'Alice Adams', avatar_url: null }])
 }
@@ -82,5 +82,39 @@ describe('ExpenseDetailsPage historical identities', () => {
 
     expect((await screen.findAllByText('Eve')).length).toBeGreaterThan(0)
     expect(supabaseMock.rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('ExpenseDetailsPage amounts', () => {
+  it('shows exact amounts from integer cents', async () => {
+    seedExpense()
+    supabaseMock.setRpc('get_ledger_identities', [{ user_id: 'u5', display_name: 'Eve' }])
+    renderPage()
+
+    // Header badge, total card and split total all show the full amount.
+    expect(await screen.findAllByText('$10.01')).toHaveLength(3)
+    // Alice's share appears in "Your share" and in her split row.
+    expect(screen.getAllByText('$5.01')).toHaveLength(2)
+    expect(screen.getByText('$5.00')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['a decimal amount', { amount_cents: '10.01' }],
+    ['a missing amount', { amount_cents: null }],
+  ])('treats %s as an unexpected response', async (_label, override) => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    seedExpense()
+    supabaseMock.setTable('expenses', [
+      {
+        id: 'x1', group_id: 'g1', description: 'Snacks', expense_date: '2026-09-20',
+        paid_by: 'u5', created_by: 'u5', split_type: 'equal', notes: null,
+        created_at: '2026-09-20T10:00:00Z', updated_at: '2026-09-20T10:00:00Z', ...override,
+      },
+    ])
+    renderPage()
+
+    expect(await screen.findByText('Unable to load this expense.')).toBeInTheDocument()
+    expect(screen.queryByText(/\$10/)).not.toBeInTheDocument()
+    consoleError.mockRestore()
   })
 })

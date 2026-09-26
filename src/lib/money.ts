@@ -46,13 +46,46 @@ export function parseAmountToCents(
   return { ok: true, cents }
 }
 
-export function centsToAmount(cents: number) {
-  return cents / 100
+/** Largest amount the database accepts: numeric(12,2), in cents. */
+export const MAX_AMOUNT_CENTS = 999_999_999_999
+
+const AUD = new Intl.NumberFormat('en-AU', {
+  style: 'currency',
+  currency: 'AUD',
+})
+
+/**
+ * Formats integer cents as Australian dollars. The dollars and cents are
+ * split with integer arithmetic and handed to Intl as a decimal string, so no
+ * floating-point value ever stands in for money.
+ */
+export function formatCents(cents: number): string {
+  if (!Number.isSafeInteger(cents)) {
+    throw new RangeError('formatCents expects a safe integer number of cents')
+  }
+
+  const sign = cents < 0 ? '-' : ''
+  const abs = Math.abs(cents)
+  const remainder = abs % 100
+  const dollars = (abs - remainder) / 100
+  const decimal = `${sign}${dollars}.${String(remainder).padStart(2, '0')}`
+
+  return AUD.format(decimal as Intl.StringNumericLiteral)
 }
 
-export function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-AU', {
-    style: 'currency',
-    currency: 'AUD',
-  }).format(amount)
+/**
+ * Reads a cents value (a PostgREST bigint column) from an API row. Returns
+ * null for anything that is not a safe integer, so callers can treat the row
+ * as an unexpected response instead of displaying a wrong amount.
+ */
+export function readCents(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) ? value : null
+  }
+
+  if (typeof value === 'string' && /^-?\d{1,15}$/.test(value)) {
+    return Number(value)
+  }
+
+  return null
 }

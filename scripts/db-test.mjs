@@ -40,6 +40,7 @@ const MIGRATIONS_DIR = path.join(root, 'supabase', 'migrations')
 const ROLLBACKS_DIR = path.join(root, 'supabase', 'rollbacks')
 const SHIM_DIR = path.join(root, 'tests', 'db', 'shim')
 const CASES_DIR = path.join(root, 'tests', 'db', 'cases')
+const SPLIT_VECTORS = path.join(root, 'src', 'lib', 'fixtures', 'equal-split-vectors.json')
 
 const FORBIDDEN_ENV = /^(PG.*|SUPABASE_.*|DATABASE_URL|DB_URL|POSTGRES_.*)$/i
 
@@ -276,6 +277,28 @@ function checkRollbacks(cluster, migrations) {
   }
 }
 
+// The shared equal-split vectors (ADR-0006) become test data, so the database
+// is checked against exactly the JSON the frontend tests read. The JSON is
+// embedded as one dollar-quoted literal; the tag is refused if it appears.
+export function splitVectorsSql(jsonText) {
+  const tag = '$split_vectors$'
+  const { vectors } = JSON.parse(jsonText)
+  if (!Array.isArray(vectors) || vectors.length === 0) throw new Error('no split vectors')
+  const body = JSON.stringify(vectors)
+  if (body.includes(tag)) throw new Error('split vectors contain the dollar-quote tag')
+  return [
+    'CREATE TABLE tests.split_vectors (name text PRIMARY KEY, total_cents bigint NOT NULL,',
+    '  participant_ids text[] NOT NULL, expected jsonb, error text,',
+    '  CHECK ((expected IS NULL) <> (error IS NULL)));',
+    'INSERT INTO tests.split_vectors',
+    "SELECT v->>'name', (v->>'totalCents')::bigint,",
+    "       ARRAY(SELECT jsonb_array_elements_text(v->'participantIds')), v->'expected', v->>'error'",
+    `  FROM jsonb_array_elements(${tag}${body}${tag}::jsonb) AS v;`,
+    'GRANT SELECT ON tests.split_vectors TO PUBLIC;',
+    '',
+  ].join('\n')
+}
+
 function runCases(cluster) {
   const files = listSql(CASES_DIR).filter((f) => !caseFilter || path.basename(f).includes(caseFilter))
   const results = []
@@ -346,6 +369,9 @@ async function main() {
       console.log(`expected schema written to ${exportDump}`)
     }
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'helpers.sql') })
+    const vectorsFile = path.join(tmpDir, 'split_vectors.sql')
+    fs.writeFileSync(vectorsFile, splitVectorsSql(fs.readFileSync(SPLIT_VECTORS, 'utf8')))
+    cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: vectorsFile, extra: ['-1'] })
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'fixtures', 'seed.sql'), extra: ['-1'] })
 
     const results = runCases(cluster)

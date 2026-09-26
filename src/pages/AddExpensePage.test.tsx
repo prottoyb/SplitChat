@@ -112,7 +112,23 @@ describe('AddExpensePage', () => {
     expect(screen.getAllByText('$3.33')).toHaveLength(2)
   })
 
-  it('submits integer-cent-safe values to the create_equal_split_expense RPC', async () => {
+  it('previews the remainder cent for the canonically first participant, not the first selected', async () => {
+    seedGroup()
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('button', { name: 'Create expense' })
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+    await user.click(screen.getByRole('checkbox', { name: /Cara Cole/ }))
+    await user.click(screen.getByRole('checkbox', { name: /Alice Adams/ }))
+    await user.type(screen.getByLabelText(/^Amount/), '10.01')
+
+    expect(screen.getByText('$10.01')).toBeInTheDocument()
+    expect(screen.getByText('$5.01').parentElement).toHaveTextContent('Alice Adams')
+    expect(screen.getByText('$5.00').parentElement).toHaveTextContent('Cara Cole')
+  })
+
+  it('submits integer cents to the create_equal_split_expense_v2 RPC', async () => {
     seedGroup()
     const user = userEvent.setup()
     renderPage()
@@ -124,15 +140,17 @@ describe('AddExpensePage', () => {
 
     const [name, args] = supabaseMock.rpc.mock.calls[0]
 
-    expect(name).toBe('create_equal_split_expense')
+    expect(name).toBe('create_equal_split_expense_v2')
     expect(args).toMatchObject({
       p_group_id: 'g1',
       p_description: 'Dinner',
-      p_amount: 10.5,
+      p_amount_cents: 1050,
       p_paid_by: 'u1',
       p_participant_ids: ['u1', 'u2', 'u3'],
       p_notes: null,
     })
+    expect(args).not.toHaveProperty('p_amount')
+    expect(Number.isSafeInteger(args.p_amount_cents)).toBe(true)
 
     expect(
       await screen.findByText(
@@ -185,11 +203,31 @@ describe('AddExpensePage', () => {
     expect(supabaseMock.rpc).not.toHaveBeenCalled()
   })
 
-  it('shows the RPC error message and keeps the form values', async () => {
+  it.each([
+    ['invalid_participants', 'Participants must be distinct, current members of this group.'],
+    ['not_found_or_forbidden', 'This group is unavailable, or you do not have permission to do that.'],
+    ['amount_too_small_to_split', 'The amount is too small to split between the selected participants.'],
+  ])('maps the %s RPC error and keeps the form values', async (code, text) => {
     seedGroup()
     supabaseMock.rpc.mockResolvedValueOnce({
       data: null,
-      error: { message: 'You are not a member of this group' },
+      error: { message: code },
+    })
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('button', { name: 'Create expense' })
+    await fillAndSubmit(user, '10')
+
+    expect(await screen.findByText(text)).toBeInTheDocument()
+    expect(screen.getByLabelText('Description')).toHaveValue('Dinner')
+  })
+
+  it('never shows a raw database message', async () => {
+    seedGroup()
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'insert or update on table "expenses" violates foreign key constraint' },
     })
     const user = userEvent.setup()
     renderPage()
@@ -198,8 +236,23 @@ describe('AddExpensePage', () => {
     await fillAndSubmit(user, '10')
 
     expect(
-      await screen.findByText('You are not a member of this group'),
+      await screen.findByText('Unable to create this expense. Please try again.'),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText('Description')).toHaveValue('Dinner')
+    expect(screen.queryByText(/violates/)).not.toBeInTheDocument()
+  })
+
+  it('shows a connection error when the request throws', async () => {
+    seedGroup()
+    supabaseMock.rpc.mockRejectedValueOnce(new Error('Failed to fetch'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('button', { name: 'Create expense' })
+    await fillAndSubmit(user, '10')
+
+    expect(
+      await screen.findByText(/Please check your connection and try again/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Failed to fetch')).not.toBeInTheDocument()
   })
 })

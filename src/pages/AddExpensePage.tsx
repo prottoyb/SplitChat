@@ -8,13 +8,14 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { supabase } from '../lib/supabase'
 import {
-  calculateEqualSplit,
+  allocateEqualSplit,
   validateExpenseInput,
 } from '../lib/expenseSplit'
 import {
-  centsToAmount,
+  formatCents,
   parseAmountToCents,
 } from '../lib/money'
+import { rpcErrorMessage } from '../lib/rpcErrors'
 import styles from './AddExpensePage.module.css'
 
 type Group = {
@@ -44,9 +45,12 @@ type DisplayMember = {
 }
 
 type SplitPreview = {
-  userId: string
-  fullName: string
-  shareAmount: number
+  totalCents: number
+  shares: {
+    userId: string
+    fullName: string
+    shareCents: number
+  }[]
 }
 
 function getTodayInputValue() {
@@ -265,23 +269,41 @@ function AddExpensePage() {
     [members, participantIds],
   )
 
-  const splitPreview = useMemo<SplitPreview[]>(() => {
+  // The same canonical allocation the database applies (ADR-0006). Shares are
+  // looked up by user id, so the preview matches what will be stored whatever
+  // order participants were selected in.
+  const splitPreview = useMemo<SplitPreview | null>(() => {
     const parsedAmount = parseAmountToCents(amount)
 
     if (!parsedAmount.ok) {
-      return []
+      return null
     }
 
-    const shares = calculateEqualSplit(
+    const allocation = allocateEqualSplit(
       parsedAmount.cents,
-      selectedMembers.length,
+      selectedMembers.map((member) => member.userId),
     )
 
-    return selectedMembers.map((member, index) => ({
-      userId: member.userId,
-      fullName: member.fullName,
-      shareAmount: centsToAmount(shares[index]),
-    }))
+    if (!allocation.ok) {
+      return null
+    }
+
+    const shareByUser = new Map(
+      allocation.shares.map((share) => [
+        share.userId,
+        share.shareCents,
+      ]),
+    )
+
+    return {
+      totalCents: parsedAmount.cents,
+      shares: selectedMembers.map((member) => ({
+        userId: member.userId,
+        fullName: member.fullName,
+        shareCents:
+          shareByUser.get(member.userId.toLowerCase()) ?? 0,
+      })),
+    }
   }, [amount, selectedMembers])
 
   const toggleParticipant = (userId: string) => {
@@ -342,11 +364,11 @@ function AddExpensePage() {
       setIsSubmitting(true)
 
       const { error } = await supabase.rpc(
-        'create_equal_split_expense',
+        'create_equal_split_expense_v2',
         {
           p_group_id: groupId,
           p_description: expense.description,
-          p_amount: centsToAmount(expense.amountCents),
+          p_amount_cents: expense.amountCents,
           p_expense_date: expense.expenseDate,
           p_paid_by: expense.paidBy,
           p_participant_ids: expense.participantIds,
@@ -360,7 +382,12 @@ function AddExpensePage() {
           error,
         )
 
-        setErrorMessage(error.message)
+        setErrorMessage(
+          rpcErrorMessage(
+            error,
+            'Unable to create this expense. Please try again.',
+          ),
+        )
         return
       }
 
@@ -381,18 +408,9 @@ function AddExpensePage() {
         error,
       )
 
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to create this expense.',
-        )
-      }
+      setErrorMessage(
+        'Unable to create this expense. Please check your connection and try again.',
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -703,27 +721,26 @@ function AddExpensePage() {
               </div>
             </div>
 
-            {splitPreview.length > 0 ? (
+            {splitPreview ? (
               <>
                 <div className={styles.totalSummary}>
                   <span>Total expense</span>
 
                   <strong>
-                    $
-                    {Number(amount).toFixed(2)}
+                    {formatCents(splitPreview.totalCents)}
                   </strong>
 
                   <p>
                     Shared between{' '}
-                    {splitPreview.length}{' '}
-                    {splitPreview.length === 1
+                    {splitPreview.shares.length}{' '}
+                    {splitPreview.shares.length === 1
                       ? 'person'
                       : 'people'}
                   </p>
                 </div>
 
                 <div className={styles.splitList}>
-                  {splitPreview.map((split) => (
+                  {splitPreview.shares.map((split) => (
                     <div
                       key={split.userId}
                       className={styles.splitRow}
@@ -740,10 +757,7 @@ function AddExpensePage() {
                       </div>
 
                       <strong>
-                        $
-                        {split.shareAmount.toFixed(
-                          2,
-                        )}
+                        {formatCents(split.shareCents)}
                       </strong>
                     </div>
                   ))}

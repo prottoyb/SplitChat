@@ -1,0 +1,157 @@
+{
+  "description": "Canonical equal-split vectors (ADR-0006, design §A8). Shared by src/lib/expenseSplit.vectors.test.ts (allocateEqualSplit) and the database harness (private.equal_split_cents and create_equal_split_expense_v2, tests/db/cases/180). Rule: remove duplicates (ids compared case-insensitively), sort ascending by lowercase UUID, each share is floor(total / n) and the first total % n participants in that order get one extra cent. 'expected' lists shares in canonical order with lowercase ids; 'error' is the stable error code.",
+  "vectors": [
+    {
+      "name": "10000 cents across 3",
+      "totalCents": 10000,
+      "participantIds": ["30000000-0000-4000-8000-000000000001", "30000000-0000-4000-8000-000000000002", "30000000-0000-4000-8000-000000000003"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 3334 },
+        { "userId": "30000000-0000-4000-8000-000000000002", "shareCents": 3333 },
+        { "userId": "30000000-0000-4000-8000-000000000003", "shareCents": 3333 }
+      ]
+    },
+    {
+      "name": "1 cent to 1 participant",
+      "totalCents": 1,
+      "participantIds": ["30000000-0000-4000-8000-000000000001"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 1 }
+      ]
+    },
+    {
+      "name": "101 cents across 2",
+      "totalCents": 101,
+      "participantIds": ["30000000-0000-4000-8000-000000000002", "30000000-0000-4000-8000-000000000001"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 51 },
+        { "userId": "30000000-0000-4000-8000-000000000002", "shareCents": 50 }
+      ]
+    },
+    {
+      "name": "exactly one cent each",
+      "totalCents": 3,
+      "participantIds": ["30000000-0000-4000-8000-000000000003", "30000000-0000-4000-8000-000000000001", "30000000-0000-4000-8000-000000000002"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 1 },
+        { "userId": "30000000-0000-4000-8000-000000000002", "shareCents": 1 },
+        { "userId": "30000000-0000-4000-8000-000000000003", "shareCents": 1 }
+      ]
+    },
+    {
+      "name": "2 cents across 3 is too small",
+      "totalCents": 2,
+      "participantIds": ["30000000-0000-4000-8000-000000000001", "30000000-0000-4000-8000-000000000002", "30000000-0000-4000-8000-000000000003"],
+      "error": "amount_too_small_to_split"
+    },
+    {
+      "name": "maximum amount across 7 (no remainder)",
+      "totalCents": 999999999999,
+      "participantIds": ["30000000-0000-4000-8000-000000000007", "30000000-0000-4000-8000-000000000006", "30000000-0000-4000-8000-000000000005", "30000000-0000-4000-8000-000000000004", "30000000-0000-4000-8000-000000000003", "30000000-0000-4000-8000-000000000002", "30000000-0000-4000-8000-000000000001"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 142857142857 },
+        { "userId": "30000000-0000-4000-8000-000000000002", "shareCents": 142857142857 },
+        { "userId": "30000000-0000-4000-8000-000000000003", "shareCents": 142857142857 },
+        { "userId": "30000000-0000-4000-8000-000000000004", "shareCents": 142857142857 },
+        { "userId": "30000000-0000-4000-8000-000000000005", "shareCents": 142857142857 },
+        { "userId": "30000000-0000-4000-8000-000000000006", "shareCents": 142857142857 },
+        { "userId": "30000000-0000-4000-8000-000000000007", "shareCents": 142857142857 }
+      ]
+    },
+    {
+      "name": "maximum amount across 4 (remainder 3)",
+      "totalCents": 999999999999,
+      "participantIds": ["30000000-0000-4000-8000-000000000004", "30000000-0000-4000-8000-000000000002", "30000000-0000-4000-8000-000000000003", "30000000-0000-4000-8000-000000000001"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 250000000000 },
+        { "userId": "30000000-0000-4000-8000-000000000002", "shareCents": 250000000000 },
+        { "userId": "30000000-0000-4000-8000-000000000003", "shareCents": 250000000000 },
+        { "userId": "30000000-0000-4000-8000-000000000004", "shareCents": 249999999999 }
+      ]
+    },
+    {
+      "name": "non-canonical input order: remainder follows UUID order, not input order",
+      "totalCents": 1002,
+      "participantIds": ["30000000-0000-4000-8000-000000000005", "30000000-0000-4000-8000-000000000003", "30000000-0000-4000-8000-000000000001", "30000000-0000-4000-8000-000000000004", "30000000-0000-4000-8000-000000000002"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000001", "shareCents": 201 },
+        { "userId": "30000000-0000-4000-8000-000000000002", "shareCents": 201 },
+        { "userId": "30000000-0000-4000-8000-000000000003", "shareCents": 200 },
+        { "userId": "30000000-0000-4000-8000-000000000004", "shareCents": 200 },
+        { "userId": "30000000-0000-4000-8000-000000000005", "shareCents": 200 }
+      ]
+    },
+    {
+      "name": "mixed-case ids sort and compare as lowercase",
+      "totalCents": 1000,
+      "participantIds": ["3000000B-0000-4000-8000-00000000000C", "3000000a-0000-4000-8000-00000000000d", "3000000B-0000-4000-8000-00000000000a"],
+      "expected": [
+        { "userId": "3000000a-0000-4000-8000-00000000000d", "shareCents": 334 },
+        { "userId": "3000000b-0000-4000-8000-00000000000a", "shareCents": 333 },
+        { "userId": "3000000b-0000-4000-8000-00000000000c", "shareCents": 333 }
+      ]
+    },
+    {
+      "name": "ids differing only in the last hex digit",
+      "totalCents": 7,
+      "participantIds": ["30000000-0000-4000-8000-00000000000f", "30000000-0000-4000-8000-00000000000e"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-00000000000e", "shareCents": 4 },
+        { "userId": "30000000-0000-4000-8000-00000000000f", "shareCents": 3 }
+      ]
+    },
+    {
+      "name": "ids differing only in the first byte (digit sorts before letter)",
+      "totalCents": 5,
+      "participantIds": ["a0000000-0000-4000-8000-000000000001", "9f000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000001"],
+      "expected": [
+        { "userId": "00000000-0000-4000-8000-000000000001", "shareCents": 2 },
+        { "userId": "9f000000-0000-4000-8000-000000000001", "shareCents": 2 },
+        { "userId": "a0000000-0000-4000-8000-000000000001", "shareCents": 1 }
+      ]
+    },
+    {
+      "name": "letter hex digits sort after digits in every position",
+      "totalCents": 11,
+      "participantIds": ["30000000-0000-4000-8000-0000000000f0", "30000000-0000-4000-8000-0000000000a0", "30000000-0000-4000-8000-000000000090"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-000000000090", "shareCents": 4 },
+        { "userId": "30000000-0000-4000-8000-0000000000a0", "shareCents": 4 },
+        { "userId": "30000000-0000-4000-8000-0000000000f0", "shareCents": 3 }
+      ]
+    },
+    {
+      "name": "duplicates removed before allocation (case-insensitive)",
+      "totalCents": 5,
+      "participantIds": ["30000000-0000-4000-8000-00000000000b", "30000000-0000-4000-8000-00000000000A", "30000000-0000-4000-8000-00000000000a", "30000000-0000-4000-8000-00000000000B"],
+      "expected": [
+        { "userId": "30000000-0000-4000-8000-00000000000a", "shareCents": 3 },
+        { "userId": "30000000-0000-4000-8000-00000000000b", "shareCents": 2 }
+      ]
+    },
+    {
+      "name": "no participants",
+      "totalCents": 100,
+      "participantIds": [],
+      "error": "invalid_participants"
+    },
+    {
+      "name": "zero total",
+      "totalCents": 0,
+      "participantIds": ["30000000-0000-4000-8000-000000000001"],
+      "error": "invalid_amount"
+    },
+    {
+      "name": "negative total",
+      "totalCents": -100,
+      "participantIds": ["30000000-0000-4000-8000-000000000001"],
+      "error": "invalid_amount"
+    },
+    {
+      "name": "total above the maximum",
+      "totalCents": 1000000000000,
+      "participantIds": ["30000000-0000-4000-8000-000000000001"],
+      "error": "invalid_amount"
+    }
+  ]
+}
