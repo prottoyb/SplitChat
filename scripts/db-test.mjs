@@ -90,9 +90,14 @@ function freePort() {
   })
 }
 
+// Every carriage return is removed, on both sides. Production's function
+// sources contain CRLF line endings, and Windows adds another CR when a dump
+// is captured from stdout, so CR-only differences carry no meaning. All other
+// characters are still compared exactly (found by the batch 1 production
+// preflight).
 export function normaliseDump(text) {
   return text
-    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '')
     .split('\n')
     .filter((line) => !/^\\(un)?restrict /.test(line))
     .filter((line) => !/^-- Dumped (from|by) /.test(line))

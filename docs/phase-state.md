@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **AWAITING HUMAN APPROVAL: production batch 1** (M0 repair + M1–M5). Rehearsed, reviewed and ready. The report was presented to the operator 2026-09-26 |
+| Sub-phase | Production preflight #1 run (read-only, approved): all gates PASS except drift, which was a proven tooling artifact (CR handling), now fixed. **Awaiting operator approval to re-run preflight, then the batch 1 writes** |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | **Production batch 1 execution approval.** Operations: prod.mjs preflight → repair-m0 → dry-run → push → verify. Runbook: docs/phase1/batch1-rehearsal.md |

@@ -169,6 +169,67 @@ comparison with the Phase 0 capture: IDENTICAL.
 | `verify` | history M0..M5; **17/17 named post-checks**; ledger unchanged; schema == committed expected schema. **VERIFY PASSED** |
 | Tampered M1 / extra migration file | both refused before any CLI call |
 
+## Production preflight #1 (read-only, operator-approved, 2026-09-26)
+
+`node scripts/ops/prod.mjs preflight` against production `jhftlnsccurhfgneltgi`:
+
+| Gate | Result |
+|---|---|
+| Target is production, not the dev project | PASS (5 public tables) |
+| No drift (exact) | **ABORT**, a tooling artifact (see below); production is unchanged |
+| No migration history | PASS (no `supabase_migrations`, empty remote list) |
+| Q4/Q5/Q6/Q8 = 0 | PASS. Q1–Q8 all 0 |
+| No locks / long transactions | PASS (0 / 0) |
+| Ledger snapshot | completed: 1 group, 2 memberships, 2 expenses (280.00), 4 splits (280.00), 2 profiles |
+
+**Root cause of the ABORT.**
+- Production's stored function sources contain CRLF line endings (466 CRs).
+- Phase 0 captured them faithfully with `pg_dump -f`.
+- `prod.mjs` captures `pg_dump` from stdout, and on Windows text mode that
+  adds a CR before every LF. Bodies therefore became `\r\r\n`, and the old
+  normaliser removed only one CR.
+- Offline, with no database access: undoing only the stdout conversion, the
+  production dump is **byte-identical** to the Phase 0 capture (40,683
+  bytes, the same 466 CRs). The rehearsals could not show this, because M0
+  creates the functions with LF bodies.
+
+**Fix:** `normaliseDump` now drops all CRs. Validation:
+- the saved production dump is IDENTICAL to Phase 0;
+- a one-character mutation is still detected;
+- harness round-trip, rollbacks and 13/13 cases pass;
+- the dev `verify` passes.
+
+**Consequence:** after repair, production's function bodies keep their CRLF
+line endings while M0's text uses LF. This is semantically identical
+whitespace. The affected functions are replaced in M8 anyway, and `verify`
+uses the same CR-insensitive comparison.
+
+## Residual behaviour after batch 1 (M1–M5), and why it is acceptable temporarily
+
+Still callable or possible for **signed-in** users after batch 1. Anonymous
+callers can no longer execute any function.
+
+| What | Exposure | Why it's acceptable now | Removed/tightened by |
+|---|---|---|---|
+| `split_chat_is_group_member(group_id, user_id)` (SECURITY DEFINER) | A signed-in user who already knows both a group UUID and a user UUID can learn whether that user belongs to that group. Nothing else is returned | The current RLS policies call it in the caller's context, so revoking it now would break reads. It needs two random v4 UUIDs, and RLS stops a user seeing other groups' IDs or members. It returns a boolean and cannot write | M8 (rewritten policies use non-exposed `private` helpers; the function is dropped) |
+| `is_group_member(g)`, `is_group_owner(g)`, `shares_group_with(u)` | Caller-scoped: they answer only about the caller. `shares_group_with` needs the other user's UUID | Read-only, low information | M8 |
+| `add_group_member_by_email` | **Owner-only** (checked before any lookup). An owner can learn whether an email is registered, and can add an account whose email is unconfirmed (QS-6, MEDIUM) | Any user can become an owner by creating a group, so enumeration is possible but slow and manual. This is pre-existing and unchanged by batch 1 | M9 (uniform outcomes, confirmed accounts only, rate limit) |
+| Direct `group_members` INSERT by an owner; DELETE (member leaves, owner removes) | The owner can add a member by UUID, bypassing the email RPC (QS-9, LOW) | Authorisation is correct: owner only, role forced to `member` | M6 (INSERT), M10 (DELETE, after the frontend moves to RPCs) |
+| Owner can UPDATE or DELETE their group via PostgREST; **group DELETE still cascades the group's expenses and splits** | A group owner can delete the whole group, including other members' shared expenses | Pre-existing owner capability. Batch 1 blocks the *account-deletion* cascade (QS-4) but not the owner's explicit group deletion. The frontend has no delete-group feature, so this is reachable only by calling the API directly | M6 (revokes direct group UPDATE/DELETE), M11 (expenses FK becomes RESTRICT), M15 (`delete_group` allowed only for sole-member groups) |
+| Table-level TRUNCATE/REFERENCES/TRIGGER on `groups`, `group_members`, `profiles` for `authenticated`; anon privileges on `profiles` | Not reachable through PostgREST; RLS gives anon zero rows | Only a latent risk | M6 |
+
+**After batch 1:**
+- **Confidentiality:** the remaining exposure is the authenticated-only
+  membership check (it needs both UUIDs) and owner-side email enumeration.
+  Both are pre-existing and narrower than today, because the anonymous
+  oracle is gone.
+- **Authorization:** no path lets a user act outside a group they belong to.
+- **Financial integrity:** ledger writes go only through the RPC and are
+  protected by database invariants that apply to every role. The one
+  remaining destructive path is an owner deliberately deleting their own
+  group through the API. It is pre-existing, owner-authorised, and not
+  exposed by the frontend, and M6/M11/M15 close it.
+
 ## Observations for production
 
 - The interim M5 behaviour makes a GoTrue deletion of a group owner fail
