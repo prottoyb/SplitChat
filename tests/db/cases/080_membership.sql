@@ -15,10 +15,10 @@ SELECT tests.assert_ok(
 SELECT tests.assert_raises(
   $$SELECT * FROM public.add_group_member_by_email('10000000-0000-4000-8000-000000000001', 'cara@example.test')$$,
   'P0001', 'duplicate membership rejected', 'This user is already a member of the group.');
-SELECT tests.assert_ok(
+SELECT tests.assert_raises(
   $$INSERT INTO public.group_members (group_id, user_id) VALUES
     ('10000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-00000000000d')$$,
-  'KNOWN-BAD[M6]: owner inserts a member by id directly, bypassing the RPC');
+  '42501', 'FIXED[M6]: owner can no longer insert a member by id directly');
 RESET ROLE;
 
 SELECT tests.login('00000000-0000-4000-8000-00000000000b');  -- Bob: member of G1

@@ -49,11 +49,12 @@ SELECT tests.assert_eq((SELECT full_name FROM public.profiles WHERE id = '000000
 
 SELECT tests.login('00000000-0000-4000-8000-000000000010');
 SET LOCAL ROLE authenticated;
-INSERT INTO public.groups (id, name, created_by)
-  VALUES ('10000000-0000-4000-8000-000000000009', 'Book club', '00000000-0000-4000-8000-000000000010');
+INSERT INTO public.groups (name, description, created_by)
+  VALUES ('Book club', NULL, '00000000-0000-4000-8000-000000000010');
 SELECT tests.assert_eq(
-  (SELECT role FROM public.group_members
-    WHERE group_id = '10000000-0000-4000-8000-000000000009' AND user_id = '00000000-0000-4000-8000-000000000010'),
+  (SELECT gm.role FROM public.group_members gm
+     JOIN public.groups g ON g.id = gm.group_id
+    WHERE g.name = 'Book club' AND gm.user_id = '00000000-0000-4000-8000-000000000010'),
   'owner', 'on_group_created still adds the owner row');
 RESET ROLE;
 

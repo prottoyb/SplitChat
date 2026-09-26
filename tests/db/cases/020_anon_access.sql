@@ -8,7 +8,7 @@ SELECT tests.assert_raises(
                                              '00000000-0000-4000-8000-00000000000b')$$,
   '42501', 'FIXED[M2]: anon can no longer probe group membership');
 SELECT tests.assert_raises('SELECT count(*) FROM public.expenses', '42501', 'FIXED[M3]: anon has no privilege on expenses');
-SELECT tests.assert_eq((SELECT count(*) FROM public.profiles), 0::bigint, 'anon sees no profiles (RLS)');
+SELECT tests.assert_raises('SELECT count(*) FROM public.profiles', '42501', 'FIXED[M6]: anon has no privilege on profiles');
 SELECT tests.assert_raises('SELECT count(*) FROM public.groups', '42501', 'anon has no privilege on groups');
 SELECT tests.assert_raises(
   $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 1.00, current_date,
@@ -18,8 +18,8 @@ ROLLBACK;
 
 SELECT tests.assert(NOT has_table_privilege('anon', 'public.expenses', 'TRUNCATE'),
   'FIXED[M3]: anon no longer holds TRUNCATE on expenses');
-SELECT tests.assert(has_table_privilege('authenticated', 'public.profiles', 'TRUNCATE'),
-  'KNOWN-BAD[M6]: authenticated holds TRUNCATE on profiles');
+SELECT tests.assert(NOT has_table_privilege('authenticated', 'public.profiles', 'TRUNCATE'),
+  'FIXED[M6]: authenticated no longer holds TRUNCATE on profiles');
 SELECT tests.assert(
   NOT has_function_privilege('anon', 'public.create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)', 'EXECUTE'),
   'FIXED[M2]: anon may not execute create_equal_split_expense');

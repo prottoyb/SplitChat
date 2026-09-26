@@ -270,7 +270,7 @@ function runCases(cluster) {
     const db = `case_${i}`
     // If anything below throws, case_<i> is left behind on purpose: the whole
     // disposable cluster is then kept for diagnosis or deleted (CP-SR-1).
-    cluster.createDb(db, `TEMPLATE ${TEMPLATE_DB}`)
+    cluster.createDb(db, `TEMPLATE ${TEMPLATE_DB} OWNER postgres`)
     const r = cluster.psql(db, SUPERUSER, { file })
     const oks = (r.stderr.match(/NOTICE:\s+ok: /g) ?? []).length
     const failure = r.status !== 0 ? (r.stderr.split('\n').find((l) => /ERROR/.test(l)) ?? r.stderr.trim()) : null
