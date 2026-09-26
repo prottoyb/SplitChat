@@ -15,13 +15,16 @@ SELECT tests.assert_eq(
      JOIN public.expenses e ON e.id = s.expense_id WHERE e.description = 'Committed dinner'),
   100.00::numeric, 'RPC expense committed as authenticated and balances');
 
+-- Since M8 the only client-executable private functions are the three
+-- caller-scoped RLS helpers.
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc p
                WHERE p.pronamespace = 'private'::regnamespace
-                 AND (has_function_privilege('authenticated', p.oid, 'EXECUTE')
-                      OR has_function_privilege('anon', p.oid, 'EXECUTE')
-                      OR has_function_privilege('service_role', p.oid, 'EXECUTE'))),
-  'no private function is executable by client or service roles');
+                 AND (has_function_privilege('anon', p.oid, 'EXECUTE')
+                      OR has_function_privilege('service_role', p.oid, 'EXECUTE')
+                      OR (has_function_privilege('authenticated', p.oid, 'EXECUTE')
+                          AND p.proname NOT IN ('my_active_group_ids', 'my_group_peer_ids', 'my_owned_group_ids')))),
+  'private functions: no anon/service_role EXECUTE; authenticated only the RLS helpers');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc p
                WHERE p.pronamespace = 'private'::regnamespace

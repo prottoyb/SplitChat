@@ -2,10 +2,8 @@
 BEGIN;
 SELECT tests.logout();
 SET LOCAL ROLE anon;
-SELECT tests.assert_raises(
-  $$SELECT public.split_chat_is_group_member('10000000-0000-4000-8000-000000000001',
-                                             '00000000-0000-4000-8000-00000000000b')$$,
-  '42501', 'anon can no longer execute the membership oracle');
+SELECT tests.assert(to_regprocedure('public.split_chat_is_group_member(uuid,uuid)') IS NULL,
+  'membership oracle removed (M2 revoked anon, M8 dropped it)');
 SELECT tests.assert_raises(
   $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 1.00, current_date,
     '00000000-0000-4000-8000-00000000000a', ARRAY['00000000-0000-4000-8000-00000000000a']::uuid[])$$,
@@ -36,8 +34,8 @@ SELECT tests.assert(
                  AND coalesce(p.proconfig, '{}') <> ARRAY['search_path=""']),
   'every public SECURITY DEFINER function has search_path=''''');
 SELECT tests.assert(
-  NOT has_function_privilege('authenticated', 'public.handle_new_user()', 'EXECUTE')
-  AND NOT has_function_privilege('anon', 'public.set_updated_at()', 'EXECUTE'),
+  NOT has_function_privilege('authenticated', 'private.handle_new_user()', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'private.set_updated_at()', 'EXECUTE'),
   'trigger functions are not executable by clients');
 
 -- S8: triggers still fire although clients hold no EXECUTE on them.

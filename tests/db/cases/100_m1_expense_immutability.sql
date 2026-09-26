@@ -33,10 +33,10 @@ SELECT tests.assert_ok(
   'non-identity columns remain editable');
 ROLLBACK;
 
+-- Since M8, authenticated has USAGE on private for the RLS helpers only.
 SELECT tests.assert(
-  NOT has_schema_privilege('authenticated', 'private', 'USAGE')
-  AND NOT has_schema_privilege('anon', 'private', 'USAGE'),
-  'private schema is not usable by client roles');
+  NOT has_schema_privilege('anon', 'private', 'USAGE'),
+  'private schema is not usable by anon');
 SELECT tests.assert(
   NOT has_function_privilege('authenticated', 'private.guard_expense_immutables()', 'EXECUTE'),
   'guard function is not executable by clients');

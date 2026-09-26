@@ -11,8 +11,8 @@ SELECT tests.assert_eq(
 -- M6 dropped 3 owner write policies.
 SELECT tests.assert_eq((SELECT count(*) FROM pg_policies WHERE schemaname = 'public'), 8::bigint,
   'eight public policies');
-SELECT tests.assert_eq((SELECT count(*) FROM pg_proc WHERE pronamespace = 'public'::regnamespace), 10::bigint,
-  'ten public functions');
+SELECT tests.assert_eq((SELECT count(*) FROM pg_proc WHERE pronamespace = 'public'::regnamespace), 3::bigint,
+  'three public functions (client RPCs only, after M8)');
 SELECT tests.assert(
   EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created' AND tgrelid = 'auth.users'::regclass),
   'on_auth_user_created trigger exists on auth.users');
