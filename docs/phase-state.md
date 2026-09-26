@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **Production batch 2 COMPLETE** (M6–M10 applied, VERIFY PASSED 22/22, 2026-09-26). Production is at M0–M10. Next: wait for the next Phase 1 approval boundary (M11+ scope) |
+| Sub-phase | **M11–M15 in progress (approved, local + SplitChat-Dev only).** M11 done (CP13a `f687da8`) and **CA-2 PROVEN** on SplitChat-Dev via real GoTrue (26/26, `scripts/rehearsal/api-ca2.mjs`); M11 is applied on SplitChat-Dev. M12 DB migration + rollback written (WIP commit); **resume at the M12 test updates** (see "In progress") |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | **Operator approval of the next Phase 1 scope** (M11+: ledger-preserving account deletion — needs the SplitChat-Dev GoTrue deletion proof, CA-2; M12 cents/canonical split; M13 edit/delete RPCs; M14; M15). No production operation without a new approval |
@@ -110,17 +110,15 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## In progress
 
-- **Batch 2 (M6–M10) + frontend:**
-  - CP8 `ee25152` M6;
-  - CP9 `c695da8` M7;
-  - CP10 `acb689d` M8;
-  - CP11a `588b5a1` M9 DB;
-  - CP11b `2919523` M9 frontend;
-  - CP12 `5857d36` M10;
-  - batch 2 ops artifacts and tooling (this checkpoint).
-- Evidence: `docs/phase1/batch2-rehearsal.md`. Local: 111 unit tests; test:db 17/17 cases, 179 assertions, 10 rollbacks. SplitChat-Dev: dress rehearsal VERIFY PASSED (22/22), API 43/43, GoTrue profile trigger OK.
-- Implementation finding: `handle_new_user` is moved with SET SCHEMA (postgres cannot run DDL on auth.users). `prod.mjs` is generalised to `--batch batch1|batch2`.
-- Batch 2 review round 1: QA/Security PASS ×2, Senior APPROVE WITH CONDITIONS. All findings resolved (see `docs/phase1/batch2-rehearsal.md` "Review round 1"). Re-rehearsal: pre-flight 6/6, VERIFY 22/22, API 44/44 (with 30-way concurrency), rollbacks M10→M6 proven on real Supabase.
+- **M12 WIP (local only, not reviewed, not pushed):** `supabase/migrations/20260927110000_money_cents_and_canonical_split.sql` plus its rollback (the rollback up/down/up passes). Next actions:
+  1. Update case 010: 7 public functions (+v2).
+  2. Update case 150's allowlists: add `create_equal_split_expense_v2` (and its full signature) to both arrays.
+  3. Flip case 070 to FIXED[M12]: canonical order gives the extra cent to the lowest UUID (Alice `…0a`), and legacy errors are now codes (`invalid_participants`, `invalid_amount`, `not_found_or_forbidden`).
+  4. Add case 180 for v2 (every error code, authorization first) and the shared vectors: `src/lib/fixtures/equal-split-vectors.json`, loaded by the runner into `tests.split_vectors`.
+  5. M12 frontend: `allocateEqualSplit` (canonical, lowercase UUID sort) in `expenseSplit.ts` + vectors test; AddExpensePage calls v2 with `p_amount_cents` and maps errors via rpcErrors (add the expense codes); expense pages read `amount_cents`/`share_cents` with `formatCents`.
+- Then M13 (update/delete RPCs + ExpenseDetailsPage delete UI), M15 (`delete_group` RPC, timestamp 20260927130000, + owner "Delete group" when sole member), and M14 (drop legacy RPC, 20260927140000; batch3 `frontendMinCommit` = the M12 frontend commit).
+- Then batch 3 ops artifacts (prod.mjs BATCH3; pre-checks Q11–Q13; post-checks; expected schema), a SplitChat-Dev dress rehearsal (M11 is already applied there: reset M11 or start batch 3 from post-M11 accordingly), api-batch3, reviews, and the Batch 3 report.
+- Decision to surface in the Batch 3 report: per the approved M15 design, a group whose ONLY member ever was the owner may be deleted even with expenses (the history involves only that person). Groups that have ever had another member are refused (`group_has_other_members`).
 
 ## Next steps (design §E)
 
