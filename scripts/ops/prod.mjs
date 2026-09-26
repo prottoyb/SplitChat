@@ -11,18 +11,22 @@
 //     and a password-free --db-url; the password travels only as PGPASSWORD;
 //     the pinned CLI is run directly with node (no shell);
 //   - read commands run inside an asserted read-only transaction;
-//   - write commands (repair-m0, push) require SPLITCHAT_PROD_APPROVAL=batch1,
-//     copy the migrations into a private staging directory, verify the
-//     *copies* against the full SHA-256 manifest, and point the CLI at that
-//     staging copy (no gap between verification and execution);
-//   - repair-m0 re-runs the exact drift check itself immediately before
-//     writing; push requires the remote history to be exactly [M0];
+//   - every command names its batch (--batch batchN) and is checked against
+//     that batch's reviewed manifest: exact migration files and full
+//     SHA-256 digests, the expected schema and migration history before and
+//     after, named pre- and post-checks;
+//   - write commands (repair-m0 for batch 1, push) require
+//     SPLITCHAT_PROD_APPROVAL=<that batch>, copy the migrations into a private
+//     staging directory, verify the *copies*, and point the CLI at that copy;
+//     repair-m0 re-runs the exact drift check itself immediately before
+//     writing; push requires the remote history to be exactly the batch's
+//     starting history;
 //   - secrets are never printed.
 //
-// Usage:
+// Usage (every command takes --batch batch1|batch2):
 //   node scripts/ops/prod.mjs identify
 //   node scripts/ops/prod.mjs preflight <evidence-dir>   (read-only)
-//   node scripts/ops/prod.mjs repair-m0                  (WRITE, approval)
+//   node scripts/ops/prod.mjs repair-m0                  (WRITE, batch1 only)
 //   node scripts/ops/prod.mjs dry-run                    (read-only)
 //   node scripts/ops/prod.mjs push                       (WRITE, approval)
 //   node scripts/ops/prod.mjs verify <evidence-dir>      (read-only)
@@ -48,26 +52,67 @@ const DEV_SENTINEL = 'splitchat_rehearsal_sentinel'
 const CLI_JS = path.join(root, 'node_modules', 'supabase', 'dist', 'supabase.js')
 const OPS = path.join(root, 'supabase', 'ops')
 const MIGRATIONS = path.join(root, 'supabase', 'migrations')
-const BASELINE_DUMP = path.join(root, 'supabase', 'baseline', 'public_schema.sql')
-const REHEARSE = process.argv.includes('--rehearse-on-dev')
+const argv = process.argv.slice(2)
+const REHEARSE = argv.includes('--rehearse-on-dev')
 
-// Reviewed and rehearsed content of production batch 1
-// (docs/phase1/batch1-rehearsal.md). Full SHA-256 of LF-normalised text.
-const BATCH1 = {
-  repair: '20260926000000',
-  migrations: {
-    '20260926000000_baseline_public_schema.sql': '7d7b627b2cbfd2709620fbba9eca9358885a565b648ed039fe47605db8ed2370',
-    '20260926100000_guard_expense_immutable_columns.sql': 'cc322ff60c033443b23ee0856cbf5d5d5c9a0e6970576b0a0cd34593c857c207',
-    '20260926110000_revoke_anon_harden_definer_functions.sql': '1a91b339524aea24a658db13ccd296c530c1835088d2d480fa48ccc2ccdfa0c0',
-    '20260926120000_revoke_direct_ledger_writes.sql': '477de1deebca0ad810100f4d632f9d87f4bdbf7d5a54737f24b6434bc2ddb80b',
-    '20260926130000_enforce_ledger_invariants.sql': '288fdd9b0ae0e8682f0e98b5238bf770896fdecbd5d16f3f90d6ab98dcae6bda',
-    '20260926140000_restrict_owner_deletion_cascade.sql': 'f74b73c6ccbb2484becc24c4daa6bce6fb2d3a912edcb549428b2b5825dfa3aa',
+// Full SHA-256 of LF-normalised text, for every reviewed file.
+const M = {
+  '20260926000000_baseline_public_schema.sql': '7d7b627b2cbfd2709620fbba9eca9358885a565b648ed039fe47605db8ed2370',
+  '20260926100000_guard_expense_immutable_columns.sql': 'cc322ff60c033443b23ee0856cbf5d5d5c9a0e6970576b0a0cd34593c857c207',
+  '20260926110000_revoke_anon_harden_definer_functions.sql': '1a91b339524aea24a658db13ccd296c530c1835088d2d480fa48ccc2ccdfa0c0',
+  '20260926120000_revoke_direct_ledger_writes.sql': '477de1deebca0ad810100f4d632f9d87f4bdbf7d5a54737f24b6434bc2ddb80b',
+  '20260926130000_enforce_ledger_invariants.sql': '288fdd9b0ae0e8682f0e98b5238bf770896fdecbd5d16f3f90d6ab98dcae6bda',
+  '20260926140000_restrict_owner_deletion_cascade.sql': 'f74b73c6ccbb2484becc24c4daa6bce6fb2d3a912edcb549428b2b5825dfa3aa',
+  '20260926150000_least_privilege_grants.sql': 'd1f1c66a14a139fcc660fb532adcaf949a4c68ba9c3393736a44ff9fff324f14',
+  '20260926160000_membership_lifecycle_and_single_owner.sql': '9825e7fc0f485b04316a6c532011d14663d38b30f910ced5cffce50dac91a17a',
+  '20260926170000_private_helpers_rls_rewrite.sql': '42863e08884ac3d84cfe78c676d93cd8e8d60a84e2f203df99d270a974d846fc',
+  '20260926180000_membership_rpcs.sql': '4b41d16f87b87d26c2aaf8aecbb55fbcc7432b36571e9e7cdc0b23275b73ee25',
+  '20260926190000_revoke_direct_membership_delete.sql': '4b702e559d502d7eb5bad16fce3dc90de4ce91f527f36cc17b419f4ea70ecddb',
+}
+const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
+const versions = (n) => Object.keys(M).slice(0, n).map((f) => f.slice(0, 14))
+
+// Reviewed batches. `before` is the schema production must match before the
+// batch (exact, CR-insensitive); `startHistory` is the required migration
+// history before the batch's write; `after*` describe the verified end state.
+const BATCHES = {
+  batch1: {
+    migrations: pick(6),
+    before: ['../baseline/public_schema.sql', null],
+    preflightHistory: [],
+    repair: '20260926000000',
+    startHistory: versions(1),
+    prechecks: 'batch1_prechecks.sql',
+    zeroChecks: ['Q4', 'Q5', 'Q6', 'Q8'],
+    postchecks: 'batch1_postchecks.sql',
+    expectedSchema: ['batch1_expected_schema.sql', 'af3cf9a3c7ff1020f0517679296fb3300d51baaf29eda762d76485f06365ea63'],
   },
-  // Post-M5 schema proven identical on the local harness and SplitChat-Dev.
-  expectedSchema: ['batch1_expected_schema.sql', 'af3cf9a3c7ff1020f0517679296fb3300d51baaf29eda762d76485f06365ea63'],
+  batch2: {
+    migrations: pick(11),
+    before: ['batch1_expected_schema.sql', 'af3cf9a3c7ff1020f0517679296fb3300d51baaf29eda762d76485f06365ea63'],
+    preflightHistory: versions(6),
+    startHistory: versions(6),
+    prechecks: 'batch2_prechecks.sql',
+    zeroChecks: ['Q9', 'Q10', 'Q4', 'Q5'],
+    postchecks: 'batch2_postchecks.sql',
+    expectedSchema: ['batch2_expected_schema.sql', '3976da18e5d912f8460b6043c8810d136e56eb9ba9d034985caf7859da2edd6e'],
+  },
 }
 
 const sha256 = (text) => crypto.createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex')
+
+function selectBatch() {
+  const i = argv.indexOf('--batch')
+  const id = i >= 0 ? argv[i + 1] : undefined
+  if (!id || !BATCHES[id]) throw new Error(`--batch must be one of: ${Object.keys(BATCHES).join(', ')}`)
+  return { id, ...BATCHES[id] }
+}
+
+function readPinned(file, digest) {
+  const text = fs.readFileSync(path.join(OPS, file), 'utf8')
+  if (digest && sha256(text) !== digest) throw new Error(`REFUSING: ${file} differs from the reviewed file`)
+  return text
+}
 
 function target() {
   if (REHEARSE) {
@@ -137,39 +182,41 @@ function dump(t) {
   return r.out
 }
 
-const noDrift = (t) => normaliseDump(dump(t)) === normaliseDump(fs.readFileSync(BASELINE_DUMP, 'utf8'))
+const beforeSchema = (b) => readPinned(b.before[0], b.before[1])
+const matchesBefore = (t, b) => normaliseDump(dump(t)) === normaliseDump(beforeSchema(b))
 
-function remoteVersions(t) {
+function remoteVersions(t, id) {
+  if (!id.hasHistory) return []
   const r = cli(t, ['migration', 'list'])
   if (r.status !== 0) throw new Error(`migration list failed:\n${r.err}`)
   const json = JSON.parse(r.out.slice(r.out.indexOf('{'), r.out.lastIndexOf('}') + 1))
   return json.migrations.map((m) => m.remote).filter(Boolean)
 }
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
-// Copies supabase/migrations into a private staging workdir, verifies the
-// copies against the manifest, and returns that workdir for the CLI.
-function stageApprovedMigrations() {
-  if (process.env.SPLITCHAT_PROD_APPROVAL !== 'batch1') {
-    throw new Error('REFUSING: write needs SPLITCHAT_PROD_APPROVAL=batch1 (set only after explicit human execution approval)')
+// Only migrations are staged; refuse if the project gains any other CLI
+// input (config, roles, seed, functions) that staging would not cover.
+// The copies are verified against the batch manifest and made read-only.
+function stageApprovedMigrations(b) {
+  if (process.env.SPLITCHAT_PROD_APPROVAL !== b.id) {
+    throw new Error(`REFUSING: write needs SPLITCHAT_PROD_APPROVAL=${b.id} (set only after explicit human execution approval)`)
   }
-  // Only migrations are staged. Refuse if the project gains any other CLI
-  // input (config, roles, seed, functions) that staging would not cover.
   for (const extra of ['config.toml', 'roles.sql', 'seed.sql', 'functions']) {
     if (fs.existsSync(path.join(root, 'supabase', extra))) {
-      throw new Error(`REFUSING: supabase/${extra} exists but is not part of the reviewed batch 1 staging`)
+      throw new Error(`REFUSING: supabase/${extra} exists but is not part of the reviewed staging`)
     }
   }
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'splitchat-prod-stage-'))
   const staged = path.join(workdir, 'supabase', 'migrations')
   fs.mkdirSync(staged, { recursive: true })
   const files = fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()
-  if (JSON.stringify(files) !== JSON.stringify(Object.keys(BATCH1.migrations).sort())) {
-    throw new Error('REFUSING: supabase/migrations must contain exactly the batch 1 files')
+  if (!same(files, Object.keys(b.migrations).sort())) {
+    throw new Error(`REFUSING: supabase/migrations must contain exactly the ${b.id} files`)
   }
   for (const f of files) {
     fs.copyFileSync(path.join(MIGRATIONS, f), path.join(staged, f))
     const digest = sha256(fs.readFileSync(path.join(staged, f), 'utf8'))
-    if (digest !== BATCH1.migrations[f]) throw new Error(`REFUSING: ${f} differs from the reviewed file (sha256 ${digest})`)
+    if (digest !== b.migrations[f]) throw new Error(`REFUSING: ${f} differs from the reviewed file (sha256 ${digest})`)
     fs.chmodSync(path.join(staged, f), 0o444)
   }
   return workdir
@@ -180,51 +227,52 @@ function gate(label, ok, detail) {
   return ok
 }
 
-function preflight(t, id, dir) {
+function preflight(t, id, b, dir) {
   fs.mkdirSync(dir, { recursive: true })
-  let ok = gate(REHEARSE ? 'REHEARSAL target is SplitChat-Dev' : 'target is production and not the dev project', true, `${t.ref}, ${id.publicTables} public tables`)
+  let ok = gate(REHEARSE ? 'REHEARSAL target is SplitChat-Dev' : 'target is production and not the dev project', true, `${t.ref}, ${id.publicTables} public tables, ${b.id}`)
   const live = dump(t)
   fs.writeFileSync(path.join(dir, 'prod_before.sql'), live)
-  ok = gate('no drift: live schema == Phase 0 capture (exact)', normaliseDump(live) === normaliseDump(fs.readFileSync(BASELINE_DUMP, 'utf8'))) && ok
-  ok = gate('no migration history exists yet', !id.hasHistory && remoteVersions(t).length === 0) && ok
-  const pre = readonly(t, fs.readFileSync(path.join(OPS, 'batch1_prechecks.sql'), 'utf8'))
+  ok = gate(`no drift: live schema == expected pre-${b.id} schema (exact)`, normaliseDump(live) === normaliseDump(beforeSchema(b))) && ok
+  const history = remoteVersions(t, id)
+  ok = gate(`migration history is exactly the pre-${b.id} history`, same(history, b.preflightHistory), `${history.length} versions`) && ok
+  const pre = readonly(t, readPinned(b.prechecks))
   fs.writeFileSync(path.join(dir, 'prechecks.txt'), pre)
-  const q = Object.fromEntries([...pre.matchAll(/^\s*(Q\d)[^|]*\|\s*(\d+)\s*$/gm)].map((m) => [m[1], Number(m[2])]))
-  ok = gate('Q4/Q5/Q6/Q8 are 0 (M4/M5 preconditions)', [q.Q4, q.Q5, q.Q6, q.Q8].every((v) => v === 0), JSON.stringify(q)) && ok
-  gate('Q1-Q3/Q7 recorded (informational)', true)
-  fs.writeFileSync(path.join(dir, 'ledger_before.txt'), readonly(t, fs.readFileSync(path.join(OPS, 'ledger_snapshot.sql'), 'utf8')))
-  const locks = readonly(t, fs.readFileSync(path.join(OPS, 'lock_check.sql'), 'utf8'))
+  const q = Object.fromEntries([...pre.matchAll(/^\s*(Q\d+)[^|]*\|\s*(\d+)\s*$/gm)].map((m) => [m[1], Number(m[2])]))
+  ok = gate(`${b.zeroChecks.join('/')} are 0 (preconditions)`, b.zeroChecks.every((k) => q[k] === 0), JSON.stringify(q)) && ok
+  fs.writeFileSync(path.join(dir, 'ledger_before.txt'), readonly(t, readPinned('ledger_snapshot.sql')))
+  gate('ledger snapshot recorded', true)
+  const locks = readonly(t, readPinned('lock_check.sql'))
   const lm = /^\s*(\d+)\s*\|\s*(\d+)\s*$/m.exec(locks)
   ok = gate('no other locks on expenses/expense_splits/groups and no long transactions', Boolean(lm) && lm[1] === '0' && lm[2] === '0', lm ? `${lm[1]} locks, ${lm[2]} long` : 'unparsed') && ok
   console.log(ok ? '\nPREFLIGHT PASSED' : '\nPREFLIGHT FAILED: do not proceed')
   return ok
 }
 
-function verify(t, dir) {
-  const [schemaFile, schemaSha] = BATCH1.expectedSchema
-  const expected = fs.readFileSync(path.join(OPS, schemaFile), 'utf8')
-  if (sha256(expected) !== schemaSha) throw new Error('REFUSING: expected schema file differs from the reviewed one')
-  let ok = gate('history = M0..M5', JSON.stringify(remoteVersions(t)) === JSON.stringify(Object.keys(BATCH1.migrations).sort().map((f) => f.slice(0, 14))))
-  const postSql = fs.readFileSync(path.join(OPS, 'batch1_postchecks.sql'), 'utf8')
+function verify(t, id, b, dir) {
+  const expected = readPinned(...b.expectedSchema)
+  const history = remoteVersions(t, id)
+  let ok = gate(`history = the ${b.id} migrations`, same(history, Object.keys(b.migrations).sort().map((f) => f.slice(0, 14))), `${history.length} versions`)
+  const postSql = readPinned(b.postchecks)
   const names = [...postSql.matchAll(/^\s*\('([^']+)',\s*$/gm)].map((m) => m[1])
-  if (new Set(names).size !== names.length) throw new Error('REFUSING: duplicate post-check names')
+  if (names.length === 0 || new Set(names).size !== names.length) throw new Error('REFUSING: post-check names missing or duplicated')
   const post = readonly(t, postSql)
   fs.writeFileSync(path.join(dir, 'postchecks.txt'), post)
   const results = new Map([...post.matchAll(/^\s*(.+?)\s*\|\s*([tf])\s*$/gm)].map((m) => [m[1], m[2]]))
   const failing = names.filter((n) => results.get(n) !== 't')
-  ok = gate('every named post-check is true', names.length === 17 && failing.length === 0, failing.length ? `failing: ${failing.join('; ')}` : `${names.length}/17`) && ok
-  const ledgerAfter = readonly(t, fs.readFileSync(path.join(OPS, 'ledger_snapshot.sql'), 'utf8'))
+  ok = gate('every named post-check is true', failing.length === 0, failing.length ? `failing: ${failing.join('; ')}` : `${names.length}/${names.length}`) && ok
+  const ledgerAfter = readonly(t, readPinned('ledger_snapshot.sql'))
   fs.writeFileSync(path.join(dir, 'ledger_after.txt'), ledgerAfter)
   ok = gate('ledger unchanged (counts, totals, digests)', ledgerAfter === fs.readFileSync(path.join(dir, 'ledger_before.txt'), 'utf8')) && ok
   const live = dump(t)
   fs.writeFileSync(path.join(dir, 'prod_after.sql'), live)
-  ok = gate('schema == reviewed post-M5 schema', normaliseDump(live) === normaliseDump(expected)) && ok
+  ok = gate(`schema == reviewed post-${b.id} schema`, normaliseDump(live) === normaliseDump(expected)) && ok
   console.log(ok ? '\nVERIFY PASSED' : '\nVERIFY FAILED: stop and assess (forward-fix or approved rollback)')
   return ok
 }
 
 function main() {
-  const [cmd, a1] = process.argv.slice(2).filter((a) => a !== '--rehearse-on-dev')
+  const b = selectBatch()
+  const [cmd, a1] = argv.filter((a, i) => a !== '--rehearse-on-dev' && a !== '--batch' && argv[i - 1] !== '--batch')
   const t = target()
   const id = identify(t)
   let r
@@ -233,25 +281,26 @@ function main() {
       console.log(`${REHEARSE ? 'REHEARSAL SplitChat-Dev' : 'production'} ${t.ref}: public tables=${id.publicTables}; migration history present=${id.hasHistory}`)
       return
     case 'preflight':
-      process.exit(preflight(t, id, a1) ? 0 : 1)
+      process.exit(preflight(t, id, b, a1) ? 0 : 1)
       break
     case 'verify':
-      process.exit(verify(t, a1) ? 0 : 1)
+      process.exit(verify(t, id, b, a1) ? 0 : 1)
       break
     case 'dry-run':
       r = cli(t, ['db', 'push', '--dry-run'])
       break
     case 'repair-m0': {
-      const workdir = stageApprovedMigrations()
+      if (!b.repair) throw new Error(`REFUSING: ${b.id} has no repair step`)
+      const workdir = stageApprovedMigrations(b)
       if (id.hasHistory) throw new Error('REFUSING: production already has migration history; stop and reassess')
-      if (!noDrift(t)) throw new Error('REFUSING: live schema no longer matches the Phase 0 capture (drift)')
-      r = cli(t, ['migration', 'repair', '--status', 'applied', BATCH1.repair], workdir)
+      if (!matchesBefore(t, b)) throw new Error('REFUSING: live schema no longer matches the expected schema (drift)')
+      r = cli(t, ['migration', 'repair', '--status', 'applied', b.repair], workdir)
       break
     }
     case 'push': {
-      const workdir = stageApprovedMigrations()
-      if (JSON.stringify(remoteVersions(t)) !== JSON.stringify([BATCH1.repair])) {
-        throw new Error('REFUSING: remote history must be exactly [M0] before pushing M1-M5')
+      const workdir = stageApprovedMigrations(b)
+      if (!same(remoteVersions(t, id), b.startHistory)) {
+        throw new Error(`REFUSING: remote history must be exactly [${b.startHistory.join(', ')}] before pushing ${b.id}`)
       }
       r = cli(t, ['db', 'push', '--yes'], workdir)
       break

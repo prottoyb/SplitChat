@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **Production batch 1 COMPLETE** (M0 repaired, M1–M5 applied, VERIFY PASSED, 2026-09-26). Next: M6+ locally (lock_timeout convention), then prepare batch 2. No production operation without new approval |
+| Sub-phase | **Batch 2 (M6–M10) implemented, tested, and rehearsed on SplitChat-Dev (all green)**. In review: QA/Security + Senior. Next: production batch 2 approval report (human gate). Production is unchanged since batch 1 |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | Any further production operation (batch 2+), and Phase 1 completion. Local M6+ work continues autonomously |
+| Next human gate | **Production batch 2 approval** (after reviews). M11+ is not started |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -110,27 +110,21 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## In progress
 
-- M1–M5 reviews: QA/Security PASS, Senior APPROVE WITH CONDITIONS (the condition was a reviewed pre-check script: supabase/ops/batch1_prechecks.sql). No CRITICAL/HIGH.
-- **SplitChat-Dev rehearsal of batch 1 is complete; all green.** Evidence: `docs/phase1/batch1-rehearsal.md`.
-  - Dev after M0 is identical to the production dump.
-  - repair → dry-run → push worked without Docker.
-  - The ledger was unchanged by the push.
-  - Post-checks 17/17; real-API checks 24/24.
-  - Dev after M5 is identical to the harness.
-  - CA-2 is proven for trigger creation; GoTrue deletion firing M11's
-    trigger is still to be proven when M11 exists.
-- Rehearsal reviews, round 1: QA/Security PASS, Senior APPROVE WITH CONDITIONS; no CRITICAL/HIGH. Round-2 fixes are recorded in `docs/phase1/batch1-rehearsal.md`:
-  - `scripts/ops/prod.mjs` with preflight (exact drift, empty history, Q-gates, lock check) and verify;
-  - approval and SHA-256 manifest guards on writes;
-  - PGPASSWORD instead of the password in argv, no shell, `SUPABASE_*` scrubbed;
-  - a mid-batch failure rehearsal;
-  - reviewed rollbacks proven on real Supabase;
-  - a dress rehearsal of prod.mjs on SplitChat-Dev: VERIFY PASSED.
-- Convention from M6 onward: `SET LOCAL lock_timeout = '5s';` first in every migration.
+- **Batch 2 (M6–M10) + frontend:**
+  - CP8 `ee25152` M6;
+  - CP9 `c695da8` M7;
+  - CP10 `acb689d` M8;
+  - CP11a `588b5a1` M9 DB;
+  - CP11b `2919523` M9 frontend;
+  - CP12 `5857d36` M10;
+  - batch 2 ops artifacts and tooling (this checkpoint).
+- Evidence: `docs/phase1/batch2-rehearsal.md`. Local: 111 unit tests; test:db 17/17 cases, 179 assertions, 10 rollbacks. SplitChat-Dev: dress rehearsal VERIFY PASSED (22/22), API 43/43, GoTrue profile trigger OK.
+- Implementation finding: `handle_new_user` is moved with SET SCHEMA (postgres cannot run DDL on auth.users). `prod.mjs` is generalised to `--batch batch1|batch2`.
+- Reviews (QA/Security, Senior) of batch 2 pending.
 
 ## Next steps (design §E)
 
-1. Continue M6–M10 locally: harness, rollbacks, reviews, SplitChat-Dev rehearsal. Every new migration starts with `SET LOCAL lock_timeout = '5s';`. Then propose production batch 2 with a new manifest in prod.mjs (BATCH2) and a new evidence package.
+1. Address batch 2 review findings; push; present the **production batch 2 approval report** and stop. Ordering: the frontend at `2919523`+ is required whenever M9/M10 are live.
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
@@ -143,7 +137,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Validation status
 
-At the rehearsal checkpoint: lint ✅, build ✅ (known >500 kB chunk warning), test ✅ 84/84, npm audit ✅ 0, **test:db ✅ round-trip, 5 rollback checks, 13/13 cases, 86 assertions**; **SplitChat-Dev ✅** (see `docs/phase1/batch1-rehearsal.md`).
+At the batch 2 checkpoint: lint ✅, build ✅, test ✅ 111/111, npm audit ✅ 0, **test:db ✅ round-trip, 10 rollback checks, 17/17 cases, 179 assertions**; **SplitChat-Dev batch 2 ✅** (dress rehearsal 22/22, API 43/43).
 
 ## Unresolved risks
 
@@ -168,5 +162,4 @@ At the rehearsal checkpoint: lint ✅, build ✅ (known >500 kB chunk warning), 
 
 ## Working-tree notes
 
-`src/pages/ActivityPage.tsx`, `AuthPage.tsx` and `DashboardPage.tsx` show as
-modified, but only line endings differ. Never stage, commit or reset them.
+`src/pages/ActivityPage.tsx`, `AuthPage.tsx` and `DashboardPage.tsx` had line-ending-only differences. Since a `git add src` on 2026-09-26 refreshed the index, they no longer show as modified. Their working-tree bytes are unchanged and they were never committed.
