@@ -363,6 +363,10 @@ BEGIN
     RAISE EXCEPTION 'invalid_email' USING ERRCODE = 'P0001';
   END IF;
 
+  -- Serialise attempts per caller so concurrent calls cannot all pass the
+  -- count before any insert commits (review B2-QS-1). Transaction-scoped.
+  PERFORM pg_advisory_xact_lock(hashtextextended('splitchat.member_add_attempts:' || v_uid::text, 0));
+
   DELETE FROM private.member_add_attempts
    WHERE caller_id = v_uid AND attempted_at < now() - interval '1 day';
   SELECT count(*) INTO v_attempts FROM private.member_add_attempts

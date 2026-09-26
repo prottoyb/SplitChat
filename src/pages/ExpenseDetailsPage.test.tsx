@@ -1,0 +1,86 @@
+import { render, screen } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createSupabaseMock } from '../test/supabaseMock'
+import ExpenseDetailsPage from './ExpenseDetailsPage'
+
+const mock = vi.hoisted(() => ({ current: null as unknown }))
+
+vi.mock('../lib/supabase', () => ({
+  get supabase() {
+    return (mock.current as ReturnType<typeof createSupabaseMock>).client
+  },
+}))
+
+vi.mock('../auth/useAuth', () => ({
+  useAuth: () => ({ session: { user: { id: 'u1' } } }),
+}))
+
+let supabaseMock: ReturnType<typeof createSupabaseMock>
+
+// Eve (u5) paid and has since left the group, so her profile is no longer
+// visible under RLS; her name must come from the ledger identities RPC.
+function seedExpense() {
+  supabaseMock.setTable('expenses', [
+    {
+      id: 'x1', group_id: 'g1', description: 'Snacks', amount: 10, expense_date: '2026-09-20',
+      paid_by: 'u5', created_by: 'u5', split_type: 'equal', notes: null,
+      created_at: '2026-09-20T10:00:00Z', updated_at: '2026-09-20T10:00:00Z',
+    },
+  ])
+  supabaseMock.setTable('groups', [{ id: 'g1', name: 'Flat', description: null }])
+  supabaseMock.setTable('expense_splits', [
+    { expense_id: 'x1', user_id: 'u1', share_amount: 5, percentage: null, created_at: '2026-09-20T10:00:00Z' },
+    { expense_id: 'x1', user_id: 'u5', share_amount: 5, percentage: null, created_at: '2026-09-20T10:00:00Z' },
+  ])
+  supabaseMock.setTable('profiles', [{ id: 'u1', full_name: 'Alice Adams', avatar_url: null }])
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/expenses/x1']}>
+      <Routes>
+        <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+beforeEach(() => {
+  supabaseMock = createSupabaseMock()
+  mock.current = supabaseMock
+})
+
+describe('ExpenseDetailsPage historical identities', () => {
+  it('shows a former member by their preserved ledger name', async () => {
+    seedExpense()
+    supabaseMock.setRpc('get_ledger_identities', [{ user_id: 'u5', display_name: 'Eve' }])
+    renderPage()
+
+    expect((await screen.findAllByText('Eve')).length).toBeGreaterThan(0)
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('get_ledger_identities', { p_group_id: 'g1' })
+  })
+
+  it('falls back to a generic name, never an id, when the lookup fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    seedExpense()
+    supabaseMock.setRpc('get_ledger_identities', null, { message: 'not_found_or_forbidden' })
+    renderPage()
+
+    expect((await screen.findAllByText('SplitChat member')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('u5')).not.toBeInTheDocument()
+    consoleError.mockRestore()
+  })
+
+  it('does not call the identities RPC when every person is an active member', async () => {
+    seedExpense()
+    supabaseMock.setTable('profiles', [
+      { id: 'u1', full_name: 'Alice Adams', avatar_url: null },
+      { id: 'u5', full_name: 'Eve', avatar_url: null },
+    ])
+    renderPage()
+
+    expect((await screen.findAllByText('Eve')).length).toBeGreaterThan(0)
+    expect(supabaseMock.rpc).not.toHaveBeenCalled()
+  })
+})

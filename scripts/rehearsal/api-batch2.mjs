@@ -38,6 +38,15 @@ async function call(method, urlPath, { token, key = t.anonKey, body, prefer, pro
   }
   return { status: res.status, ok: res.ok, json }
 }
+const admin = (method, p, body) => call(method, `/auth/v1/admin${p}`, { key: t.serviceKey, body })
+
+// A fresh synthetic user per run keeps the script re-runnable (fresh
+// rate-limit budget, fresh ownership).
+async function createUser(state, key, name) {
+  const r = await admin('POST', '/users', { email: email(key), password: state.password, email_confirm: true, user_metadata: { full_name: name } })
+  if (!r.ok) throw new Error(`create ${key} failed: ${r.status}`)
+  return r.json.id
+}
 const rest = (method, p, token, body, prefer) => call(method, `/rest/v1${p}`, { token, body, prefer })
 const rpc = (fn, token, body) => call('POST', `/rest/v1/rpc/${fn}`, { token, body })
 const code = (r) => r.json?.code ?? r.status
@@ -58,26 +67,29 @@ function check(name, pass, detail = '') {
 async function prepare() {
   const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
   const tok = {}
-  for (const who of ['alice', 'bob', 'eve']) tok[who] = await signIn(state, who)
+  const ownerKey = `owner${Date.now()}`
+  const ownerId = await createUser(state, ownerKey, 'Olive')
+  tok.owner = await signIn(state, ownerKey)
+  for (const who of ['bob', 'eve']) tok[who] = await signIn(state, who)
   // Pre-batch API, as production has it today: direct group insert, the old
   // add-by-email RPC, and the expense RPC.
   const name = `Batch2 Flat ${Date.now()}`
-  let r = await rest('POST', '/groups', tok.alice, { name, description: null, created_by: state.users.alice }, 'return=minimal')
+  let r = await rest('POST', '/groups', tok.owner, { name, description: null, created_by: ownerId }, 'return=minimal')
   if (!r.ok) throw new Error(`group insert failed: ${r.status}`)
-  r = await rest('GET', `/groups?select=id&name=eq.${encodeURIComponent(name)}`, tok.alice)
+  r = await rest('GET', `/groups?select=id&name=eq.${encodeURIComponent(name)}`, tok.owner)
   const groupId = r.json[0].id
   for (const who of ['bob', 'eve']) {
-    r = await rpc('add_group_member_by_email', tok.alice, { target_group_id: groupId, target_email: email(who) })
+    r = await rpc('add_group_member_by_email', tok.owner, { target_group_id: groupId, target_email: email(who) })
     if (!r.ok) throw new Error(`legacy add ${who} failed: ${r.status} ${msg(r)}`)
   }
   r = await rpc('create_equal_split_expense', tok.bob, {
     p_group_id: groupId, p_description: 'Batch2 groceries', p_amount: 10.0, p_expense_date: '2026-09-22',
-    p_paid_by: state.users.bob, p_participant_ids: [state.users.alice, state.users.bob, state.users.eve], p_notes: null,
+    p_paid_by: state.users.bob, p_participant_ids: [ownerId, state.users.bob, state.users.eve], p_notes: null,
   })
   if (!r.ok) throw new Error(`expense failed: ${r.status} ${msg(r)}`)
-  state.batch2 = { groupId, expenseId: r.json }
+  state.batch2 = { groupId, expenseId: r.json, ownerKey, ownerId }
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2))
-  console.log(`prepared batch 2 scenario: group with owner Alice, members Bob and Eve, one 10.00 expense`)
+  console.log(`prepared batch 2 scenario: group with a fresh owner (Olive), members Bob and Eve, one 10.00 expense`)
 }
 
 async function verify() {
@@ -86,7 +98,9 @@ async function verify() {
   const G = state.batch2.groupId
   const X = state.batch2.expenseId
   const tok = {}
-  for (const who of ['alice', 'bob', 'cara', 'dan', 'eve']) tok[who] = await signIn(state, who)
+  for (const who of ['bob', 'cara', 'dan', 'eve']) tok[who] = await signIn(state, who)
+  tok.owner = await signIn(state, state.batch2.ownerKey)
+  const O = state.batch2.ownerId
 
   // Anonymous callers.
   let r = await rest('GET', '/profiles?select=id', undefined)
@@ -129,7 +143,7 @@ async function verify() {
   check('outsider cannot see the group', r.ok && r.json.length === 0)
 
   // Owner add-by-email outcomes (no enumeration, identity only when added).
-  const add = async (who) => (await rpc('add_group_member_by_email', tok.alice, { target_group_id: G, target_email: who })).json?.[0]
+  const add = async (who) => (await rpc('add_group_member_by_email', tok.owner, { target_group_id: G, target_email: who })).json?.[0]
   let row = await add(email('cara').toUpperCase())
   check('owner adds a confirmed account (case-insensitive) and gets its name', row?.result === 'added' && row.added_user_id === U.cara && row.added_full_name === 'Cara', JSON.stringify(row))
   row = await add(email('cara'))
@@ -138,29 +152,29 @@ async function verify() {
   const unconfirmed = await add(email('uma'))
   check('no account and unconfirmed account are indistinguishable',
     noAccount?.result === 'member_not_added' && JSON.stringify(noAccount) === JSON.stringify(unconfirmed), `${JSON.stringify(noAccount)} / ${JSON.stringify(unconfirmed)}`)
-  r = await rpc('add_group_member_by_email', tok.alice, { target_group_id: G, target_email: 'not-an-email' })
+  r = await rpc('add_group_member_by_email', tok.owner, { target_group_id: G, target_email: 'not-an-email' })
   check('malformed email -> invalid_email', msg(r) === 'invalid_email', msg(r))
 
   // Direct Data API writes are all refused.
-  r = await rest('POST', '/group_members', tok.alice, { group_id: G, user_id: U.dan }, 'return=minimal')
+  r = await rest('POST', '/group_members', tok.owner, { group_id: G, user_id: U.dan }, 'return=minimal')
   check('owner cannot insert a membership directly', code(r) === '42501', `code ${code(r)}`)
-  r = await rest('DELETE', `/group_members?group_id=eq.${G}&user_id=eq.${U.bob}`, tok.alice)
+  r = await rest('DELETE', `/group_members?group_id=eq.${G}&user_id=eq.${U.bob}`, tok.owner)
   check('owner cannot delete a membership directly', code(r) === '42501', `code ${code(r)}`)
   r = await rest('DELETE', `/group_members?group_id=eq.${G}&user_id=eq.${U.bob}`, tok.bob)
   check('member cannot hard-delete their membership', code(r) === '42501', `code ${code(r)}`)
-  r = await rest('PATCH', `/groups?id=eq.${G}`, tok.alice, { name: 'Renamed' })
+  r = await rest('PATCH', `/groups?id=eq.${G}`, tok.owner, { name: 'Renamed' })
   check('owner cannot update the group directly', code(r) === '42501', `code ${code(r)}`)
-  r = await rest('DELETE', `/groups?id=eq.${G}`, tok.alice)
+  r = await rest('DELETE', `/groups?id=eq.${G}`, tok.owner)
   check('owner cannot delete the group directly (no ledger cascade)', code(r) === '42501', `code ${code(r)}`)
-  r = await rest('PATCH', `/profiles?id=eq.${U.alice}`, tok.alice, { created_at: '2000-01-01T00:00:00Z' })
+  r = await rest('PATCH', `/profiles?id=eq.${O}`, tok.owner, { created_at: '2000-01-01T00:00:00Z' })
   check('user cannot change protected profile columns', code(r) === '42501', `code ${code(r)}`)
-  r = await rest('PATCH', `/profiles?id=eq.${U.alice}`, tok.alice, { full_name: 'Alice' }, 'return=representation')
+  r = await rest('PATCH', `/profiles?id=eq.${O}`, tok.owner, { full_name: 'Olive' }, 'return=representation')
   check('user can still update their own display name', r.ok && r.json.length === 1, `status ${r.status}`)
   r = await rest('POST', '/groups', tok.dan, { name: `Dan solo ${Date.now()}`, description: null, created_by: U.dan }, 'return=minimal')
   check('frontend group creation still works', r.ok, `status ${r.status}`)
 
   // Remove, leave, former member, ledger identities.
-  r = await rpc('remove_group_member', tok.alice, { p_group_id: G, p_user_id: U.cara })
+  r = await rpc('remove_group_member', tok.owner, { p_group_id: G, p_user_id: U.cara })
   check('owner removes a member', r.ok, `status ${r.status} ${msg(r) ?? ''}`)
   r = await rest('GET', `/groups?select=id&id=eq.${G}`, tok.cara)
   check('removed member loses access', r.ok && r.json.length === 0)
@@ -172,8 +186,6 @@ async function verify() {
   check('former member cannot read ledger identities', msg(r) === 'not_found_or_forbidden', msg(r))
   r = await rest('GET', `/expense_splits?select=user_id&expense_id=eq.${X}`, tok.bob)
   check('historical splits of the former member remain visible to members', r.ok && r.json.length === 3)
-  r = await rest('GET', `/profiles?select=id&id=eq.${U.eve}`, tok.bob)
-  check('no former-member directory (profile not browsable)', r.ok && r.json.length === 0)
   r = await rpc('get_ledger_identities', tok.bob, { p_group_id: G })
   check('ledger identities give the former member name only', r.ok && r.json.length === 1 && r.json[0].user_id === U.eve
     && r.json[0].display_name === 'Eve' && Object.keys(r.json[0]).length === 2, JSON.stringify(r.json))
@@ -186,14 +198,18 @@ async function verify() {
   check('former member cannot be a new participant', !r.ok, `status ${r.status}`)
 
   // Ownership transfer and owner leave.
-  r = await rpc('leave_group', tok.alice, { p_group_id: G })
+  r = await rpc('leave_group', tok.owner, { p_group_id: G })
   check('owner cannot leave without transferring', msg(r) === 'owner_must_transfer', msg(r))
-  r = await rpc('transfer_group_ownership', tok.alice, { p_group_id: G, p_new_owner_id: U.eve })
+  r = await rpc('transfer_group_ownership', tok.owner, { p_group_id: G, p_new_owner_id: U.eve })
   check('transfer to a former member is refused', msg(r) === 'invalid_new_owner', msg(r))
-  r = await rpc('transfer_group_ownership', tok.alice, { p_group_id: G, p_new_owner_id: U.bob })
+  r = await rpc('transfer_group_ownership', tok.owner, { p_group_id: G, p_new_owner_id: U.bob })
   check('owner transfers to an active member', r.ok, `status ${r.status} ${msg(r) ?? ''}`)
-  r = await rpc('leave_group', tok.alice, { p_group_id: G })
+  r = await rpc('leave_group', tok.owner, { p_group_id: G })
   check('previous owner can now leave', r.ok, `status ${r.status} ${msg(r) ?? ''}`)
+  // Olive is a fresh user whose only group was this one: once she has left,
+  // no active member may browse her profile (G1: no former-member directory).
+  r = await rest('GET', `/profiles?select=id&id=eq.${O}`, tok.bob)
+  check('no former-member directory (former member profile not browsable)', r.ok && r.json.length === 0, `${r.json?.length} rows`)
   r = await rest('GET', `/group_members?select=user_id,role&group_id=eq.${G}`, tok.bob)
   check('exactly one active owner remains', r.ok && r.json.length === 1 && r.json[0].user_id === U.bob && r.json[0].role === 'owner', JSON.stringify(r.json))
 
@@ -207,6 +223,24 @@ async function verify() {
     p_participant_ids: [U.bob, U.eve], p_notes: null,
   })
   check('expense creation works for the re-added member', r.ok, `status ${r.status} ${msg(r) ?? ''}`)
+
+  // Rate limit under real concurrency (review B2-QS-1): 30 parallel attempts
+  // by one owner with a fresh budget must yield exactly 20 answers and 10
+  // rate_limited, not more than 20 answered.
+  const limiterKey = `limiter${Date.now()}`
+  const limiterId = await createUser(state, limiterKey, 'Lim')
+  tok.limiter = await signIn(state, limiterKey)
+  const soloName = `Limiter ${Date.now()}`
+  await rest('POST', '/groups', tok.limiter, { name: soloName, description: null, created_by: limiterId }, 'return=minimal')
+  r = await rest('GET', `/groups?select=id&name=eq.${encodeURIComponent(soloName)}`, tok.limiter)
+  const soloGroup = r.json?.[0]?.id
+  const burst = await Promise.all(Array.from({ length: 30 }, (_, i) =>
+    rpc('add_group_member_by_email', tok.limiter, { target_group_id: soloGroup, target_email: `burst${i}-${Date.now()}@example.com` })))
+  const outcomes = burst.map((b) => b.json?.[0]?.result ?? `error:${b.status}`)
+  const answered = outcomes.filter((o) => o === 'member_not_added').length
+  const limited = outcomes.filter((o) => o === 'rate_limited').length
+  check('rate limit holds under 30 concurrent attempts (exactly 20 answered, 10 limited)', answered === 20 && limited === 10,
+    `${answered} answered, ${limited} limited, ${30 - answered - limited} other`)
 
   const failed = results.filter((ok) => !ok).length
   console.log(`\n${results.length - failed}/${results.length} batch 2 API checks passed`)

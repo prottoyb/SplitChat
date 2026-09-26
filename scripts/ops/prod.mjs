@@ -66,7 +66,7 @@ const M = {
   '20260926150000_least_privilege_grants.sql': 'd1f1c66a14a139fcc660fb532adcaf949a4c68ba9c3393736a44ff9fff324f14',
   '20260926160000_membership_lifecycle_and_single_owner.sql': '9825e7fc0f485b04316a6c532011d14663d38b30f910ced5cffce50dac91a17a',
   '20260926170000_private_helpers_rls_rewrite.sql': '42863e08884ac3d84cfe78c676d93cd8e8d60a84e2f203df99d270a974d846fc',
-  '20260926180000_membership_rpcs.sql': '4b41d16f87b87d26c2aaf8aecbb55fbcc7432b36571e9e7cdc0b23275b73ee25',
+  '20260926180000_membership_rpcs.sql': '460931bf3bd3f5457ca5208a7a4e6e7882bf75e22a08fc8a9584fbcb9206fe86',
   '20260926190000_revoke_direct_membership_delete.sql': '4b702e559d502d7eb5bad16fce3dc90de4ce91f527f36cc17b419f4ea70ecddb',
 }
 const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
@@ -78,7 +78,7 @@ const versions = (n) => Object.keys(M).slice(0, n).map((f) => f.slice(0, 14))
 const BATCHES = {
   batch1: {
     migrations: pick(6),
-    before: ['../baseline/public_schema.sql', null],
+    before: ['../baseline/public_schema.sql', '7d4971e08e87a98bd23bc205961b06b067423ed535af5aedd85cd4dacd429d9d'],
     preflightHistory: [],
     repair: '20260926000000',
     startHistory: versions(1),
@@ -95,13 +95,35 @@ const BATCHES = {
     prechecks: 'batch2_prechecks.sql',
     zeroChecks: ['Q9', 'Q10', 'Q4', 'Q5'],
     postchecks: 'batch2_postchecks.sql',
-    expectedSchema: ['batch2_expected_schema.sql', '3976da18e5d912f8460b6043c8810d136e56eb9ba9d034985caf7859da2edd6e'],
+    expectedSchema: ['batch2_expected_schema.sql', '52d45db9baf1bec1c8d829e5c49bf0a1f478969305fab181a1a867b6c992acd6'],
+    // M9 changes the add-by-email contract and M10 removes direct deletes:
+    // every frontend in use must contain this commit (review B2-SR-3).
+    frontendMinCommit: '29195231ad9bec4107b181d61aa25edacac4cf82',
   },
+}
+
+// Frontend compatibility attestation for batches that change a client
+// contract. SPLITCHAT_FRONTEND_ATTESTATION must be either the commit of the
+// frontend that is live (it must contain the batch's minimum commit), or
+// exactly `no-live-frontend` when no frontend build is serving users.
+function frontendAttestation(b) {
+  if (!b.frontendMinCommit) return null
+  const value = (process.env.SPLITCHAT_FRONTEND_ATTESTATION ?? '').trim()
+  if (value === 'no-live-frontend') return value
+  if (!/^[0-9a-f]{7,40}$/.test(value)) {
+    throw new Error(`REFUSING: ${b.id} needs SPLITCHAT_FRONTEND_ATTESTATION=<live frontend commit> or no-live-frontend`)
+  }
+  const r = spawnSync('git', ['merge-base', '--is-ancestor', b.frontendMinCommit, value], { cwd: root, encoding: 'utf8' })
+  if (r.status !== 0) {
+    throw new Error(`REFUSING: live frontend ${value} does not contain the required commit ${b.frontendMinCommit.slice(0, 7)}`)
+  }
+  return value
 }
 
 const sha256 = (text) => crypto.createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex')
 
 function selectBatch() {
+  if (argv.filter((a) => a === '--batch').length !== 1) throw new Error('exactly one --batch is required')
   const i = argv.indexOf('--batch')
   const id = i >= 0 ? argv[i + 1] : undefined
   if (!id || !BATCHES[id]) throw new Error(`--batch must be one of: ${Object.keys(BATCHES).join(', ')}`)
@@ -299,6 +321,8 @@ function main() {
     }
     case 'push': {
       const workdir = stageApprovedMigrations(b)
+      const attested = frontendAttestation(b)
+      if (attested) console.log(`frontend attestation for ${b.id}: ${attested}`)
       if (!same(remoteVersions(t, id), b.startHistory)) {
         throw new Error(`REFUSING: remote history must be exactly [${b.startHistory.join(', ')}] before pushing ${b.id}`)
       }

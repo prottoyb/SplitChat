@@ -351,6 +351,14 @@ function GroupDetailsPage() {
 
       setPendingRemovalUserId(null)
 
+      // Drop the row immediately so its actions cannot be used while the
+      // list refreshes (review B2-SR-1); the reload confirms server state.
+      setMembers((current) =>
+        current.filter(
+          (existing) => existing.userId !== member.userId,
+        ),
+      )
+
       reload()
 
       setSuccessMessage(
@@ -392,6 +400,20 @@ function GroupDetailsPage() {
       }
 
       setPendingTransferUserId(null)
+
+      // Swap roles immediately so owner-only actions disappear at once
+      // (review B2-SR-1); the reload confirms server state.
+      setMembers((current) =>
+        current.map((existing) => ({
+          ...existing,
+          role:
+            existing.userId === member.userId
+              ? 'owner'
+              : existing.role === 'owner'
+                ? 'member'
+                : existing.role,
+        })),
+      )
 
       reload()
 

@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **Batch 2 (M6–M10) implemented, tested, and rehearsed on SplitChat-Dev (all green)**. In review: QA/Security + Senior. Next: production batch 2 approval report (human gate). Production is unchanged since batch 1 |
+| Sub-phase | **Batch 2 (M6–M10) done:** reviewed (round 1 resolved, incl. the M9 rate-limit race fix and the frontend attestation gate) and re-rehearsed clean on SplitChat-Dev. Next: confirmation review of the fixes, then the production batch 2 approval report (human gate) |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | **Production batch 2 approval** (after reviews). M11+ is not started |
@@ -120,7 +120,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
   - batch 2 ops artifacts and tooling (this checkpoint).
 - Evidence: `docs/phase1/batch2-rehearsal.md`. Local: 111 unit tests; test:db 17/17 cases, 179 assertions, 10 rollbacks. SplitChat-Dev: dress rehearsal VERIFY PASSED (22/22), API 43/43, GoTrue profile trigger OK.
 - Implementation finding: `handle_new_user` is moved with SET SCHEMA (postgres cannot run DDL on auth.users). `prod.mjs` is generalised to `--batch batch1|batch2`.
-- Reviews (QA/Security, Senior) of batch 2 pending.
+- Batch 2 review round 1: QA/Security PASS ×2, Senior APPROVE WITH CONDITIONS. All findings resolved (see `docs/phase1/batch2-rehearsal.md` "Review round 1"). Re-rehearsal: pre-flight 6/6, VERIFY 22/22, API 44/44 (with 30-way concurrency), rollbacks M10→M6 proven on real Supabase.
 
 ## Next steps (design §E)
 
@@ -137,7 +137,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Validation status
 
-At the batch 2 checkpoint: lint ✅, build ✅, test ✅ 111/111, npm audit ✅ 0, **test:db ✅ round-trip, 10 rollback checks, 17/17 cases, 179 assertions**; **SplitChat-Dev batch 2 ✅** (dress rehearsal 22/22, API 43/43).
+At the batch 2 re-rehearsal checkpoint: lint ✅, build ✅, test ✅ 117/117, npm audit ✅ 0, **test:db ✅ round-trip, 10 rollback checks, 17/17 cases, 180 assertions**; **SplitChat-Dev batch 2 ✅** (pre-flight 6/6, VERIFY 22/22, API 44/44).
 
 ## Unresolved risks
 

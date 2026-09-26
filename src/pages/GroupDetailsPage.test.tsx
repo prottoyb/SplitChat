@@ -104,6 +104,24 @@ describe('GroupDetailsPage membership actions use RPCs', () => {
     expect(await screen.findByText(/could not add anyone with that email/i)).toBeInTheDocument()
   })
 
+  it.each([
+    ['already_member', /already a member of this group/],
+    ['rate_limited', /Too many add attempts/],
+  ])('shows the %s outcome without disclosing identity', async (result, text) => {
+    seedGroup()
+    supabaseMock.setRpc('add_group_member_by_email', [
+      { result, added_user_id: null, added_full_name: null, added_role: null },
+    ])
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(await screen.findByLabelText('Email address'), 'bob@example.com')
+    await user.click(screen.getByRole('button', { name: '+ Add member' }))
+
+    expect(await screen.findByText(text)).toBeInTheDocument()
+    expect(screen.queryByText(/was added/)).not.toBeInTheDocument()
+  })
+
   it('removes a member through remove_group_member', async () => {
     seedGroup()
     const user = userEvent.setup()
@@ -124,6 +142,11 @@ describe('GroupDetailsPage membership actions use RPCs', () => {
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Make owner' }))
+    // Server state after the transfer, returned by the page's reload.
+    supabaseMock.setTable('group_members', [
+      { group_id: 'g1', user_id: 'u1', role: 'member', joined_at: '2026-09-01' },
+      { group_id: 'g1', user_id: 'u2', role: 'owner', joined_at: '2026-09-02' },
+    ])
     await user.click(screen.getByRole('button', { name: 'Confirm owner' }))
 
     await waitFor(() =>
@@ -133,6 +156,9 @@ describe('GroupDetailsPage membership actions use RPCs', () => {
       }),
     )
     expect(await screen.findByText(/Bob Brown is now the owner/)).toBeInTheDocument()
+    // Owner-only actions disappear immediately for the previous owner.
+    expect(screen.queryByRole('button', { name: 'Make owner' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+ Add member' })).not.toBeInTheDocument()
   })
 
   it('leaves through leave_group and returns to the groups list', async () => {

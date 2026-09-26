@@ -16,7 +16,8 @@ SET LOCAL lock_timeout = '5s';
 --     attempt row commits (CA-1). Identity columns are set only for
 --     `added` (DS-4). Only confirmed, non-deleted accounts can be added;
 --     "no account" and "unconfirmed" are the same outcome. A former member
---     is reactivated. 20 attempts per caller per hour.
+--     is reactivated. 20 attempts per caller per hour, counting every
+--     attempt (successful or not) and serialised per caller.
 --   remove_group_member(group, user): owner only; marks the row removed.
 --   leave_group(group): active member; an owner must transfer first.
 --   transfer_group_ownership(group, new_owner): owner only; the new owner
@@ -62,6 +63,10 @@ BEGIN
   IF char_length(v_email) NOT BETWEEN 3 AND 320 OR v_email !~ '^[^@[:space:]]+@[^@[:space:]]+$' THEN
     RAISE EXCEPTION 'invalid_email' USING ERRCODE = 'P0001';
   END IF;
+
+  -- Serialise attempts per caller so concurrent calls cannot all pass the
+  -- count before any insert commits (review B2-QS-1). Transaction-scoped.
+  PERFORM pg_advisory_xact_lock(hashtextextended('splitchat.member_add_attempts:' || v_uid::text, 0));
 
   DELETE FROM private.member_add_attempts
    WHERE caller_id = v_uid AND attempted_at < now() - interval '1 day';
