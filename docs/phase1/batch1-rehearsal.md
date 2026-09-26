@@ -193,6 +193,8 @@ comparison with the Phase 0 capture: IDENTICAL.
   bytes, the same 466 CRs). The rehearsals could not show this, because M0
   creates the functions with LF bodies.
 
+Evidence hashes (raw files, kept outside the repo): production dump `prod_before.sql` SHA-256 `b860eed5cb6d43f28c5169961386c2b52c4fa4b76c06bf6aacfa72426380b9a1`; ledger snapshot SHA-256 `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`.
+
 **Fix:** `normaliseDump` now drops all CRs. Validation:
 - the saved production dump is IDENTICAL to Phase 0;
 - a one-character mutation is still detected;
