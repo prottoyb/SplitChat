@@ -5,9 +5,9 @@ SET LOCAL ROLE anon;
 SELECT tests.assert(to_regprocedure('public.split_chat_is_group_member(uuid,uuid)') IS NULL,
   'membership oracle removed (M2 revoked anon, M8 dropped it)');
 SELECT tests.assert_raises(
-  $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 1.00, current_date,
+  $$SELECT public.create_equal_split_expense_v2('10000000-0000-4000-8000-000000000001', 'x', 100, current_date,
     '00000000-0000-4000-8000-00000000000a', ARRAY['00000000-0000-4000-8000-00000000000a']::uuid[])$$,
-  '42501', 'anon can no longer execute create_equal_split_expense');
+  '42501', 'anon cannot execute the expense RPC (v2 since M12)');
 ROLLBACK;
 
 -- The app path for signed-in members still works.
@@ -15,7 +15,7 @@ BEGIN;
 SELECT tests.login('00000000-0000-4000-8000-00000000000b');
 SET LOCAL ROLE authenticated;
 SELECT tests.assert_ok(
-  $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'Taxi', 12.00, current_date,
+  $$SELECT public.create_equal_split_expense_v2('10000000-0000-4000-8000-000000000001', 'Taxi', 1200, current_date,
     '00000000-0000-4000-8000-00000000000b',
     ARRAY['00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b']::uuid[])$$,
   'member can still create an expense after search_path hardening');

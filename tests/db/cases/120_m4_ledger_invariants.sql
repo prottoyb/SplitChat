@@ -85,7 +85,7 @@ BEGIN;
 SELECT tests.login('00000000-0000-4000-8000-00000000000a');
 SET LOCAL ROLE authenticated;
 SELECT tests.assert_ok($t$DO $b$ BEGIN
-    PERFORM public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'Rent', 1000.01, current_date,
+    PERFORM public.create_equal_split_expense_v2('10000000-0000-4000-8000-000000000001', 'Rent', 100001, current_date,
       '00000000-0000-4000-8000-00000000000a',
       ARRAY['00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b',
             '00000000-0000-4000-8000-00000000000e']::uuid[]);

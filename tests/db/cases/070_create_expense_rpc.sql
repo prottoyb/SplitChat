@@ -1,8 +1,16 @@
 -- Legacy create_equal_split_expense (numeric amount). Characterised at the
--- baseline; since M12 it is a wrapper around create_equal_split_expense_v2
+-- baseline; M12 made it a wrapper around create_equal_split_expense_v2
 -- (ADR-0006, design §A7), so it allocates in canonical order and raises v2's
--- stable error codes. Dropped in M14.
+-- stable error codes; M14 drops it.
+SELECT tests.assert(to_regprocedure('public.create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)') IS NULL,
+  'FIXED[M14]: the legacy numeric expense RPC no longer exists');
+
+-- The wrapper's behaviour between M12 and M14 (production batch 3a until 3b):
+-- it is restored inside this transaction by the reviewed M14 rollback.
 BEGIN;
+SET LOCAL ROLE postgres;
+\ir ../../../supabase/rollbacks/20260927140000_drop_legacy_expense_rpc.down.sql
+RESET ROLE;
 SELECT tests.login('00000000-0000-4000-8000-00000000000b');
 SET LOCAL ROLE authenticated;
 CREATE TEMP TABLE new_expense AS

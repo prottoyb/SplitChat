@@ -3,7 +3,7 @@
 -- Function surface: exactly the client RPCs remain in public.
 SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
-  ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'create_equal_split_expense_v2',
+  ARRAY['add_group_member_by_email', 'create_equal_split_expense_v2',
         'delete_expense', 'delete_group', 'get_ledger_identities',
         'leave_group', 'remove_group_member', 'transfer_group_ownership', 'update_equal_split_expense'],
   'public exposes only the client RPCs');
@@ -16,7 +16,6 @@ SELECT tests.assert_eq(
     WHERE p.pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   ARRAY['add_group_member_by_email(uuid,text)',
-        'create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)',
         'create_equal_split_expense_v2(uuid,text,bigint,date,uuid,uuid[],text)',
         'delete_expense(uuid,timestamp with time zone)', 'delete_group(uuid)',
         'get_ledger_identities(uuid)', 'leave_group(uuid)',
@@ -41,7 +40,7 @@ SELECT tests.assert_eq((SELECT count(*) FROM public.expense_splits), 0::bigint, 
 SELECT tests.assert_eq((SELECT count(*) FROM public.group_members), 0::bigint, 'former member sees no memberships');
 SELECT tests.assert_eq((SELECT count(*) FROM public.profiles), 1::bigint, 'former member sees only their own profile');
 SELECT tests.assert_raises(
-  $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 1.00, current_date,
+  $$SELECT public.create_equal_split_expense_v2('10000000-0000-4000-8000-000000000001', 'x', 100, current_date,
     '00000000-0000-4000-8000-00000000000e', ARRAY['00000000-0000-4000-8000-00000000000e']::uuid[])$$,
   'P0001', 'former member cannot create expenses (stable code since M12)', 'not_found_or_forbidden');
 RESET ROLE;
@@ -58,7 +57,7 @@ SELECT tests.assert_eq(
   ARRAY['00000000-0000-4000-8000-00000000000e:Eve'],
   'get_ledger_identities returns only the ledger-referenced former member, name only');
 SELECT tests.assert_raises(
-  $$SELECT public.create_equal_split_expense('10000000-0000-4000-8000-000000000001', 'x', 3.00, current_date,
+  $$SELECT public.create_equal_split_expense_v2('10000000-0000-4000-8000-000000000001', 'x', 300, current_date,
     '00000000-0000-4000-8000-00000000000b',
     ARRAY['00000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-00000000000e']::uuid[])$$,
   'P0001', 'former member cannot be a new participant (stable code since M12)', 'invalid_participants');

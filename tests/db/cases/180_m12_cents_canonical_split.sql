@@ -155,7 +155,11 @@ SELECT tests.assert_ok($$SELECT public.create_equal_split_expense_v2('10000000-0
 ROLLBACK;
 
 -- Legacy wrapper and v2 produce identical splits (F11) -------------------------
+-- (the wrapper existed from M12 to M14; restored here by the M14 rollback)
 BEGIN;
+SET LOCAL ROLE postgres;
+\ir ../../../supabase/rollbacks/20260927140000_drop_legacy_expense_rpc.down.sql
+RESET ROLE;
 SELECT tests.login('00000000-0000-4000-8000-00000000000a');
 SET LOCAL ROLE authenticated;
 CREATE TEMP TABLE pair AS

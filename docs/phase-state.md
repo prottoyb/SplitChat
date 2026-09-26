@@ -110,15 +110,12 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## In progress
 
-- **M12 WIP (local only, not reviewed, not pushed):** `supabase/migrations/20260927110000_money_cents_and_canonical_split.sql` plus its rollback (the rollback up/down/up passes). Next actions:
-  1. Update case 010: 7 public functions (+v2).
-  2. Update case 150's allowlists: add `create_equal_split_expense_v2` (and its full signature) to both arrays.
-  3. Flip case 070 to FIXED[M12]: canonical order gives the extra cent to the lowest UUID (Alice `…0a`), and legacy errors are now codes (`invalid_participants`, `invalid_amount`, `not_found_or_forbidden`).
-  4. Add case 180 for v2 (every error code, authorization first) and the shared vectors: `src/lib/fixtures/equal-split-vectors.json`, loaded by the runner into `tests.split_vectors`.
-  5. M12 frontend: `allocateEqualSplit` (canonical, lowercase UUID sort) in `expenseSplit.ts` + vectors test; AddExpensePage calls v2 with `p_amount_cents` and maps errors via rpcErrors (add the expense codes); expense pages read `amount_cents`/`share_cents` with `formatCents`.
-- Then M13 (update/delete RPCs + ExpenseDetailsPage delete UI), M15 (`delete_group` RPC, timestamp 20260927130000, + owner "Delete group" when sole member), and M14 (drop legacy RPC, 20260927140000; batch3 `frontendMinCommit` = the M12 frontend commit).
-- Then batch 3 ops artifacts (prod.mjs BATCH3; pre-checks Q11–Q13; post-checks; expected schema), a SplitChat-Dev dress rehearsal (M11 is already applied there: reset M11 or start batch 3 from post-M11 accordingly), api-batch3, reviews, and the Batch 3 report.
-- Decision to surface in the Batch 3 report: per the approved M15 design, a group whose ONLY member ever was the owner may be deleted even with expenses (the history involves only that person). Groups that have ever had another member are refused (`group_has_other_members`).
+- **Done locally (not reviewed, not pushed):** M12 `a5ed4e8` (CP14), M13 `7636d08` (CP16a), M15 `d023871` (CP16b). test:db 22/22 (432 assertions); lint/build/test 190/190.
+  - M12: `equal_split_cents` enforces the canonical rule and its error codes; legacy wrapper routes invalid amounts through v2 (auth first, no overflow). Shared vectors `src/lib/fixtures/equal-split-vectors.json` (runner -> `tests.split_vectors`; Vitest). Cases 180 (v2) and 181 (M12 on a populated ledger rewrites nothing). Frontend uses v2 + integer cents.
+  - M13: `update_equal_split_expense` / `delete_expense` (case 190). Client write path is `src/lib/expenseApi.ts`; ExpenseDetailsPage has a confirmed delete. **No edit UI in Phase 1** (RPC only).
+  - M15: `delete_group` per the approved rule (case 200): refused if anyone else ever had a membership row (`group_has_other_members`) or any record refers to another user (`group_has_shared_history`); `member_add_attempts` kept (rate-limit reset guard). GroupDetailsPage offers delete to a sole active owner.
+- **Next:** M14 (`20260927140000_drop_legacy_expense_rpc`) + frontend attestation for batch 3; then batch 3 ops artifacts, SplitChat-Dev rehearsal (dev is at M11), api-batch3, reviews, Batch 3 report.
+- Historical rehearsal scripts (`api.mjs`, `api-batch2.mjs`, `api-ca2.mjs`) call the legacy RPC; they target pre-M12 schemas and are not runtime dependencies.
 
 ## Next steps (design §E)
 

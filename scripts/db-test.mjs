@@ -16,6 +16,8 @@
 // cluster's system identifier equals the one recorded right after initdb.
 //
 // Usage: npm run test:db [-- --keep] [-- --case <substring>] [-- --export-dump <file>]
+//        [-- --export-dump-at <version> <file>]  (repeatable: schema right after
+//        that migration, for a production batch that stops before the last one)
 // PG binaries: SPLITCHAT_PG_BIN, else the default PostgreSQL 17 install
 // location on Windows, else PATH.
 
@@ -31,6 +33,12 @@ const args = process.argv.slice(2)
 const keep = args.includes('--keep')
 const caseFilter = args.includes('--case') ? args[args.indexOf('--case') + 1] : null
 const exportDump = args.includes('--export-dump') ? args[args.indexOf('--export-dump') + 1] : null
+const exportDumpsAt = new Map(
+  args.flatMap((a, i) => (a === '--export-dump-at' ? [[args[i + 1], args[i + 2]]] : [])),
+)
+for (const [version, file] of exportDumpsAt) {
+  if (!/^\d{14}$/.test(version ?? '') || !file) throw new Error('--export-dump-at needs <14-digit version> <file>')
+}
 
 const SUPERUSER = 'cluster_admin'
 const TEMPLATE_DB = 'splitchat_template'
@@ -362,7 +370,14 @@ async function main() {
       cluster.assertTarget(TEMPLATE_DB)
       cluster.mustPsql(TEMPLATE_DB, 'postgres', { file, extra: ['-1'] })
       console.log(`applied  ${path.basename(file)}`)
+      const at = exportDumpsAt.get(path.basename(file).slice(0, 14))
+      if (at) {
+        fs.writeFileSync(at, cluster.dumpPublic(TEMPLATE_DB))
+        console.log(`expected schema after ${path.basename(file)} written to ${at}`)
+      }
     }
+    const missed = [...exportDumpsAt.keys()].filter((v) => !migrations.some((f) => path.basename(f).startsWith(v)))
+    if (missed.length) throw new Error(`--export-dump-at: no migration ${missed.join(', ')}`)
     if (exportDump) {
       // Expected post-migration schema, for comparison with a rehearsal/production dump.
       fs.writeFileSync(exportDump, cluster.dumpPublic(TEMPLATE_DB))

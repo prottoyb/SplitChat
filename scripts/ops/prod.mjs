@@ -23,7 +23,7 @@
 //     starting history;
 //   - secrets are never printed.
 //
-// Usage (every command takes --batch batch1|batch2):
+// Usage (every command takes --batch batch1|batch2|batch3a|batch3b):
 //   node scripts/ops/prod.mjs identify
 //   node scripts/ops/prod.mjs preflight <evidence-dir>   (read-only)
 //   node scripts/ops/prod.mjs repair-m0                  (WRITE, batch1 only)
@@ -68,9 +68,16 @@ const M = {
   '20260926170000_private_helpers_rls_rewrite.sql': '42863e08884ac3d84cfe78c676d93cd8e8d60a84e2f203df99d270a974d846fc',
   '20260926180000_membership_rpcs.sql': '460931bf3bd3f5457ca5208a7a4e6e7882bf75e22a08fc8a9584fbcb9206fe86',
   '20260926190000_revoke_direct_membership_delete.sql': '4b702e559d502d7eb5bad16fce3dc90de4ce91f527f36cc17b419f4ea70ecddb',
+  '20260927100000_ledger_preserving_account_deletion.sql': '26cea13e06de6a7149931c5165f2c2e03968d331e9b3c9a06787c1f46cb81cb4',
+  '20260927110000_money_cents_and_canonical_split.sql': '5cb96e482d792b3d8a8b0cc6a42687f2ddb40fcf78d7bc6d781e4f410bbbfbf4',
+  '20260927120000_expense_update_delete_rpcs.sql': '616feb16aa85741a70c4155d80111126f752eac0b341a5d88449f72e9ff6a873',
+  '20260927130000_delete_group_rpc.sql': '0204022c08cad6509db756792c925b9e89f43d5d61bf0c232a7873da56a8e3c1',
+  '20260927140000_drop_legacy_expense_rpc.sql': 'e3e653568265e5bd13185bc960f5e3c971ec42b844d0df267bf9a5e7c7c551ad',
 }
 const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
 const versions = (n) => Object.keys(M).slice(0, n).map((f) => f.slice(0, 14))
+// Batch 3a is M0-M13 plus M15: M14 (the next timestamp) is batch 3b.
+const BATCH3A = Object.fromEntries(Object.entries(M).filter(([f]) => f < '20260927140000'))
 
 // Reviewed batches. `before` is the schema production must match before the
 // batch (exact, CR-insensitive); `startHistory` is the required migration
@@ -99,6 +106,35 @@ const BATCHES = {
     // M9 changes the add-by-email contract and M10 removes direct deletes:
     // every frontend in use must contain this commit (review B2-SR-3).
     frontendMinCommit: '29195231ad9bec4107b181d61aa25edacac4cf82',
+  },
+  // M11 ledger-preserving account deletion (FIX-FORWARD: postgres cannot drop
+  // the auth.users trigger), M12 cents + canonical split + v2 (legacy RPC
+  // kept as a wrapper), M13 expense edit/delete, M15 solo-group deletion.
+  // Compatible with every frontend that contains the batch 2 minimum; a
+  // frontend at or after the M12 frontend commit needs this batch first.
+  batch3a: {
+    migrations: BATCH3A,
+    before: ['batch2_expected_schema.sql', '52d45db9baf1bec1c8d829e5c49bf0a1f478969305fab181a1a867b6c992acd6'],
+    preflightHistory: versions(11),
+    startHistory: versions(11),
+    prechecks: 'batch3_prechecks.sql',
+    zeroChecks: ['Q11', 'Q12', 'Q13', 'Q16', 'Q4', 'Q5'],
+    postchecks: 'batch3a_postchecks.sql',
+    expectedSchema: ['batch3a_expected_schema.sql', 'b61a78a0074bcb77ed98c36155f84e3a5bfcd82281191a9ab8476ba31db7693c'],
+    frontendMinCommit: '29195231ad9bec4107b181d61aa25edacac4cf82',
+  },
+  // M14 drops the legacy numeric expense RPC: every live frontend must
+  // contain the M12 frontend commit (it calls v2 only), or none may be live.
+  batch3b: {
+    migrations: pick(16),
+    before: ['batch3a_expected_schema.sql', 'b61a78a0074bcb77ed98c36155f84e3a5bfcd82281191a9ab8476ba31db7693c'],
+    preflightHistory: Object.keys(BATCH3A).map((f) => f.slice(0, 14)),
+    startHistory: Object.keys(BATCH3A).map((f) => f.slice(0, 14)),
+    prechecks: 'batch3_prechecks.sql',
+    zeroChecks: ['Q4', 'Q5'],
+    postchecks: 'batch3b_postchecks.sql',
+    expectedSchema: ['batch3b_expected_schema.sql', 'cd59d14f72a742dc3f335267a9a53a8ff57f4b4f92b3addeb5bbc05bb7e780eb'],
+    frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
   },
 }
 
@@ -219,8 +255,8 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 // Only migrations are staged; refuse if the project gains any other CLI
 // input (config, roles, seed, functions) that staging would not cover.
 // The copies are verified against the batch manifest and made read-only.
-function stageApprovedMigrations(b) {
-  if (process.env.SPLITCHAT_PROD_APPROVAL !== b.id) {
+function stageApprovedMigrations(b, { write = true } = {}) {
+  if (write && process.env.SPLITCHAT_PROD_APPROVAL !== b.id) {
     throw new Error(`REFUSING: write needs SPLITCHAT_PROD_APPROVAL=${b.id} (set only after explicit human execution approval)`)
   }
   for (const extra of ['config.toml', 'roles.sql', 'seed.sql', 'functions']) {
@@ -231,11 +267,16 @@ function stageApprovedMigrations(b) {
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'splitchat-prod-stage-'))
   const staged = path.join(workdir, 'supabase', 'migrations')
   fs.mkdirSync(staged, { recursive: true })
+  // The repository may already hold later migrations of a following batch
+  // step (batch 3a runs while M14 exists); only the batch's own files are
+  // staged, and nothing earlier than or among them may be missing or extra.
+  const batchFiles = Object.keys(b.migrations).sort()
+  const last = batchFiles[batchFiles.length - 1]
   const files = fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()
-  if (!same(files, Object.keys(b.migrations).sort())) {
-    throw new Error(`REFUSING: supabase/migrations must contain exactly the ${b.id} files`)
+  if (!same(files.filter((f) => f <= last), batchFiles)) {
+    throw new Error(`REFUSING: supabase/migrations must contain exactly the ${b.id} files up to ${last}`)
   }
-  for (const f of files) {
+  for (const f of batchFiles) {
     fs.copyFileSync(path.join(MIGRATIONS, f), path.join(staged, f))
     const digest = sha256(fs.readFileSync(path.join(staged, f), 'utf8'))
     if (digest !== b.migrations[f]) throw new Error(`REFUSING: ${f} differs from the reviewed file (sha256 ${digest})`)
@@ -265,7 +306,7 @@ function preflight(t, id, b, dir) {
   gate('ledger snapshot recorded', true)
   const locks = readonly(t, readPinned('lock_check.sql'))
   const lm = /^\s*(\d+)\s*\|\s*(\d+)\s*$/m.exec(locks)
-  ok = gate('no other locks on expenses/expense_splits/groups and no long transactions', Boolean(lm) && lm[1] === '0' && lm[2] === '0', lm ? `${lm[1]} locks, ${lm[2]} long` : 'unparsed') && ok
+  ok = gate('no other locks on the ledger/membership tables and no long transactions', Boolean(lm) && lm[1] === '0' && lm[2] === '0', lm ? `${lm[1]} locks, ${lm[2]} long` : 'unparsed') && ok
   console.log(ok ? '\nPREFLIGHT PASSED' : '\nPREFLIGHT FAILED: do not proceed')
   return ok
 }
@@ -309,7 +350,8 @@ function main() {
       process.exit(verify(t, id, b, a1) ? 0 : 1)
       break
     case 'dry-run':
-      r = cli(t, ['db', 'push', '--dry-run'])
+      // Against the same verified staging copy a push would use.
+      r = cli(t, ['db', 'push', '--dry-run'], stageApprovedMigrations(b, { write: false }))
       break
     case 'repair-m0': {
       if (!b.repair) throw new Error(`REFUSING: ${b.id} has no repair step`)
