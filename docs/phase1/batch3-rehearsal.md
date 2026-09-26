@@ -125,3 +125,59 @@ already recorded `20260927135000`, so the same reviewed file (idempotent
 schema == regenerated `batch3b_expected_schema.sql`)**; `api-batch3.mjs
 verify3b` **28/28**; CA-2 **26/26**. In production the file is applied once,
 in order, as part of 3a.
+
+## Clean rehearsal from production's state (2026-09-27, operator-approved dev reset)
+
+Closes the gap above: batch 3a rehearsed through the exact production path
+from an M0–M10 database.
+
+**Reset (dev only).** No management API token exists, so the project was
+reset in place rather than recreated: `dev.mjs check` (ref guard + sentinel)
+→ `scripts/rehearsal/reset-dev-to-empty.sql` (re-checks the sentinel in the
+database; one transaction; post-conditions asserted): removed the SplitChat
+objects, `private`, the CLI history, both SplitChat triggers on
+`auth.users` and all 36 synthetic auth users; restored the platform default
+privileges M6 had revoked. No billing, no plan change; production not
+contacted; synthetic data only.
+
+**Finding:** M11's `auth.users` trigger *can* be removed by `postgres` as a
+dependent object (`DROP FUNCTION private.handle_auth_user_deleting()
+CASCADE`), although `DROP TRIGGER` is refused. See the approval report (M11
+classification).
+
+**Replay of production's history.**
+
+| Step | Result |
+|---|---|
+| M0 applied directly (as production's baseline came about) | dump vs Phase 0 production capture: **IDENTICAL** (1292 lines, ACLs included) |
+| `api.mjs seed` (pre-batch-1 API) | 7 users, 2 groups, 3 expenses |
+| batch 1 via `prod.mjs --rehearse-on-dev`: preflight → `repair-m0` → dry-run (M1–M5) → push → verify | PREFLIGHT PASSED; **VERIFY PASSED 17/17** |
+| batch 2: `api-batch2 prepare` → preflight → dry-run (M6–M10) → push (`no-live-frontend`) → verify → `api-batch2 verify` | PREFLIGHT PASSED; **VERIFY PASSED 22/22**; API **44/44** |
+
+Dev was then exactly production's recorded state (schema ==
+`batch2_expected_schema.sql`, history M0–M10).
+
+**Batch 3a (exact production procedure).**
+
+| Step | Result |
+|---|---|
+| `api-batch3 prepare` (legacy RPC, extra cent to the first-listed UUID) | 334 recorded for the highest UUID |
+| `preflight` | **PREFLIGHT PASSED**: exact schema, 11 versions, Q11 = Q12 = Q13 = **Q16 = 0**, Q4 = Q5 = 0, locks 0/0 |
+| Q16 negative test: one synthetic auth user with its profile removed | preflight **ABORT** (`Q16: 1`); user deleted; preflight re-run PASSED |
+| `dry-run` | exactly `20260927100000`, `110000`, `120000`, `130000`, `135000` (no M14) |
+| push without approval / with `batch3b` approval / without attestation | all refused |
+| push, `SPLITCHAT_PROD_APPROVAL=batch3a`, `SPLITCHAT_FRONTEND_ATTESTATION=no-live-frontend` | the five migrations applied |
+| push again | refused (history no longer the 3a start) |
+| `verify` | **VERIFY PASSED**: 16 versions, **24/24**, ledger unchanged, schema == `batch3a_expected_schema.sql` |
+| `api-batch3 verify3a` | **36/36** (historical allocation unchanged; canonical v2; M13 matrix and stale-write refusal; M15 solo-only; legacy wrapper; real GoTrue deletion after an edit; owner still refused) |
+| `api-ca2.mjs` (real GoTrue) | **26/26** (blocked and allowed paths) |
+| `api-race.mjs` (new): one side held open in a real session, the other through real GoTrue / PostgREST | **6/6**: add-first → deletion waits, then `owner_must_transfer`; delete-first → add waits, then `not_found_or_forbidden`; never an active member without an owner |
+| read-only invariant sweep | unbalanced 0, no-split 0, multi-owner 0, active-without-owner 0, split-without-membership 0 |
+
+**Batch 3b.** Legacy RPC unused: no runtime reference in `src/`, production
+bundle (`7e6c9bf`) has 0 `"create_equal_split_expense"` / 0 `"p_amount"` and
+calls `create_equal_split_expense_v2`. `preflight` PASSED (exact 3a schema,
+16 versions); `dry-run` exactly `20260927140000`; attestation `f32b56d`
+refused; push (`no-live-frontend`) applied M14; **VERIFY PASSED 24/24**;
+`api-batch3 verify3b` **28/28** (legacy `PGRST202`); CA-2 again **26/26**;
+race **6/6**.
