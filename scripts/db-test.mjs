@@ -246,19 +246,33 @@ function checkRollbacks(cluster, migrations) {
     cluster.createDb(db, 'OWNER postgres')
     cluster.mustPsql(db, SUPERUSER, { file: path.join(SHIM_DIR, '01_database.sql') })
     for (const file of migrations.slice(0, k)) cluster.mustPsql(db, 'postgres', { file, extra: ['-1'] })
-    const before = sortAclRuns(cluster.dumpPublic(db))
+    // Declared exceptions in the rollback header (reviewed per migration):
+    //   -- rollback-residual: <name>  objects that legitimately remain after
+    //                                 the rollback (e.g. a neutralised function
+    //                                 behind a platform-owned auth.users trigger)
+    //   -- rollback-no-reup           the migration cannot be re-applied after
+    //                                 its rollback (classified fix-forward)
+    const downText = fs.readFileSync(down, 'utf8')
+    const residual = [...downText.matchAll(/^-- rollback-residual: (\S+)\s*$/gm)].map((m) => m[1])
+    const noReup = /^-- rollback-no-reup\s*$/m.test(downText)
+    const strip = (text) => residual.length === 0 ? text : text
+      .split(/\n(?=--\n-- Name: )/)
+      .filter((chunk) => !residual.some((name) => chunk.includes(name)))
+      .join('\n')
+    const before = sortAclRuns(strip(cluster.dumpPublic(db)))
     cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
     cluster.mustPsql(db, 'postgres', { file: down, extra: ['-1'] })
-    const after = sortAclRuns(cluster.dumpPublic(db))
+    const after = sortAclRuns(strip(cluster.dumpPublic(db)))
     if (after !== before) {
       const a = before.split('\n')
       const b = after.split('\n')
       const at = a.findIndex((line, idx) => line !== b[idx])
       throw new Error(`rollback ${base}.down.sql does not restore the previous schema exactly; first difference at line ${at + 1}:\n  before:   ${a[at]}\n  after:    ${b[at]}`)
     }
-    cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
+    if (!noReup) cluster.mustPsql(db, 'postgres', { file: migrations[k], extra: ['-1'] })
     cluster.dropDb(db)
-    console.log(`pass  rollback up/down/up  ${base}`)
+    const notes = [residual.length ? `residual: ${residual.join(', ')}` : '', noReup ? 'no re-up (fix-forward)' : ''].filter(Boolean)
+    console.log(`pass  rollback up/down${noReup ? '' : '/up'}  ${base}${notes.length ? `  [${notes.join('; ')}]` : ''}`)
   }
 }
 
