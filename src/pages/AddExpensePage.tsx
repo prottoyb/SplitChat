@@ -15,7 +15,7 @@ import {
   formatCents,
   parseAmountToCents,
 } from '../lib/money'
-import { rpcErrorMessage } from '../lib/rpcErrors'
+import { createEqualSplitExpense } from '../lib/expenseApi'
 import styles from './AddExpensePage.module.css'
 
 type Group = {
@@ -363,31 +363,13 @@ function AddExpensePage() {
     try {
       setIsSubmitting(true)
 
-      const { error } = await supabase.rpc(
-        'create_equal_split_expense_v2',
-        {
-          p_group_id: groupId,
-          p_description: expense.description,
-          p_amount_cents: expense.amountCents,
-          p_expense_date: expense.expenseDate,
-          p_paid_by: expense.paidBy,
-          p_participant_ids: expense.participantIds,
-          p_notes: expense.notes,
-        },
+      const outcome = await createEqualSplitExpense(
+        groupId,
+        expense,
       )
 
-      if (error) {
-        console.error(
-          'Unable to create expense:',
-          error,
-        )
-
-        setErrorMessage(
-          rpcErrorMessage(
-            error,
-            'Unable to create this expense. Please try again.',
-          ),
-        )
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 

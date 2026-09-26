@@ -4,8 +4,8 @@
 SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
   ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'create_equal_split_expense_v2',
-        'get_ledger_identities',
-        'leave_group', 'remove_group_member', 'transfer_group_ownership'],
+        'delete_expense', 'get_ledger_identities',
+        'leave_group', 'remove_group_member', 'transfer_group_ownership', 'update_equal_split_expense'],
   'public exposes only the client RPCs');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
@@ -18,9 +18,11 @@ SELECT tests.assert_eq(
   ARRAY['add_group_member_by_email(uuid,text)',
         'create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)',
         'create_equal_split_expense_v2(uuid,text,bigint,date,uuid,uuid[],text)',
+        'delete_expense(uuid,timestamp with time zone)',
         'get_ledger_identities(uuid)', 'leave_group(uuid)',
         'private.my_active_group_ids()', 'private.my_group_peer_ids()',
-        'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)'],
+        'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)',
+        'update_equal_split_expense(uuid,timestamp with time zone,text,bigint,date,uuid,uuid[],text)'],
   'authenticated EXECUTE allowlist (no helper takes an arbitrary user id)');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace IN ('public'::regnamespace, 'private'::regnamespace)

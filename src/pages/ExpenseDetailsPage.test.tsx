@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSupabaseMock } from '../test/supabaseMock'
@@ -41,6 +42,7 @@ function renderPage() {
     <MemoryRouter initialEntries={['/expenses/x1']}>
       <Routes>
         <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
+        <Route path="expenses" element={<p>Expense list</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -116,5 +118,86 @@ describe('ExpenseDetailsPage amounts', () => {
     expect(await screen.findByText('Unable to load this expense.')).toBeInTheDocument()
     expect(screen.queryByText(/\$10/)).not.toBeInTheDocument()
     consoleError.mockRestore()
+  })
+})
+
+describe('ExpenseDetailsPage delete', () => {
+  const UPDATED_AT = '2026-09-20T10:00:00.123456+00:00'
+
+  // Alice (u1, the session user) created the expense.
+  function seedOwnExpense(role: 'owner' | 'member') {
+    seedExpense()
+    supabaseMock.setRpc('get_ledger_identities', [{ user_id: 'u5', display_name: 'Eve' }])
+    supabaseMock.setTable('expenses', [
+      {
+        id: 'x1', group_id: 'g1', description: 'Snacks', amount_cents: 1001, expense_date: '2026-09-20',
+        paid_by: 'u5', created_by: 'u1', split_type: 'equal', notes: null,
+        created_at: '2026-09-20T10:00:00Z', updated_at: UPDATED_AT,
+      },
+    ])
+    supabaseMock.setTable('group_members', [{ role }])
+  }
+
+  it('lets the creator delete after confirming, sending the loaded updated_at', async () => {
+    seedOwnExpense('member')
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete expense' }))
+    expect(supabaseMock.rpc).not.toHaveBeenCalledWith('delete_expense', expect.anything())
+
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+
+    expect(await screen.findByText('Expense list')).toBeInTheDocument()
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('delete_expense', {
+      p_expense_id: 'x1',
+      p_expected_updated_at: UPDATED_AT,
+    })
+  })
+
+  it('can be cancelled', async () => {
+    seedOwnExpense('member')
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete expense' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.getByRole('button', { name: 'Delete expense' })).toBeInTheDocument()
+    expect(supabaseMock.rpc).not.toHaveBeenCalledWith('delete_expense', expect.anything())
+  })
+
+  it('shows a stale-expense error and stays on the page', async () => {
+    seedOwnExpense('member')
+    supabaseMock.setRpc('delete_expense', null, { message: 'stale_expense' })
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete expense' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This expense was changed by someone else. Reload it and try again.',
+    )
+    expect(screen.queryByText('Expense list')).not.toBeInTheDocument()
+  })
+
+  it("offers delete to the group owner for another member's expense", async () => {
+    seedExpense()  // created by Eve (u5)
+    supabaseMock.setRpc('get_ledger_identities', [{ user_id: 'u5', display_name: 'Eve' }])
+    supabaseMock.setTable('group_members', [{ role: 'owner' }])
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Delete expense' })).toBeInTheDocument()
+  })
+
+  it("does not offer delete to a member for someone else's expense", async () => {
+    seedExpense()  // created by Eve (u5)
+    supabaseMock.setRpc('get_ledger_identities', [{ user_id: 'u5', display_name: 'Eve' }])
+    supabaseMock.setTable('group_members', [{ role: 'member' }])
+    renderPage()
+
+    expect((await screen.findAllByText('Eve')).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Delete expense' })).not.toBeInTheDocument()
   })
 })

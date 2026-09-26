@@ -17,6 +17,8 @@ describe('rpcErrorMessage', () => {
     ['invalid_participants', /distinct, current members/],
     ['amount_too_small_to_split', /too small to split/],
     ['invalid_notes', /500 characters/],
+    ['forbidden', /added this expense or the group owner/],
+    ['stale_expense', /changed by someone else/],
   ])('maps %s to user-facing text', (code, text) => {
     expect(rpcErrorMessage({ message: code }, 'fallback')).toMatch(text)
   })

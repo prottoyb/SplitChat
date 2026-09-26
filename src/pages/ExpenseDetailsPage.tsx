@@ -5,10 +5,12 @@ import {
 } from 'react'
 import {
   Link,
+  useNavigate,
   useParams,
 } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { fetchLedgerIdentityNames } from '../lib/ledgerIdentities'
+import { deleteExpense } from '../lib/expenseApi'
 import { formatCents, readCents } from '../lib/money'
 import { supabase } from '../lib/supabase'
 import styles from './ExpenseDetailsPage.module.css'
@@ -58,6 +60,7 @@ type ExpenseDetails = {
   expense: Expense
   amountCents: number
   group: Group
+  isGroupOwner: boolean
   payerName: string
   creatorName: string
   splits: DisplaySplit[]
@@ -115,9 +118,21 @@ function ExpenseDetailsPage() {
     useParams<{ expenseId: string }>()
 
   const { session } = useAuth()
+  const navigate = useNavigate()
 
   const [details, setDetails] =
     useState<ExpenseDetails | null>(null)
+
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState(false)
+
+  const [isDeleting, setIsDeleting] =
+    useState(false)
+
+  const [deleteError, setDeleteError] =
+    useState('')
+
+  const userId = session?.user.id
 
   const [isLoading, setIsLoading] =
     useState(true)
@@ -202,6 +217,7 @@ function ExpenseDetailsPage() {
       const [
         groupResult,
         splitResult,
+        roleResult,
       ] = await Promise.all([
         supabase
           .from('groups')
@@ -232,6 +248,16 @@ function ExpenseDetailsPage() {
           .order('created_at', {
             ascending: true,
           }),
+
+        // Only decides whether to offer management actions; the server
+        // enforces who may actually change the expense.
+        supabase
+          .from('group_members')
+          .select('role')
+          .eq('group_id', loadedExpense.group_id)
+          .eq('user_id', userId ?? '')
+          .is('left_at', null)
+          .limit(1),
       ])
 
       if (cancelled) {
@@ -409,6 +435,11 @@ function ExpenseDetailsPage() {
 
         group: loadedGroup,
 
+        isGroupOwner:
+          !roleResult.error &&
+          (roleResult.data?.[0] as { role?: string } | undefined)
+            ?.role === 'owner',
+
         payerName:
           profileMap.get(
             loadedExpense.paid_by,
@@ -430,9 +461,7 @@ function ExpenseDetailsPage() {
     return () => {
       cancelled = true
     }
-  }, [expenseId])
-
-  const userId = session?.user.id
+  }, [expenseId, userId])
 
   const yourShare = useMemo(() => {
     if (!details || !userId) {
@@ -458,6 +487,37 @@ function ExpenseDetailsPage() {
       0,
     )
   }, [details])
+
+  const handleDeleteExpense = async () => {
+    if (!details) {
+      return
+    }
+
+    setDeleteError('')
+
+    try {
+      setIsDeleting(true)
+
+      const outcome = await deleteExpense(
+        details.expense.id,
+        details.expense.updated_at,
+      )
+
+      if (!outcome.ok) {
+        setDeleteError(outcome.message)
+        return
+      }
+
+      navigate('/expenses', { replace: true })
+    } catch (error) {
+      console.error('Unexpected delete expense error:', error)
+      setDeleteError(
+        'Unable to delete this expense. Please check your connection and try again.',
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -503,6 +563,7 @@ function ExpenseDetailsPage() {
   const {
     expense,
     group,
+    isGroupOwner,
     payerName,
     creatorName,
     splits,
@@ -514,6 +575,10 @@ function ExpenseDetailsPage() {
   const youCreated =
     expense.created_by ===
     session?.user.id
+
+  // Mirrors the server rule (creator while a member, or the group owner);
+  // the RPC is the authority.
+  const canManage = youCreated || isGroupOwner
 
   return (
     <>
@@ -862,6 +927,102 @@ function ExpenseDetailsPage() {
               </p>
             )}
           </article>
+
+          {canManage && (
+            <article
+              className={styles.panel}
+            >
+              <div
+                className={
+                  styles.panelHeader
+                }
+              >
+                <div>
+                  <p className="eyebrow">
+                    MANAGE
+                  </p>
+
+                  <h3>
+                    Manage expense
+                  </h3>
+                </div>
+              </div>
+
+              {deleteError && (
+                <p
+                  className={styles.errorMessage}
+                  role="alert"
+                >
+                  {deleteError}
+                </p>
+              )}
+
+              {!showDeleteConfirm ? (
+                <button
+                  type="button"
+                  className={styles.deleteButton}
+                  onClick={() => {
+                    setDeleteError('')
+                    setShowDeleteConfirm(true)
+                  }}
+                >
+                  Delete expense
+                </button>
+              ) : (
+                <div
+                  className={
+                    styles.deleteConfirmation
+                  }
+                >
+                  <strong>
+                    Delete this expense?
+                  </strong>
+
+                  <p>
+                    It will be removed for
+                    everyone in {group.name},
+                    together with every
+                    person's share. This cannot
+                    be undone.
+                  </p>
+
+                  <div
+                    className={
+                      styles.deleteActions
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={
+                        styles.confirmDeleteButton
+                      }
+                      onClick={() =>
+                        void handleDeleteExpense()
+                      }
+                      disabled={isDeleting}
+                    >
+                      {isDeleting
+                        ? 'Deleting...'
+                        : 'Yes, delete'}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={
+                        styles.cancelDeleteButton
+                      }
+                      onClick={() =>
+                        setShowDeleteConfirm(false)
+                      }
+                      disabled={isDeleting}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </article>
+          )}
         </aside>
       </section>
     </>

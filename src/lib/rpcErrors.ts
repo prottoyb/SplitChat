@@ -27,6 +27,10 @@ const MESSAGES: Record<string, string> = {
   amount_too_small_to_split:
     'The amount is too small to split between the selected participants.',
   invalid_notes: 'Notes cannot exceed 500 characters.',
+  forbidden:
+    'Only the person who added this expense or the group owner can change it.',
+  stale_expense:
+    'This expense was changed by someone else. Reload it and try again.',
 }
 
 export type RpcError = { message?: string } | null | undefined
