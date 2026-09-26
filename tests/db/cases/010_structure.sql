@@ -8,9 +8,9 @@ SELECT tests.assert_eq(
   5::bigint, 'five public tables');
 -- Exact counts on purpose: any migration that changes the policy set must
 -- update them. History: 17 at baseline; M3 dropped 6 ledger write policies;
--- M6 dropped 3 owner write policies.
-SELECT tests.assert_eq((SELECT count(*) FROM pg_policies WHERE schemaname = 'public'), 8::bigint,
-  'eight public policies');
+-- M6 dropped 3 owner write policies; M10 dropped the direct membership delete.
+SELECT tests.assert_eq((SELECT count(*) FROM pg_policies WHERE schemaname = 'public'), 7::bigint,
+  'seven public policies');
 SELECT tests.assert_eq((SELECT count(*) FROM pg_proc WHERE pronamespace = 'public'::regnamespace), 6::bigint,
   'six public functions (client RPCs only: 3 after M8, +3 membership RPCs in M9)');
 SELECT tests.assert(

@@ -17,7 +17,7 @@ SELECT tests.assert_eq(
   ARRAY['add_group_member_by_email(uuid,text)',
         'create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)',
         'get_ledger_identities(uuid)', 'leave_group(uuid)',
-        'private.my_active_group_ids()', 'private.my_group_peer_ids()', 'private.my_owned_group_ids()',
+        'private.my_active_group_ids()', 'private.my_group_peer_ids()',
         'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)'],
   'authenticated EXECUTE allowlist (no helper takes an arbitrary user id)');
 SELECT tests.assert(
