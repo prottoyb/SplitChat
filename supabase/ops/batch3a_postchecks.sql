@@ -51,10 +51,12 @@ SELECT check_name, ok FROM (VALUES
   ('M12: legacy RPC is still the v2 wrapper until batch 3b',
    (SELECT prosrc LIKE '%create_equal_split_expense_v2%' FROM pg_proc
      WHERE oid = 'public.create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)'::regprocedure)),
-  ('QS-B3-1: deletion trigger and add-by-email both lock the group row',
+  ('QS-B3-1: deletion trigger and add-by-email both lock the group row (add: before counting the attempt)',
    (SELECT prosrc LIKE '%FOR UPDATE%' FROM pg_proc WHERE oid = 'private.handle_auth_user_deleting()'::regprocedure)
-   AND (SELECT prosrc LIKE '%FROM public.groups g WHERE g.id = target_group_id FOR UPDATE%' FROM pg_proc
-         WHERE oid = 'public.add_group_member_by_email(uuid,text)'::regprocedure)),
+   AND (SELECT strpos(prosrc, 'FROM public.groups g WHERE g.id = target_group_id FOR UPDATE') > 0
+               AND strpos(prosrc, 'FROM public.groups g WHERE g.id = target_group_id FOR UPDATE')
+                   < strpos(prosrc, 'INSERT INTO private.member_add_attempts')
+          FROM pg_proc WHERE oid = 'public.add_group_member_by_email(uuid,text)'::regprocedure)),
   ('M13: expenses.updated_by references profiles',
    EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.expenses'::regclass AND contype = 'f'
              AND confrelid = 'public.profiles'::regclass AND conkey = ARRAY[(SELECT attnum FROM pg_attribute

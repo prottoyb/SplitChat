@@ -539,6 +539,10 @@ DS-3 therefore still describes the only orphan state: **zero** active
 members. Senior Review: APPROVE WITH CONDITIONS (phase-state accuracy,
 rehearsal doc tracked; `update_equal_split_expense` has no Phase 1 UI by
 design — an intentional, tested contract, not dead code).
+Round 2: QA/Security PASS (QS-B3-2 LOW: the RPC's re-check originally came
+after the counted attempt insert, so a raise could roll back a counted
+attempt — reordered so every `not_found_or_forbidden` exit precedes the
+insert, preserving CA-1; post-check asserts the order). Senior APPROVE.
 
 **CA-3 — Generated cents columns are exact.** `(amount*100)::bigint` is
 exact because `numeric(12,2)` guarantees scale 2; the cast never rounds

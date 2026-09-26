@@ -52,10 +52,12 @@ SELECT check_name, ok FROM (VALUES
    to_regprocedure('public.create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)') IS NULL
    AND NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace
                      AND proname = 'create_equal_split_expense')),
-  ('QS-B3-1: deletion trigger and add-by-email both lock the group row',
+  ('QS-B3-1: deletion trigger and add-by-email both lock the group row (add: before counting the attempt)',
    (SELECT prosrc LIKE '%FOR UPDATE%' FROM pg_proc WHERE oid = 'private.handle_auth_user_deleting()'::regprocedure)
-   AND (SELECT prosrc LIKE '%FROM public.groups g WHERE g.id = target_group_id FOR UPDATE%' FROM pg_proc
-         WHERE oid = 'public.add_group_member_by_email(uuid,text)'::regprocedure)),
+   AND (SELECT strpos(prosrc, 'FROM public.groups g WHERE g.id = target_group_id FOR UPDATE') > 0
+               AND strpos(prosrc, 'FROM public.groups g WHERE g.id = target_group_id FOR UPDATE')
+                   < strpos(prosrc, 'INSERT INTO private.member_add_attempts')
+          FROM pg_proc WHERE oid = 'public.add_group_member_by_email(uuid,text)'::regprocedure)),
   ('M13: expenses.updated_by references profiles',
    EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.expenses'::regclass AND contype = 'f'
              AND confrelid = 'public.profiles'::regclass AND conkey = ARRAY[(SELECT attnum FROM pg_attribute

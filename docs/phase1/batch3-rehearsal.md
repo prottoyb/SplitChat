@@ -112,3 +112,16 @@ sorts before M14). On SplitChat-Dev (then at post-3b):
 
 The two-session interleavings themselves are proven locally (case 175,
 dblink) — they cannot be timed deterministically through the HTTP APIs.
+
+### Round 2 (QS-B3-2, LOW)
+
+QA/Security round 2 confirmed QS-B3-1 closed and noted that the RPC's
+re-check sat after the counted rate-limit insert, so a raise could roll back
+a counted attempt (contradicting CA-1). The lock and re-check now precede the
+attempt bookkeeping, and the post-check asserts that order. SplitChat-Dev
+already recorded `20260927135000`, so the same reviewed file (idempotent
+`CREATE OR REPLACE`) was re-executed with `dev.mjs file`; then
+`prod.mjs --batch batch3b verify`: **VERIFY PASSED (24/24, ledger unchanged,
+schema == regenerated `batch3b_expected_schema.sql`)**; `api-batch3.mjs
+verify3b` **28/28**; CA-2 **26/26**. In production the file is applied once,
+in order, as part of 3a.

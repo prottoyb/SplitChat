@@ -113,7 +113,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 - **Batch 3 implemented, dress-rehearsed on SplitChat-Dev, round-1 reviewed; not yet pushed.** Commits: M12 `a5ed4e8`, M13 `7636d08`, M15 `d023871`, M14 + ops `9774a8c`, then the QS-B3-1 fix and docs (see `git log`).
   - Batch 3a = M11, M12, M13, M15, `20260927135000` (QS-B3-1 fix); batch 3b = M14 (frontend attestation >= `a5ed4e8`). `scripts/ops/prod.mjs` holds both manifests.
   - Evidence: `docs/phase1/batch3-rehearsal.md` (3a/3b VERIFY PASSED on dev, API 36/36 and 28/28, CA-2 re-run 26/26 on the final trigger). SplitChat-Dev is now at the full batch-3 schema (17 versions).
-  - Reviews round 1: QA/Security PASS (QS-B3-1 MEDIUM fixed; DS-3 note added); Senior APPROVE WITH CONDITIONS (docs; partial coverage). **Next:** round-2 QA re-check of the fix and a senior pass over the areas round 1 did not cover; then backup push and the Production Batch 3 approval report.
+  - Reviews: round 1 QA/Security PASS (QS-B3-1 MEDIUM fixed), Senior APPROVE WITH CONDITIONS (docs); round 2 QA/Security PASS (QS-B3-2 LOW fixed: lock before counted attempt), Senior APPROVE. **Next:** backup push, then the Production Batch 3 approval report (`docs/phase1/batch3-approval-report.md`) and stop at the approval gate.
   - No edit UI in Phase 1 (`update_equal_split_expense` is RPC-only, tested).
 - Historical rehearsal scripts `api.mjs` and `api-batch2.mjs` call the legacy RPC; they target pre-M12 schemas and are superseded by `api-batch3.mjs`.
 

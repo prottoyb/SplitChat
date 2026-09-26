@@ -72,7 +72,7 @@ const M = {
   '20260927110000_money_cents_and_canonical_split.sql': '5cb96e482d792b3d8a8b0cc6a42687f2ddb40fcf78d7bc6d781e4f410bbbfbf4',
   '20260927120000_expense_update_delete_rpcs.sql': '616feb16aa85741a70c4155d80111126f752eac0b341a5d88449f72e9ff6a873',
   '20260927130000_delete_group_rpc.sql': '0204022c08cad6509db756792c925b9e89f43d5d61bf0c232a7873da56a8e3c1',
-  '20260927135000_serialise_owner_deletion_and_member_add.sql': 'efcb4b0f4761e64be192cc30ff12a87633378b33c9bd0702bd8106670bcaf5f7',
+  '20260927135000_serialise_owner_deletion_and_member_add.sql': 'ddf392bca3cff2dea4ff47f563ec21b96fe0b564e7f8583354c9f8686d148c96',
   '20260927140000_drop_legacy_expense_rpc.sql': 'e3e653568265e5bd13185bc960f5e3c971ec42b844d0df267bf9a5e7c7c551ad',
 }
 const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
@@ -122,20 +122,20 @@ const BATCHES = {
     prechecks: 'batch3_prechecks.sql',
     zeroChecks: ['Q11', 'Q12', 'Q13', 'Q16', 'Q4', 'Q5'],
     postchecks: 'batch3a_postchecks.sql',
-    expectedSchema: ['batch3a_expected_schema.sql', '8c7d8aa6570464d366e162d84287bd2e09edb564e60dfa94b436969a490031f4'],
+    expectedSchema: ['batch3a_expected_schema.sql', '1cfc040c309b810ca8c7461d62998122f3fa91da3b2056610e4723851805d854'],
     frontendMinCommit: '29195231ad9bec4107b181d61aa25edacac4cf82',
   },
   // M14 drops the legacy numeric expense RPC: every live frontend must
   // contain the M12 frontend commit (it calls v2 only), or none may be live.
   batch3b: {
     migrations: pick(17),
-    before: ['batch3a_expected_schema.sql', '8c7d8aa6570464d366e162d84287bd2e09edb564e60dfa94b436969a490031f4'],
+    before: ['batch3a_expected_schema.sql', '1cfc040c309b810ca8c7461d62998122f3fa91da3b2056610e4723851805d854'],
     preflightHistory: Object.keys(BATCH3A).map((f) => f.slice(0, 14)),
     startHistory: Object.keys(BATCH3A).map((f) => f.slice(0, 14)),
     prechecks: 'batch3_prechecks.sql',
     zeroChecks: ['Q4', 'Q5'],
     postchecks: 'batch3b_postchecks.sql',
-    expectedSchema: ['batch3b_expected_schema.sql', '612be97b8c23a2e3785c8da329696a37cb70443e2374cac867ccdc3649302288'],
+    expectedSchema: ['batch3b_expected_schema.sql', '0804dc02e90b430c94c9a468322542cdbfbcee4f5ca1380d41b859663967ea5c'],
     frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
   },
 }

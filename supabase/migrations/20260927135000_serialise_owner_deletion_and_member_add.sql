@@ -10,7 +10,8 @@ SET LOCAL lock_timeout = '5s';
 -- no owner (a state no RPC can act on).
 -- After: both take the groups row lock (FOR UPDATE) and decide under it —
 -- the trigger locks every group the user actively owns before its check; the
--- RPC locks the group and re-checks ownership before touching memberships.
+-- RPC locks the group and re-checks ownership before recording the attempt
+-- or touching memberships.
 -- Whichever runs second sees the first's committed result:
 --   add first    -> deletion refused (owner_must_transfer);
 --   delete first -> add refused (not_found_or_forbidden).
@@ -82,6 +83,17 @@ BEGIN
     RAISE EXCEPTION 'invalid_email' USING ERRCODE = 'P0001';
   END IF;
 
+  -- Serialise with the account-deletion trigger and other membership changes
+  -- on this group, then re-check ownership under the lock: the owner may
+  -- have deleted their account while this call waited (QS-B3-1). Done
+  -- BEFORE the attempt is recorded, so every not_found_or_forbidden exit
+  -- precedes the counted insert and no counted attempt is ever rolled back
+  -- (CA-1). Do not move this below the rate-limit block.
+  PERFORM 1 FROM public.groups g WHERE g.id = target_group_id FOR UPDATE;
+  IF NOT private.is_active_owner_of(target_group_id, v_uid) THEN
+    RAISE EXCEPTION 'not_found_or_forbidden' USING ERRCODE = 'P0001';
+  END IF;
+
   -- Serialise attempts per caller so concurrent calls cannot all pass the
   -- count before any insert commits (review B2-QS-1). Transaction-scoped.
   PERFORM pg_advisory_xact_lock(hashtextextended('splitchat.member_add_attempts:' || v_uid::text, 0));
@@ -95,14 +107,6 @@ BEGIN
     RETURN;
   END IF;
   INSERT INTO private.member_add_attempts (caller_id, group_id) VALUES (v_uid, target_group_id);
-
-  -- Serialise with the account-deletion trigger and other membership changes
-  -- on this group, then re-check ownership under the lock: the owner may
-  -- have deleted their account while this call waited (QS-B3-1).
-  PERFORM 1 FROM public.groups g WHERE g.id = target_group_id FOR UPDATE;
-  IF NOT private.is_active_owner_of(target_group_id, v_uid) THEN
-    RAISE EXCEPTION 'not_found_or_forbidden' USING ERRCODE = 'P0001';
-  END IF;
 
   SELECT u.id, coalesce(nullif(btrim(p.full_name), ''), split_part(u.email, '@', 1))
     INTO v_target, v_name
