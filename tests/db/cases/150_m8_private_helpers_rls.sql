@@ -3,8 +3,9 @@
 -- Function surface: exactly the client RPCs remain in public.
 SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
-  ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'get_ledger_identities'],
-  'public exposes only the three client RPCs');
+  ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'get_ledger_identities',
+        'leave_group', 'remove_group_member', 'transfer_group_ownership'],
+  'public exposes only the client RPCs');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
                 AND has_function_privilege('anon', oid, 'EXECUTE')),
@@ -15,8 +16,9 @@ SELECT tests.assert_eq(
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
   ARRAY['add_group_member_by_email(uuid,text)',
         'create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)',
-        'get_ledger_identities(uuid)',
-        'private.my_active_group_ids()', 'private.my_group_peer_ids()', 'private.my_owned_group_ids()'],
+        'get_ledger_identities(uuid)', 'leave_group(uuid)',
+        'private.my_active_group_ids()', 'private.my_group_peer_ids()', 'private.my_owned_group_ids()',
+        'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)'],
   'authenticated EXECUTE allowlist (no helper takes an arbitrary user id)');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
