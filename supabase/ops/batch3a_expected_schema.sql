@@ -299,6 +299,15 @@ CREATE FUNCTION private.handle_auth_user_deleting() RETURNS trigger
     SET search_path TO ''
     AS $$
 BEGIN
+  -- Lock every group this user actively owns (stable order), so the check
+  -- below cannot interleave with a concurrent add-member, and a member added
+  -- just before is seen (QS-B3-1).
+  PERFORM 1 FROM public.groups g
+   WHERE g.id IN (SELECT gm.group_id FROM public.group_members gm
+                   WHERE gm.user_id = OLD.id AND gm.role = 'owner' AND gm.left_at IS NULL)
+   ORDER BY g.id
+   FOR UPDATE;
+
   IF EXISTS (
     SELECT 1
       FROM public.group_members own
@@ -572,6 +581,14 @@ BEGIN
     RETURN;
   END IF;
   INSERT INTO private.member_add_attempts (caller_id, group_id) VALUES (v_uid, target_group_id);
+
+  -- Serialise with the account-deletion trigger and other membership changes
+  -- on this group, then re-check ownership under the lock: the owner may
+  -- have deleted their account while this call waited (QS-B3-1).
+  PERFORM 1 FROM public.groups g WHERE g.id = target_group_id FOR UPDATE;
+  IF NOT private.is_active_owner_of(target_group_id, v_uid) THEN
+    RAISE EXCEPTION 'not_found_or_forbidden' USING ERRCODE = 'P0001';
+  END IF;
 
   SELECT u.id, coalesce(nullif(btrim(p.full_name), ''), split_part(u.email, '@', 1))
     INTO v_target, v_name

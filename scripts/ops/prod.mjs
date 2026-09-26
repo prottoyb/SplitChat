@@ -72,11 +72,12 @@ const M = {
   '20260927110000_money_cents_and_canonical_split.sql': '5cb96e482d792b3d8a8b0cc6a42687f2ddb40fcf78d7bc6d781e4f410bbbfbf4',
   '20260927120000_expense_update_delete_rpcs.sql': '616feb16aa85741a70c4155d80111126f752eac0b341a5d88449f72e9ff6a873',
   '20260927130000_delete_group_rpc.sql': '0204022c08cad6509db756792c925b9e89f43d5d61bf0c232a7873da56a8e3c1',
+  '20260927135000_serialise_owner_deletion_and_member_add.sql': 'efcb4b0f4761e64be192cc30ff12a87633378b33c9bd0702bd8106670bcaf5f7',
   '20260927140000_drop_legacy_expense_rpc.sql': 'e3e653568265e5bd13185bc960f5e3c971ec42b844d0df267bf9a5e7c7c551ad',
 }
 const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
 const versions = (n) => Object.keys(M).slice(0, n).map((f) => f.slice(0, 14))
-// Batch 3a is M0-M13 plus M15: M14 (the next timestamp) is batch 3b.
+// Batch 3a is M0-M13, M15 and the QS-B3-1 fix: M14 (the last timestamp) is batch 3b.
 const BATCH3A = Object.fromEntries(Object.entries(M).filter(([f]) => f < '20260927140000'))
 
 // Reviewed batches. `before` is the schema production must match before the
@@ -109,7 +110,8 @@ const BATCHES = {
   },
   // M11 ledger-preserving account deletion (FIX-FORWARD: postgres cannot drop
   // the auth.users trigger), M12 cents + canonical split + v2 (legacy RPC
-  // kept as a wrapper), M13 expense edit/delete, M15 solo-group deletion.
+  // kept as a wrapper), M13 expense edit/delete, M15 solo-group deletion,
+  // and the QS-B3-1 fix (owner deletion vs add-by-email serialised).
   // Compatible with every frontend that contains the batch 2 minimum; a
   // frontend at or after the M12 frontend commit needs this batch first.
   batch3a: {
@@ -120,20 +122,20 @@ const BATCHES = {
     prechecks: 'batch3_prechecks.sql',
     zeroChecks: ['Q11', 'Q12', 'Q13', 'Q16', 'Q4', 'Q5'],
     postchecks: 'batch3a_postchecks.sql',
-    expectedSchema: ['batch3a_expected_schema.sql', 'b61a78a0074bcb77ed98c36155f84e3a5bfcd82281191a9ab8476ba31db7693c'],
+    expectedSchema: ['batch3a_expected_schema.sql', '8c7d8aa6570464d366e162d84287bd2e09edb564e60dfa94b436969a490031f4'],
     frontendMinCommit: '29195231ad9bec4107b181d61aa25edacac4cf82',
   },
   // M14 drops the legacy numeric expense RPC: every live frontend must
   // contain the M12 frontend commit (it calls v2 only), or none may be live.
   batch3b: {
-    migrations: pick(16),
-    before: ['batch3a_expected_schema.sql', 'b61a78a0074bcb77ed98c36155f84e3a5bfcd82281191a9ab8476ba31db7693c'],
+    migrations: pick(17),
+    before: ['batch3a_expected_schema.sql', '8c7d8aa6570464d366e162d84287bd2e09edb564e60dfa94b436969a490031f4'],
     preflightHistory: Object.keys(BATCH3A).map((f) => f.slice(0, 14)),
     startHistory: Object.keys(BATCH3A).map((f) => f.slice(0, 14)),
     prechecks: 'batch3_prechecks.sql',
     zeroChecks: ['Q4', 'Q5'],
     postchecks: 'batch3b_postchecks.sql',
-    expectedSchema: ['batch3b_expected_schema.sql', 'cd59d14f72a742dc3f335267a9a53a8ff57f4b4f92b3addeb5bbc05bb7e780eb'],
+    expectedSchema: ['batch3b_expected_schema.sql', '612be97b8c23a2e3785c8da329696a37cb70443e2374cac867ccdc3649302288'],
     frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
   },
 }

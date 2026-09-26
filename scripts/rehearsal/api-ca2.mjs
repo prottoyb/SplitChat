@@ -78,8 +78,8 @@ async function makeGroup(ownerTok, ownerId, name, memberKeys) {
   return g
 }
 async function expense(tok, groupId, description, cents, payer, participants) {
-  const r = await rpc('create_equal_split_expense', tok, {
-    p_group_id: groupId, p_description: description, p_amount: cents / 100, p_expense_date: '2026-09-25',
+  const r = await rpc('create_equal_split_expense_v2', tok, {
+    p_group_id: groupId, p_description: description, p_amount_cents: cents, p_expense_date: '2026-09-25',
     p_paid_by: payer, p_participant_ids: participants, p_notes: null,
   })
   if (!r.ok) throw new Error(`expense: ${r.status} ${JSON.stringify(r.json)}`)

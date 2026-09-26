@@ -525,6 +525,21 @@ accepted for this threat model (owner-only, rate-limited) and not mitigated.
 **SR-D4** — design approval does not resolve G1–G5; each still needs its own
 answer before the operations it blocks.
 
+**Batch 3 review round 1 (M11–M15, 2026-09-26).** QA/Security PASS with
+QS-B3-1 (MEDIUM): the M11 deletion trigger checked "no other active members"
+without a lock and `add_group_member_by_email` checked ownership only at its
+start, so an owner deleting their account while their own session added a
+member could leave a group with an active member and **no owner** — a state
+DS-3 does not cover and no RPC can act on. Fixed by
+`20260927135000_serialise_owner_deletion_and_member_add` (batch 3a): both
+lock the `groups` row and decide under it (trigger: every actively owned
+group, before its check; RPC: re-checks ownership after the lock). Case 175
+reproduces both interleavings in two real sessions (fails without the fix).
+DS-3 therefore still describes the only orphan state: **zero** active
+members. Senior Review: APPROVE WITH CONDITIONS (phase-state accuracy,
+rehearsal doc tracked; `update_equal_split_expense` has no Phase 1 UI by
+design — an intentional, tested contract, not dead code).
+
 **CA-3 — Generated cents columns are exact.** `(amount*100)::bigint` is
 exact because `numeric(12,2)` guarantees scale 2; the cast never rounds
 real data. Test F10 asserts it.

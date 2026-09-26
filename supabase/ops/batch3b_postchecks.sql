@@ -8,7 +8,7 @@ SELECT check_name, ok FROM (VALUES
      = ARRAY['20260926000000','20260926100000','20260926110000','20260926120000','20260926130000',
              '20260926140000','20260926150000','20260926160000','20260926170000','20260926180000',
              '20260926190000','20260927100000','20260927110000','20260927120000','20260927130000',
-             '20260927140000']),
+             '20260927135000','20260927140000']),
   ('M11: profiles no longer cascade from auth.users',
    NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_id_fkey')),
   ('M11: memberships and group creators reference profiles (RESTRICT, validated)',
@@ -52,6 +52,10 @@ SELECT check_name, ok FROM (VALUES
    to_regprocedure('public.create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)') IS NULL
    AND NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace
                      AND proname = 'create_equal_split_expense')),
+  ('QS-B3-1: deletion trigger and add-by-email both lock the group row',
+   (SELECT prosrc LIKE '%FOR UPDATE%' FROM pg_proc WHERE oid = 'private.handle_auth_user_deleting()'::regprocedure)
+   AND (SELECT prosrc LIKE '%FROM public.groups g WHERE g.id = target_group_id FOR UPDATE%' FROM pg_proc
+         WHERE oid = 'public.add_group_member_by_email(uuid,text)'::regprocedure)),
   ('M13: expenses.updated_by references profiles',
    EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.expenses'::regclass AND contype = 'f'
              AND confrelid = 'public.profiles'::regclass AND conkey = ARRAY[(SELECT attnum FROM pg_attribute

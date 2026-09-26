@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **M11–M15 in progress (approved, local + SplitChat-Dev only).** M11 done (CP13a `f687da8`) and **CA-2 PROVEN** on SplitChat-Dev via real GoTrue (26/26, `scripts/rehearsal/api-ca2.mjs`); M11 is applied on SplitChat-Dev. M12 DB migration + rollback written (WIP commit); **resume at the M12 test updates** (see "In progress") |
+| Sub-phase | **M11–M15 implemented and dress-rehearsed on SplitChat-Dev (approved scope); in review.** CA-2 proven through real GoTrue (26/26, re-run on the final trigger). See "In progress" |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | **Operator approval of the next Phase 1 scope** (M11+: ledger-preserving account deletion — needs the SplitChat-Dev GoTrue deletion proof, CA-2; M12 cents/canonical split; M13 edit/delete RPCs; M14; M15). No production operation without a new approval |
+| Next human gate | **Production Batch 3 execution approval** (3a, then 3b), after review sign-off and the approval report. No production operation without it |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -110,12 +110,12 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## In progress
 
-- **Done locally (not reviewed, not pushed):** M12 `a5ed4e8` (CP14), M13 `7636d08` (CP16a), M15 `d023871` (CP16b). test:db 22/22 (432 assertions); lint/build/test 190/190.
-  - M12: `equal_split_cents` enforces the canonical rule and its error codes; legacy wrapper routes invalid amounts through v2 (auth first, no overflow). Shared vectors `src/lib/fixtures/equal-split-vectors.json` (runner -> `tests.split_vectors`; Vitest). Cases 180 (v2) and 181 (M12 on a populated ledger rewrites nothing). Frontend uses v2 + integer cents.
-  - M13: `update_equal_split_expense` / `delete_expense` (case 190). Client write path is `src/lib/expenseApi.ts`; ExpenseDetailsPage has a confirmed delete. **No edit UI in Phase 1** (RPC only).
-  - M15: `delete_group` per the approved rule (case 200): refused if anyone else ever had a membership row (`group_has_other_members`) or any record refers to another user (`group_has_shared_history`); `member_add_attempts` kept (rate-limit reset guard). GroupDetailsPage offers delete to a sole active owner.
-- **Next:** M14 (`20260927140000_drop_legacy_expense_rpc`) + frontend attestation for batch 3; then batch 3 ops artifacts, SplitChat-Dev rehearsal (dev is at M11), api-batch3, reviews, Batch 3 report.
-- Historical rehearsal scripts (`api.mjs`, `api-batch2.mjs`, `api-ca2.mjs`) call the legacy RPC; they target pre-M12 schemas and are not runtime dependencies.
+- **Batch 3 implemented, dress-rehearsed on SplitChat-Dev, round-1 reviewed; not yet pushed.** Commits: M12 `a5ed4e8`, M13 `7636d08`, M15 `d023871`, M14 + ops `9774a8c`, then the QS-B3-1 fix and docs (see `git log`).
+  - Batch 3a = M11, M12, M13, M15, `20260927135000` (QS-B3-1 fix); batch 3b = M14 (frontend attestation >= `a5ed4e8`). `scripts/ops/prod.mjs` holds both manifests.
+  - Evidence: `docs/phase1/batch3-rehearsal.md` (3a/3b VERIFY PASSED on dev, API 36/36 and 28/28, CA-2 re-run 26/26 on the final trigger). SplitChat-Dev is now at the full batch-3 schema (17 versions).
+  - Reviews round 1: QA/Security PASS (QS-B3-1 MEDIUM fixed; DS-3 note added); Senior APPROVE WITH CONDITIONS (docs; partial coverage). **Next:** round-2 QA re-check of the fix and a senior pass over the areas round 1 did not cover; then backup push and the Production Batch 3 approval report.
+  - No edit UI in Phase 1 (`update_equal_split_expense` is RPC-only, tested).
+- Historical rehearsal scripts `api.mjs` and `api-batch2.mjs` call the legacy RPC; they target pre-M12 schemas and are superseded by `api-batch3.mjs`.
 
 ## Next steps (design §E)
 
@@ -132,7 +132,9 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Validation status
 
-At the batch 2 re-rehearsal checkpoint: lint ✅, build ✅, test ✅ 117/117, npm audit ✅ 0, **test:db ✅ round-trip, 10 rollback checks, 17/17 cases, 180 assertions**; **SplitChat-Dev batch 2 ✅** (pre-flight 6/6, VERIFY 22/22, API 44/44).
+At the batch 3 review-fix checkpoint (2026-09-26): lint ✅, build ✅, test ✅ 190/190, npm audit ✅ 0, **test:db ✅ round-trip, 16 rollback checks (M11 up/down only: fix-forward), 23/23 cases, 440 assertions**; **SplitChat-Dev batch 3 ✅** (3a VERIFY 23/23 + API 36/36; 3b preflight PASS, VERIFY; fix: VERIFY 24/24, CA-2 26/26, API 28/28).
+
+Batch 2 checkpoint (production, `f32b56d`): SplitChat-Dev pre-flight 6/6, VERIFY 22/22, API 44/44.
 
 ## Unresolved risks
 

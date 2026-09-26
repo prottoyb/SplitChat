@@ -1,13 +1,14 @@
--- Production batch 3a (M11, M12, M13, M15) read-only post-apply verification.
+-- Production batch 3a (M11, M12, M13, M15, QS-B3-1 fix) read-only post-apply verification.
 -- Catalog-only (no row contents) plus aggregate data invariants.
 -- Every row must report ok = true.
 
 SELECT check_name, ok FROM (VALUES
-  ('history: M0-M13 and M15 recorded, nothing else (M14 is batch 3b)',
+  ('history: M0-M13, M15 and the QS-B3-1 fix recorded, nothing else (M14 is batch 3b)',
    (SELECT array_agg(version ORDER BY version) FROM supabase_migrations.schema_migrations)
      = ARRAY['20260926000000','20260926100000','20260926110000','20260926120000','20260926130000',
              '20260926140000','20260926150000','20260926160000','20260926170000','20260926180000',
-             '20260926190000','20260927100000','20260927110000','20260927120000','20260927130000']),
+             '20260926190000','20260927100000','20260927110000','20260927120000','20260927130000',
+             '20260927135000']),
   ('M11: profiles no longer cascade from auth.users',
    NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_id_fkey')),
   ('M11: memberships and group creators reference profiles (RESTRICT, validated)',
@@ -50,6 +51,10 @@ SELECT check_name, ok FROM (VALUES
   ('M12: legacy RPC is still the v2 wrapper until batch 3b',
    (SELECT prosrc LIKE '%create_equal_split_expense_v2%' FROM pg_proc
      WHERE oid = 'public.create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)'::regprocedure)),
+  ('QS-B3-1: deletion trigger and add-by-email both lock the group row',
+   (SELECT prosrc LIKE '%FOR UPDATE%' FROM pg_proc WHERE oid = 'private.handle_auth_user_deleting()'::regprocedure)
+   AND (SELECT prosrc LIKE '%FROM public.groups g WHERE g.id = target_group_id FOR UPDATE%' FROM pg_proc
+         WHERE oid = 'public.add_group_member_by_email(uuid,text)'::regprocedure)),
   ('M13: expenses.updated_by references profiles',
    EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.expenses'::regclass AND contype = 'f'
              AND confrelid = 'public.profiles'::regclass AND conkey = ARRAY[(SELECT attnum FROM pg_attribute
