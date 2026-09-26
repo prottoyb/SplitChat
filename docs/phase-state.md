@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | Batch 1 (M0 repair + M1–M5) rehearsed, reviewed, and review conditions resolved (round 2). Next: **production batch 1 approval report**, the human gate. Then M6+ locally |
+| Sub-phase | **AWAITING HUMAN APPROVAL: production batch 1** (M0 repair + M1–M5). Rehearsed, reviewed and ready. The report was presented to the operator 2026-09-26 |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | None until the first **production** operation or the Phase 1 completion report. The team works autonomously inside the approved phase |
+| Next human gate | **Production batch 1 execution approval.** Operations: prod.mjs preflight → repair-m0 → dry-run → push → verify. Runbook: docs/phase1/batch1-rehearsal.md |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -130,7 +130,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Next steps (design §E)
 
-1. Round-3 tooling fixes done; dress rehearsal 2 clean. A quick QA/Security confirmation, push, then present the **production batch 1 approval report** and stop at the human gate.
+1. On approval: run the production procedure exactly as in the approval report (SPLITCHAT_PROD_APPROVAL=batch1 only for repair-m0/push), keep the evidence directory, and report. On any ABORT/REFUSING, stop.
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
