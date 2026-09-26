@@ -72,6 +72,13 @@ SELECT tests.assert_raises($$SELECT count(*) FROM private.member_add_attempts$$,
   '42501', 'clients cannot read the attempt log');
 ROLLBACK;
 
+-- B2-QS-1: the count-then-insert is serialised per caller. The harness runs
+-- one session per case, so true concurrency is exercised on SplitChat-Dev
+-- (scripts/rehearsal/api-batch2.mjs); here we pin the serialisation in place.
+SELECT tests.assert(
+  pg_get_functiondef('public.add_group_member_by_email(uuid,text)'::regprocedure) LIKE '%pg_advisory_xact_lock%',
+  'rate-limit check is serialised per caller (advisory transaction lock)');
+
 -- ----------------------------------------------------------- remove / leave
 BEGIN;
 SELECT tests.login('00000000-0000-4000-8000-00000000000a');
