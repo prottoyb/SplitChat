@@ -5,6 +5,7 @@ import {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { fetchLedgerIdentityNames } from '../lib/ledgerIdentities'
 import { supabase } from '../lib/supabase'
 import styles from './ExpensesPage.module.css'
 
@@ -287,6 +288,28 @@ function ExpensesPage() {
             'SplitChat member',
         ]),
       )
+
+      // Payers who are no longer active members are not in `profiles`;
+      // their preserved display names come from the ledger (G1).
+      const groupsWithHistoricalPayers = loadedExpenses
+        .filter((expense) => !profileMap.has(expense.paid_by))
+        .map((expense) => expense.group_id)
+
+      if (groupsWithHistoricalPayers.length > 0) {
+        const historicalNames = await fetchLedgerIdentityNames(
+          groupsWithHistoricalPayers,
+        )
+
+        if (cancelled) {
+          return
+        }
+
+        for (const [id, displayName] of historicalNames) {
+          if (!profileMap.has(id)) {
+            profileMap.set(id, displayName)
+          }
+        }
+      }
 
       const splitMap = new Map(
         userSplits.map((split) => [

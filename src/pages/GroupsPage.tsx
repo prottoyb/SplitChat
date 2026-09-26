@@ -19,8 +19,12 @@ type Group = {
 
 function GroupsPage() {
   const { session } = useAuth()
+  const userId = session?.user.id
 
   const [groups, setGroups] = useState<Group[]>([])
+  const [ownedGroupIds, setOwnedGroupIds] = useState<Set<string>>(
+    () => new Set(),
+  )
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
 
@@ -61,6 +65,30 @@ function GroupsPage() {
         return
       }
 
+      // Ownership comes from the caller's membership role (M7), not from
+      // groups.created_by, which only records who created the group.
+      const { data: roleData, error: roleError } = userId
+        ? await supabase
+            .from('group_members')
+            .select('group_id, role')
+            .eq('user_id', userId)
+        : { data: [], error: null }
+
+      if (cancelled) {
+        return
+      }
+
+      if (roleError) {
+        console.error('Unable to load your group roles:', roleError)
+      }
+
+      setOwnedGroupIds(
+        new Set(
+          ((roleData ?? []) as { group_id: string; role: string }[])
+            .filter((membership) => membership.role === 'owner')
+            .map((membership) => membership.group_id),
+        ),
+      )
       setGroups(data ?? [])
       setIsLoading(false)
     }
@@ -70,7 +98,7 @@ function GroupsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadKey])
+  }, [reloadKey, userId])
 
   const resetForm = () => {
     setName('')
@@ -91,7 +119,6 @@ function GroupsPage() {
     setErrorMessage('')
     setSuccessMessage('')
 
-    const userId = session?.user.id
     const cleanName = name.trim()
     const cleanDescription = description.trim()
 
@@ -313,7 +340,7 @@ function GroupsPage() {
                     <div className={styles.groupIcon}>◎</div>
 
                     <span className={styles.ownerBadge}>
-                      {group.created_by === session?.user.id
+                      {ownedGroupIds.has(group.id)
                         ? 'Owner'
                         : 'Member'}
                     </span>

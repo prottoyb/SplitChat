@@ -188,6 +188,7 @@ describe('AddExpensePage', () => {
   it('shows the RPC error message and keeps the form values', async () => {
     seedGroup()
     supabaseMock.rpc.mockResolvedValueOnce({
+      data: null,
       error: { message: 'You are not a member of this group' },
     })
     const user = userEvent.setup()

@@ -9,6 +9,12 @@ import {
   useParams,
 } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import {
+  addMemberByEmail,
+  leaveGroup,
+  removeMember,
+  transferOwnership,
+} from '../lib/membershipApi'
 import { supabase } from '../lib/supabase'
 import styles from './GroupDetailsPage.module.css'
 
@@ -62,6 +68,10 @@ function GroupDetailsPage() {
   const [pendingRemovalUserId, setPendingRemovalUserId] =
     useState<string | null>(null)
 
+  const [pendingTransferUserId, setPendingTransferUserId] =
+    useState<string | null>(null)
+  const [isTransferring, setIsTransferring] = useState(false)
+
   const [showLeaveConfirm, setShowLeaveConfirm] =
     useState(false)
 
@@ -73,6 +83,15 @@ function GroupDetailsPage() {
   const reload = () => {
     setReloadKey((key) => key + 1)
   }
+
+  const currentUserId = session?.user.id
+
+  // Ownership comes from the caller's membership role (the source of truth
+  // since M7), not from groups.created_by, which records the creator only.
+  const isOwner = members.some(
+    (member) =>
+      member.userId === currentUserId && member.role === 'owner',
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -245,49 +264,47 @@ function GroupDetailsPage() {
     try {
       setIsAddingMember(true)
 
-      const { error } = await supabase.rpc(
-        'add_group_member_by_email',
-        {
-          target_group_id: groupId,
-          target_email: cleanEmail,
-        },
+      const outcome = await addMemberByEmail(
+        groupId,
+        cleanEmail,
       )
 
-      if (error) {
-        console.error(
-          'Unable to add member:',
-          error,
-        )
-
-        setErrorMessage(error.message)
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 
-      setMemberEmail('')
-
-      reload()
-
-      setSuccessMessage(
-        'Member added successfully. They can now access this group.',
-      )
+      switch (outcome.result) {
+        case 'added':
+          setMemberEmail('')
+          reload()
+          setSuccessMessage(
+            `${outcome.member.fullName} was added. They can now access this group.`,
+          )
+          break
+        case 'already_member':
+          setErrorMessage(
+            'That person is already a member of this group.',
+          )
+          break
+        case 'member_not_added':
+          // Deliberately does not say whether the email has an account.
+          setErrorMessage(
+            'We could not add anyone with that email. Check the address — the person needs a SplitChat account with a confirmed email.',
+          )
+          break
+        case 'rate_limited':
+          setErrorMessage(
+            'Too many add attempts. Please wait a while and try again.',
+          )
+          break
+      }
     } catch (error) {
       console.error(
         'Unexpected add member error:',
         error,
       )
-
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to add this member.',
-        )
-      }
+      setErrorMessage('Unable to add this member.')
     } finally {
       setIsAddingMember(false)
     }
@@ -304,9 +321,8 @@ function GroupDetailsPage() {
       return
     }
 
-    if (
-      group?.created_by !== session?.user.id
-    ) {
+    // UI guards only; the server enforces the same rules.
+    if (!isOwner) {
       setErrorMessage(
         'Only the group owner can remove members.',
       )
@@ -323,19 +339,13 @@ function GroupDetailsPage() {
     try {
       setIsRemovingMember(true)
 
-      const { error } = await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', groupId)
-        .eq('user_id', member.userId)
+      const outcome = await removeMember(
+        groupId,
+        member.userId,
+      )
 
-      if (error) {
-        console.error(
-          'Unable to remove member:',
-          error,
-        )
-
-        setErrorMessage(error.message)
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 
@@ -344,28 +354,58 @@ function GroupDetailsPage() {
       reload()
 
       setSuccessMessage(
-        `${member.fullName} was removed from the group.`,
+        `${member.fullName} was removed from the group. Their past expenses are kept.`,
       )
     } catch (error) {
       console.error(
         'Unexpected remove member error:',
         error,
       )
-
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to remove this member.',
-        )
-      }
+      setErrorMessage('Unable to remove this member.')
     } finally {
       setIsRemovingMember(false)
+    }
+  }
+
+  const handleTransferOwnership = async (
+    member: DisplayMember,
+  ) => {
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (!groupId) {
+      setErrorMessage('Group ID is unavailable.')
+      return
+    }
+
+    try {
+      setIsTransferring(true)
+
+      const outcome = await transferOwnership(
+        groupId,
+        member.userId,
+      )
+
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
+        return
+      }
+
+      setPendingTransferUserId(null)
+
+      reload()
+
+      setSuccessMessage(
+        `${member.fullName} is now the owner of this group.`,
+      )
+    } catch (error) {
+      console.error(
+        'Unexpected transfer ownership error:',
+        error,
+      )
+      setErrorMessage('Unable to transfer ownership.')
+    } finally {
+      setIsTransferring(false)
     }
   }
 
@@ -373,18 +413,16 @@ function GroupDetailsPage() {
     setErrorMessage('')
     setSuccessMessage('')
 
-    const userId = session?.user.id
-
-    if (!groupId || !userId) {
+    if (!groupId || !currentUserId) {
       setErrorMessage(
         'Your group or session information is unavailable.',
       )
       return
     }
 
-    if (group?.created_by === userId) {
+    if (isOwner) {
       setErrorMessage(
-        'The group owner cannot leave the group.',
+        'Make another member the owner before leaving this group.',
       )
       return
     }
@@ -392,19 +430,10 @@ function GroupDetailsPage() {
     try {
       setIsLeavingGroup(true)
 
-      const { error } = await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', groupId)
-        .eq('user_id', userId)
+      const outcome = await leaveGroup(groupId)
 
-      if (error) {
-        console.error(
-          'Unable to leave group:',
-          error,
-        )
-
-        setErrorMessage(error.message)
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 
@@ -416,19 +445,7 @@ function GroupDetailsPage() {
         'Unexpected leave group error:',
         error,
       )
-
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to leave this group.',
-        )
-      }
+      setErrorMessage('Unable to leave this group.')
     } finally {
       setIsLeavingGroup(false)
     }
@@ -465,9 +482,6 @@ function GroupDetailsPage() {
       </section>
     )
   }
-
-  const isOwner =
-    group.created_by === session?.user.id
 
   return (
     <>
@@ -594,6 +608,10 @@ function GroupDetailsPage() {
                 pendingRemovalUserId ===
                 member.userId
 
+              const isConfirmingTransfer =
+                pendingTransferUserId ===
+                member.userId
+
               return (
                 <div
                   key={member.userId}
@@ -653,7 +671,74 @@ function GroupDetailsPage() {
                       member.role !==
                         'owner' && (
                         <>
-                          {isConfirmingRemoval ? (
+                          {isConfirmingTransfer ? (
+                            <div
+                              className={
+                                styles.confirmActions
+                              }
+                              role="group"
+                              aria-label={`Confirm making ${member.fullName} the owner`}
+                            >
+                              <button
+                                type="button"
+                                className={
+                                  styles.confirmRemoveButton
+                                }
+                                onClick={() =>
+                                  void handleTransferOwnership(
+                                    member,
+                                  )
+                                }
+                                disabled={
+                                  isTransferring
+                                }
+                              >
+                                {isTransferring
+                                  ? 'Transferring...'
+                                  : 'Confirm owner'}
+                              </button>
+
+                              <button
+                                type="button"
+                                className={
+                                  styles.cancelActionButton
+                                }
+                                onClick={() =>
+                                  setPendingTransferUserId(
+                                    null,
+                                  )
+                                }
+                                disabled={
+                                  isTransferring
+                                }
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            !isConfirmingRemoval && (
+                              <button
+                                type="button"
+                                className={
+                                  styles.cancelActionButton
+                                }
+                                onClick={() => {
+                                  setErrorMessage('')
+                                  setSuccessMessage('')
+                                  setPendingRemovalUserId(
+                                    null,
+                                  )
+                                  setPendingTransferUserId(
+                                    member.userId,
+                                  )
+                                }}
+                              >
+                                Make owner
+                              </button>
+                            )
+                          )}
+
+                          {isConfirmingTransfer ? null : isConfirmingRemoval ? (
                             <div
                               className={
                                 styles.confirmActions
@@ -708,6 +793,10 @@ function GroupDetailsPage() {
 
                                 setSuccessMessage(
                                   '',
+                                )
+
+                                setPendingTransferUserId(
+                                  null,
                                 )
 
                                 setPendingRemovalUserId(
@@ -806,11 +895,24 @@ function GroupDetailsPage() {
                 </strong>
 
                 <p>
-                  For this version, the
-                  person must already have a
-                  SplitChat account. Email
-                  invitations will be added
-                  later.
+                  The person must already have a
+                  SplitChat account with a
+                  confirmed email address.
+                </p>
+              </div>
+
+              <div
+                className={styles.infoBox}
+              >
+                <strong>
+                  Leaving this group
+                </strong>
+
+                <p>
+                  As the owner, make another
+                  member the owner first. You
+                  can then leave like any
+                  other member.
                 </p>
               </div>
             </>
