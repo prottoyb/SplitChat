@@ -19,6 +19,8 @@ describe('rpcErrorMessage', () => {
     ['invalid_notes', /500 characters/],
     ['forbidden', /added this expense or the group owner/],
     ['stale_expense', /changed by someone else/],
+    ['group_has_other_members', /other people have been members/],
+    ['group_has_shared_history', /history involves other people/],
   ])('maps %s to user-facing text', (code, text) => {
     expect(rpcErrorMessage({ message: code }, 'fallback')).toMatch(text)
   })

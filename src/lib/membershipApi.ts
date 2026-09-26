@@ -87,6 +87,14 @@ export function leaveGroup(groupId: string): Promise<RpcOutcome> {
   return callVoid('leave_group', { p_group_id: groupId }, 'Unable to leave this group.')
 }
 
+/**
+ * Permanently deletes a solo group (owner only). The server refuses if anyone
+ * else has ever been a member or appears anywhere in the group's history.
+ */
+export function deleteGroup(groupId: string): Promise<RpcOutcome> {
+  return callVoid('delete_group', { p_group_id: groupId }, 'Unable to delete this group.')
+}
+
 export function transferOwnership(groupId: string, newOwnerId: string): Promise<RpcOutcome> {
   return callVoid(
     'transfer_group_ownership',

@@ -4,7 +4,7 @@
 SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
   ARRAY['add_group_member_by_email', 'create_equal_split_expense', 'create_equal_split_expense_v2',
-        'delete_expense', 'get_ledger_identities',
+        'delete_expense', 'delete_group', 'get_ledger_identities',
         'leave_group', 'remove_group_member', 'transfer_group_ownership', 'update_equal_split_expense'],
   'public exposes only the client RPCs');
 SELECT tests.assert(
@@ -18,7 +18,7 @@ SELECT tests.assert_eq(
   ARRAY['add_group_member_by_email(uuid,text)',
         'create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text)',
         'create_equal_split_expense_v2(uuid,text,bigint,date,uuid,uuid[],text)',
-        'delete_expense(uuid,timestamp with time zone)',
+        'delete_expense(uuid,timestamp with time zone)', 'delete_group(uuid)',
         'get_ledger_identities(uuid)', 'leave_group(uuid)',
         'private.my_active_group_ids()', 'private.my_group_peer_ids()',
         'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)',

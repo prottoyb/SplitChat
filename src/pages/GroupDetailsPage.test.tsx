@@ -185,3 +185,57 @@ describe('GroupDetailsPage membership actions use RPCs', () => {
     expect(await screen.findByText(/do not have permission to do that/)).toBeInTheDocument()
   })
 })
+
+describe('GroupDetailsPage group deletion (M15)', () => {
+  function seedSoloGroup() {
+    supabaseMock.setTable('groups', [
+      { id: 'g1', name: 'Solo', description: null, created_by: 'u1', created_at: '2026-09-01', updated_at: '2026-09-01' },
+    ])
+    supabaseMock.setTable('group_members', [
+      { group_id: 'g1', user_id: 'u1', role: 'owner', joined_at: '2026-09-01' },
+    ])
+    supabaseMock.setTable('profiles', [{ id: 'u1', full_name: 'Alice Adams', avatar_url: null }])
+  }
+
+  it('lets a sole owner delete the group after confirming', async () => {
+    seedSoloGroup()
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete group' }))
+    expect(supabaseMock.rpc).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+
+    expect(await screen.findByText('Groups list')).toBeInTheDocument()
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('delete_group', { p_group_id: 'g1' })
+  })
+
+  it('explains a refusal because of former members and keeps the group', async () => {
+    seedSoloGroup()
+    supabaseMock.setRpc('delete_group', null, { message: 'group_has_other_members' })
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Delete group' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+
+    expect(await screen.findByText(/other people have been members of it/)).toBeInTheDocument()
+    expect(screen.queryByText('Groups list')).not.toBeInTheDocument()
+  })
+
+  it('is not offered while other members are active', async () => {
+    seedGroup('u1')
+    renderPage()
+
+    await screen.findByRole('button', { name: '+ Add member' })
+    expect(screen.queryByRole('button', { name: 'Delete group' })).not.toBeInTheDocument()
+  })
+
+  it('is not offered to a member who is not the owner', async () => {
+    seedGroup('u2')
+    renderPage()
+
+    await screen.findByRole('button', { name: 'Leave group' })
+    expect(screen.queryByRole('button', { name: 'Delete group' })).not.toBeInTheDocument()
+  })
+})

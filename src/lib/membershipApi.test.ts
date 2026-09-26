@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSupabaseMock } from '../test/supabaseMock'
 import {
   addMemberByEmail,
+  deleteGroup,
   leaveGroup,
   removeMember,
   transferOwnership,
@@ -83,6 +84,23 @@ describe('membership RPC wrappers', () => {
     expect(supabaseMock.rpc).toHaveBeenCalledWith('transfer_group_ownership', {
       p_group_id: 'g1',
       p_new_owner_id: 'u3',
+    })
+  })
+
+  it('deleteGroup calls delete_group and maps the history refusals', async () => {
+    await expect(deleteGroup('g1')).resolves.toEqual({ ok: true })
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('delete_group', { p_group_id: 'g1' })
+
+    supabaseMock.setRpc('delete_group', null, { message: 'group_has_other_members' })
+    await expect(deleteGroup('g1')).resolves.toEqual({
+      ok: false,
+      message: expect.stringMatching(/other people have been members/),
+    })
+
+    supabaseMock.setRpc('delete_group', null, { message: 'some internal error' })
+    await expect(deleteGroup('g1')).resolves.toEqual({
+      ok: false,
+      message: 'Unable to delete this group.',
     })
   })
 

@@ -31,6 +31,10 @@ const MESSAGES: Record<string, string> = {
     'Only the person who added this expense or the group owner can change it.',
   stale_expense:
     'This expense was changed by someone else. Reload it and try again.',
+  group_has_other_members:
+    'This group cannot be deleted because other people have been members of it. Its shared history is kept.',
+  group_has_shared_history:
+    'This group cannot be deleted because its history involves other people. Its shared history is kept.',
 }
 
 export type RpcError = { message?: string } | null | undefined

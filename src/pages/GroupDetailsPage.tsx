@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../auth/useAuth'
 import {
   addMemberByEmail,
+  deleteGroup,
   leaveGroup,
   removeMember,
   transferOwnership,
@@ -75,6 +76,11 @@ function GroupDetailsPage() {
   const [showLeaveConfirm, setShowLeaveConfirm] =
     useState(false)
 
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState(false)
+  const [isDeletingGroup, setIsDeletingGroup] =
+    useState(false)
+
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -92,6 +98,10 @@ function GroupDetailsPage() {
     (member) =>
       member.userId === currentUserId && member.role === 'owner',
   )
+
+  // Offered only while the owner is the sole active member. Former members
+  // are not visible here, so the server makes the final decision (M15).
+  const canOfferDelete = isOwner && members.length === 1
 
   useEffect(() => {
     let cancelled = false
@@ -428,6 +438,40 @@ function GroupDetailsPage() {
       setErrorMessage('Unable to transfer ownership.')
     } finally {
       setIsTransferring(false)
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (!groupId) {
+      setErrorMessage('Your group information is unavailable.')
+      return
+    }
+
+    try {
+      setIsDeletingGroup(true)
+
+      const outcome = await deleteGroup(groupId)
+
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
+        setShowDeleteConfirm(false)
+        return
+      }
+
+      navigate('/groups', {
+        replace: true,
+      })
+    } catch (error) {
+      console.error(
+        'Unexpected delete group error:',
+        error,
+      )
+      setErrorMessage('Unable to delete this group.')
+    } finally {
+      setIsDeletingGroup(false)
     }
   }
 
@@ -937,6 +981,90 @@ function GroupDetailsPage() {
                   other member.
                 </p>
               </div>
+
+              {canOfferDelete && (
+                <div
+                  className={
+                    styles.leaveSection
+                  }
+                >
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      className={
+                        styles.leaveButton
+                      }
+                      onClick={() => {
+                        setErrorMessage('')
+                        setSuccessMessage('')
+                        setShowDeleteConfirm(true)
+                      }}
+                    >
+                      Delete group
+                    </button>
+                  ) : (
+                    <div
+                      className={
+                        styles.leaveConfirmation
+                      }
+                    >
+                      <strong>
+                        Delete this group
+                        permanently?
+                      </strong>
+
+                      <p>
+                        The group and all of its
+                        expenses will be deleted.
+                        This cannot be undone. A
+                        group that anyone else
+                        has ever been part of is
+                        kept instead.
+                      </p>
+
+                      <div
+                        className={
+                          styles.leaveActions
+                        }
+                      >
+                        <button
+                          type="button"
+                          className={
+                            styles.confirmLeaveButton
+                          }
+                          onClick={() =>
+                            void handleDeleteGroup()
+                          }
+                          disabled={
+                            isDeletingGroup
+                          }
+                        >
+                          {isDeletingGroup
+                            ? 'Deleting...'
+                            : 'Yes, delete'}
+                        </button>
+
+                        <button
+                          type="button"
+                          className={
+                            styles.cancelActionButton
+                          }
+                          onClick={() =>
+                            setShowDeleteConfirm(
+                              false,
+                            )
+                          }
+                          disabled={
+                            isDeletingGroup
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <>
