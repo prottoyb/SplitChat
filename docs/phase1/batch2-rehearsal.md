@@ -265,3 +265,26 @@ Three reviews, none with CRITICAL or HIGH findings:
 - **Tracked follow-ups (LOW):**
   - move the 30-way concurrency check into CI once CI exists;
   - tighten the lock-ordering assertion.
+
+## Production batch 2 pre-flight (read-only, operator-approved, 2026-09-26)
+
+Target: `jhftlnsccurhfgneltgi`. The tool, migrations and ops files are
+identical to commit `4dc6d6e`.
+
+- **`preflight --batch batch2`: 6/6 PASS.**
+  - Live schema exactly equals the verified post-M5 schema. It is also
+    identical to the batch 1 post-apply dump.
+  - Migration history is exactly M0–M5.
+  - Q9 = Q10 = Q4 = Q5 = 0.
+  - Ledger snapshot taken. It is byte-identical to the batch 1 post-apply
+    snapshot, so no data has changed since batch 1.
+  - Locks 0 / long transactions 0.
+- **`dry-run --batch batch2`:** lists exactly M6–M10.
+- **Attestation guard:** `SPLITCHAT_FRONTEND_ATTESTATION=no-live-frontend`
+  is accepted and logged. This was shown on SplitChat-Dev, where the push
+  then refused at the history gate, so nothing was written. An invalid
+  value was refused.
+- **Evidence SHA-256:**
+  - `prod_before.sql`: `129b1259e4ae9976194f027846618f3da10f2c36676224d4822e6993c3a77367`
+  - `ledger_before.txt`: `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`
+  - `prechecks.txt`: `2e24b1259cdd6858ee37e0f8f744235d48ba46c48e6694323a165b9a94ef4f4a`

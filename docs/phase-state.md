@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **AWAITING HUMAN APPROVAL: production batch 2** (M6–M10). Implemented, rehearsed clean on SplitChat-Dev, QA/Security and Senior both approve (round 2). Production unchanged since batch 1 |
+| Sub-phase | Production batch 2 pre-flight 6/6 PASS and dry-run = exactly M6–M10 (read-only, approved). **AWAITING operator approval of the batch 2 push.** Evidence dir: scratchpad/prod-batch2-preflight (its ledger_before.txt is the verify baseline) |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | **Production batch 2 approval.** Operations: `prod.mjs preflight → dry-run → push → verify`, each with `--batch batch2`; the push needs `SPLITCHAT_PROD_APPROVAL=batch2` and `SPLITCHAT_FRONTEND_ATTESTATION`. Runbook: `docs/phase1/batch2-rehearsal.md` |
