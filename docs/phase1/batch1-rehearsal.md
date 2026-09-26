@@ -206,6 +206,30 @@ line endings while M0's text uses LF. This is semantically identical
 whitespace. The affected functions are replaced in M8 anyway, and `verify`
 uses the same CR-insensitive comparison.
 
+## Production preflight #2 (read-only, operator-approved, corrected drift comparison)
+
+All 6 gates **PASS**:
+
+- target is `jhftlnsccurhfgneltgi`;
+- exact drift gate against the live database;
+- empty history;
+- Q1–Q8 all 0;
+- locks 0 and long transactions 0;
+- ledger snapshot taken.
+
+Compared with preflight #1:
+
+- The ledger snapshot and pre-checks are **byte-identical**.
+- The dump differs only in pg_dump's random per-run `\restrict` /
+  `\unrestrict` key lines. It is otherwise byte-identical, so production
+  did not change between the two runs.
+
+Evidence SHA-256:
+
+- `prod_before.sql`: `f3c1e81a65b8d506085d8e8e289fa81a6b2cb41ed87bb21feae81c1846bc27b0`
+- `ledger_before.txt`: `a40ebff50787fe1673e8a60ddd12596d69e07d61b92aeabc9481fb094c108155`
+- `prechecks.txt`: `d13d30e4ce2d0302f9cdf72b225fb6f4245c3aacfc946c927e1bf707fc2929a9`
+
 ## Residual behaviour after batch 1 (M1–M5), and why it is acceptable temporarily
 
 Still callable or possible for **signed-in** users after batch 1. Anonymous

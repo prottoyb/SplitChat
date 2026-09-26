@@ -22,7 +22,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | Preflight #1 done (drift ABORT proven to be a CR artifact and fixed; production byte-identical to Phase 0). QA/Security and Senior both reapprove batch 1 (QA condition: re-run the live preflight before push). **Awaiting operator approval: preflight re-run, then repair-m0 + push** |
+| Sub-phase | Production preflight #2 PASSED (6/6; evidence dir scratchpad/prod-batch1-preflight2, whose ledger_before.txt is the verify baseline). **Awaiting operator approval of the batch 1 writes (repair-m0, push)** |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
 | Next human gate | **Production batch 1 execution approval.** Operations: prod.mjs preflight → repair-m0 → dry-run → push → verify. Runbook: docs/phase1/batch1-rehearsal.md |
