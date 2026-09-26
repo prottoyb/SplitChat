@@ -138,6 +138,37 @@ The production-only guards (the prod-ref check, refusal of the dev URL and
 of the transaction pooler port) were tested separately and refuse as
 designed.
 
+## Round 3: tooling review follow-ups (QA/Security PASS, Senior APPROVE WITH CONDITIONS, no CRITICAL/HIGH)
+
+| Finding | Resolution |
+|---|---|
+| R2-SR-1: the drift check could go stale between `preflight` and `repair-m0` | `repair-m0` now re-runs the **exact** drift check itself immediately before writing, and refuses on any difference |
+| R2-QS-1: gap between the manifest check and the CLI reading `supabase/migrations` | Writes copy the migrations into a private `mkdtemp` staging directory, verify the **copies** (read-only), and run the CLI with `--workdir` on that copy |
+| R2-QS-3 / R2-SR-2: truncated hashes | Full 64-hex SHA-256 manifest |
+| R2-SR-3: predictable temp file | `mkdtemp` directory plus exclusive create |
+| R2-QS-2: post-checks counted, not named | `verify` requires every check **name** from `batch1_postchecks.sql` to be `t` |
+| R2-SR (runbook): `verify` took an operator-supplied schema path | The expected post-M5 schema is committed as `supabase/ops/batch1_expected_schema.sql`, pinned by SHA-256 in the tool |
+| R2-QS-4: negative tests reached real infrastructure | During the round-2 review, one negative test by the QA agent used the production ref with a realistic pooler host and a dummy password. That made one outbound connection attempt, which failed at authentication; no access occurred. Guidance is now in the tool header: negative tests use a dev ref or a wrong port only |
+
+### Dress rehearsal 2: revised `prod.mjs --rehearse-on-dev`, clean
+
+SplitChat-Dev was reset exactly to the production baseline (the reviewed
+rollbacks, then M0's privilege section to restore ACL order). An **exact**
+comparison with the Phase 0 capture: IDENTICAL.
+
+| Step | Result |
+|---|---|
+| `preflight` | **all 6 gates PASS** (exact drift, empty history, Q-gates, locks 0/0) |
+| `push` before repair | refused (history is not `[M0]`) |
+| `repair-m0` without approval | refused |
+| `repair-m0` with approval | M0 recorded (the drift check ran again inside the command) |
+| `repair-m0` again | refused (history exists) |
+| `dry-run` | exactly M1–M5 |
+| `push` with approval | M1–M5 applied from the verified staging copy |
+| `push` again | refused |
+| `verify` | history M0..M5; **17/17 named post-checks**; ledger unchanged; schema == committed expected schema. **VERIFY PASSED** |
+| Tampered M1 / extra migration file | both refused before any CLI call |
+
 ## Observations for production
 
 - The interim M5 behaviour makes a GoTrue deletion of a group owner fail

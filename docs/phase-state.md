@@ -130,7 +130,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## Next steps (design §E)
 
-1. A quick QA/Security check of the round-2 tooling (prod.mjs), push, then present the **production batch 1 approval report** and stop at the human gate.
+1. Round-3 tooling fixes done; dress rehearsal 2 clean. A quick QA/Security confirmation, push, then present the **production batch 1 approval report** and stop at the human gate.
 2. While waiting (or after), continue M6–M10 locally. M11 needs a
    SplitChat-Dev GoTrue-deletion proof of its trigger.
 
