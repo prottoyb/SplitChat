@@ -78,8 +78,11 @@ export function listActivity({
       .select('id, group_id, kind, actor_id, subject_id, subject_user_id, people, payload, backfilled, created_at')
     if (groupId) query = query.eq('group_id', groupId)
     if (before) {
-      // Values are quoted: timestamps contain ':' and '+'.
-      query = query.or(`created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${before.id})`)
+      // Keyset filter (ADR-0009 condition 11). The cursor always comes from a
+      // row this client just read (a server timestamp and an integer id), never
+      // from user input; values are double-quoted because timestamps contain
+      // ':' and '+', and the id is forced to an integer.
+      query = query.or(`created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${Math.trunc(Number(before.id))})`)
     }
     const result = await query
       .order('created_at', { ascending: false })

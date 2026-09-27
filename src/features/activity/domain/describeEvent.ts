@@ -24,6 +24,7 @@ export type DescribeContext = {
 // Payloads are untrusted in shape (ADR-0008 rule 8): read them defensively.
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isSafeInteger(v) ? v : null)
 const str = (v: unknown): string | null => (typeof v === 'string' ? v : null)
+const bool = (v: unknown): boolean => v === true
 const obj = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
 const money = (v: unknown) => {
@@ -45,8 +46,8 @@ function changeSummary(payload: Record<string, unknown>, who: (id: string | null
   const payer = obj(changes.paid_by)
   if (payer) parts.push(`paid by ${who(str(payer.from))} → ${who(str(payer.to))}`)
   if (obj(changes.participants)) parts.push('participants changed')
-  if (payload.description_changed === true) parts.push('description changed')
-  if (payload.notes_changed === true) parts.push('notes changed')
+  if (bool(payload.description_changed)) parts.push('description changed')
+  if (bool(payload.notes_changed)) parts.push('notes changed')
   return parts.length ? parts.join(' · ') : 'no changes'
 }
 
@@ -76,7 +77,7 @@ export function describeEvent(event: ActivityEvent, ctx: DescribeContext): Descr
     case 'member_account_deleted':
       return { actor: who(event.subjectUserId), action: 'left the group (account deleted)', target: null, detail: null, category: 'member' }
     case 'ownership_transferred':
-      return p.operator_release === true
+      return bool(p.operator_release)
         ? { actor: 'SplitChat support', action: 'made', target: { label: whom(str(p.to) ?? event.subjectUserId), to: null }, detail: 'the owner', category: 'group' }
         : { actor: who(event.actorId), action: 'made', target: { label: whom(str(p.to) ?? event.subjectUserId), to: null }, detail: 'the owner', category: 'group' }
     case 'expense_created':
