@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { formatDateShort } from '../../../shared/domain/dates'
 import { useResource } from '../../../shared/hooks/useResource'
 import { ErrorState, LoadingState, Notice } from '../../../shared/ui'
@@ -34,13 +34,16 @@ function GroupsPage() {
   const { session } = useAuth()
   const userId = session?.user.id ?? ''
   const groups = useResource(userId ? `groups:${userId}` : null, () => listMyGroups(userId))
-  const [showCreate, setShowCreate] = useState(false)
+  const [params, setParams] = useSearchParams()
+  // `/groups?create=1` (e.g. from the dashboard) opens the form directly.
+  const [showCreate, setShowCreate] = useState(params.get('create') === '1')
   const [success, setSuccess] = useState('')
 
   const handleCreate = async (input: GroupInput) => {
     const result = await createGroup(input, userId)
     if (!result.ok) return result.message
     setShowCreate(false)
+    if (params.has('create')) setParams({}, { replace: true })
     setSuccess('Group created successfully.')
     groups.reload()
     return null

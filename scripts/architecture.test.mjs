@@ -15,7 +15,7 @@ const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'sr
 const CLIENT = path.join(SRC, 'shared', 'api', 'supabase.ts')
 
 // Lower layers first; a feature may import only features listed before it.
-const FEATURE_ORDER = ['auth', 'people', 'groups', 'expenses', 'balances', 'settlements', 'dashboard', 'activity', 'chat', 'smart-expense']
+const FEATURE_ORDER = ['auth', 'people', 'groups', 'expenses', 'balances', 'settlements', 'activity', 'chat', 'smart-expense', 'dashboard']
 
 function sourceFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

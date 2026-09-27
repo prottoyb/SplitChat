@@ -52,7 +52,8 @@ Rules (checked by `src/architecture.test.ts`, no new dependency):
 2. **Feature boundary:** a feature imports another feature only through
    that feature's `index.ts`. Allowed direction (no cycles):
    `auth ← people ← groups ← expenses ← (balances, settlements) ←
-   (dashboard, activity, chat, smart-expense)`. Cross-feature composition
+   activity ← (chat, smart-expense) ← dashboard` (amended in Phase 3: the
+   dashboard composes the activity feed, so activity sits below it). Cross-feature composition
    (e.g. the Phase 5 group workspace) lives in `app/` or pages.
 3. **Results:** API functions return `Result<T>` =
    `{ ok: true, value } | { ok: false, code, message }` with `code` in

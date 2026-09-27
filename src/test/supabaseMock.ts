@@ -49,6 +49,7 @@ export function createSupabaseMock() {
       'order',
       'limit',
       'single',
+      'or',
     ]) {
       chain[method] = (...args: unknown[]) => {
         recorded.calls.push({ method, args })

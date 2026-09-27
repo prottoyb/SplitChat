@@ -1,114 +1,219 @@
+import { Link } from 'react-router-dom'
+import { formatTimestamp, localIsoDate } from '../../shared/domain/dates'
+import { formatCents } from '../../shared/domain/money'
+import { useResource } from '../../shared/hooks/useResource'
+import { ErrorState, LoadingState } from '../../shared/ui'
+import { ActivityFeed, listActivity, type ActivityPage } from '../activity'
+import { useAuth } from '../auth'
+import { listMyExpenses, type ExpenseListItem } from '../expenses'
+import { listMyGroups, type GroupSummary } from '../groups'
+import { ok, type Result } from '../../shared/api/result'
+import { attentionItems, type AttentionItem } from './domain/attention'
+import { lastActivityByGroup, monthSummary, recentChangeCount } from './domain/summary'
+import styles from './DashboardPage.module.css'
+
+const RECENT_LIMIT = 8
+
+type DashboardData = {
+  groups: GroupSummary[]
+  activity: ActivityPage
+  expenses: ExpenseListItem[]
+}
+
+async function loadDashboard(userId: string): Promise<Result<DashboardData>> {
+  const [groups, activity, expenses] = await Promise.all([
+    listMyGroups(userId),
+    listActivity({ limit: 30 }),
+    listMyExpenses(userId),
+  ])
+  if (!groups.ok) return groups
+  if (!activity.ok) return activity
+  if (!expenses.ok) return expenses
+  return ok({ groups: groups.value, activity: activity.value, expenses: expenses.value })
+}
+
+function attentionText(item: AttentionItem) {
+  switch (item.kind) {
+    case 'expense_changed':
+      return (
+        <>
+          <strong>{item.subject}</strong> changed an expense you're part of in <strong>{item.groupName}</strong>
+        </>
+      )
+    case 'added_to_group':
+      return (
+        <>
+          <strong>{item.subject}</strong> added you to <strong>{item.groupName}</strong>
+        </>
+      )
+    case 'solo_group':
+      return (
+        <>
+          <strong>{item.groupName}</strong> has no other members yet — add someone to start splitting
+        </>
+      )
+  }
+}
+
 function DashboardPage() {
+  const { session, profile } = useAuth()
+  const userId = session?.user.id ?? ''
+  const data = useResource(userId ? `dashboard:${userId}` : null, () => loadDashboard(userId))
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0]
+
+  const header = (
+    <header className="topbar">
+      <div>
+        <p className="eyebrow">OVERVIEW</p>
+        <h2>{firstName ? `Welcome back, ${firstName}` : 'Welcome to SplitChat'}</h2>
+        <p className="subtitle">Your groups, recent expenses and anything that needs a look.</p>
+      </div>
+      <Link to="/groups?create=1" className="primary-button">
+        + Create group
+      </Link>
+    </header>
+  )
+
+  if (data.status === 'loading') {
+    return (
+      <>
+        {header}
+        <LoadingState title="Loading your overview..." />
+      </>
+    )
+  }
+  if (data.status === 'error') {
+    return (
+      <>
+        {header}
+        <ErrorState title="Overview unavailable" message={data.error.message} actions={[{ label: 'Try again', onClick: data.reload }]} />
+      </>
+    )
+  }
+
+  const { groups, activity, expenses } = data.data
+  const month = monthSummary(expenses, localIsoDate())
+  const changes = recentChangeCount(activity.events, 7)
+  const attention = attentionItems(activity, groups, userId).slice(0, 5)
+  const lastActivity = lastActivityByGroup(activity.events)
+  const recent: ActivityPage = { ...activity, events: activity.events.slice(0, RECENT_LIMIT), next: null }
+  const sortedGroups = [...groups]
+    .sort((a, b) => (lastActivity.get(b.id) ?? b.createdAt).localeCompare(lastActivity.get(a.id) ?? a.createdAt))
+    .slice(0, 6)
+
   return (
     <>
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">OVERVIEW</p>
+      {header}
 
-          <h2>Welcome to SplitChat</h2>
-
-          <p className="subtitle">
-            Manage shared expenses, balances and conversations in one place.
-          </p>
-        </div>
-
-        <button className="primary-button">+ Create group</button>
-      </header>
-
-      <section className="summary-grid">
+      <section className="summary-grid" aria-label="Summary">
         <article className="summary-card">
-          <div className="summary-icon">↓</div>
-
-          <div>
-            <p>You are owed</p>
-            <h3>$0.00</h3>
-            <span>No outstanding balances</span>
-          </div>
-        </article>
-
-        <article className="summary-card">
-          <div className="summary-icon">↑</div>
-
-          <div>
-            <p>You owe</p>
-            <h3>$0.00</h3>
-            <span>You're all settled up</span>
-          </div>
-        </article>
-
-        <article className="summary-card">
-          <div className="summary-icon">◎</div>
-
+          <div className="summary-icon" aria-hidden="true">◎</div>
           <div>
             <p>Active groups</p>
-            <h3>0</h3>
-            <span>Create your first group</span>
+            <h3>{groups.length}</h3>
+            <span>{groups.length === 0 ? 'Create your first group' : `${groups.filter((g) => g.myRole === 'owner').length} you own`}</span>
+          </div>
+        </article>
+        <article className="summary-card">
+          <div className="summary-icon" aria-hidden="true">$</div>
+          <div>
+            <p>Your share this month</p>
+            <h3>{formatCents(month.myShareCents)}</h3>
+            <span>
+              {month.count} {month.count === 1 ? 'expense' : 'expenses'} totalling {formatCents(month.totalCents)}
+            </span>
+          </div>
+        </article>
+        <article className="summary-card">
+          <div className="summary-icon" aria-hidden="true">↻</div>
+          <div>
+            <p>Changes this week</p>
+            <h3>{changes}</h3>
+            <span>Across all your groups</span>
           </div>
         </article>
       </section>
 
-      <section className="dashboard-grid">
+      <section className={styles.grid}>
         <article className="panel">
           <div className="panel-header">
             <div>
-              <p className="eyebrow">GROUPS</p>
-              <h3>Your groups</h3>
-            </div>
-
-            <button className="text-button">View all</button>
-          </div>
-
-          <div className="empty-state">
-            <div className="empty-icon">◎</div>
-
-            <h4>No groups yet</h4>
-
-            <p>
-              Create a group for a trip, household or anything else you share
-              expenses for.
-            </p>
-
-            <button className="secondary-button">
-              Create your first group
-            </button>
-          </div>
-        </article>
-
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">ACTIVITY</p>
-              <h3>Recent activity</h3>
+              <p className="eyebrow">RECENT ACTIVITY</p>
+              <h3>What happened</h3>
             </div>
           </div>
-
-          <div className="empty-state compact">
-            <div className="empty-icon">↔</div>
-
-            <h4>Nothing here yet</h4>
-
-            <p>
-              Expenses, settlements and group activity will appear here.
-            </p>
-          </div>
+          <ActivityFeed
+            page={recent}
+            currentUserId={userId}
+            showGroup
+            emptyText="Nothing has happened yet. Create a group and add your first expense."
+          />
+          {activity.events.length > 0 && (
+            <div className={styles.panelFooter}>
+              <Link to="/activity">View all activity →</Link>
+            </div>
+          )}
         </article>
-      </section>
 
-      <section className="ai-banner">
-        <div className="ai-badge">AI</div>
+        <div className={styles.side}>
+          <article className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">NEEDS YOUR ATTENTION</p>
+                <h3>For you</h3>
+              </div>
+            </div>
+            {attention.length === 0 ? (
+              <p className={styles.allClear}>You're all caught up.</p>
+            ) : (
+              <ul className={styles.attentionList}>
+                {attention.map((item) => (
+                  <li key={item.key}>
+                    <Link to={item.to} className={styles.attentionItem}>
+                      <p className={styles.attentionText}>{attentionText(item)}</p>
+                      {item.createdAt && <span>{formatTimestamp(item.createdAt)}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
 
-        <div className="ai-content">
-          <p className="eyebrow">COMING LATER</p>
-
-          <h3>Turn conversations into expenses</h3>
-
-          <p>
-            SplitChat will be able to analyse group conversations, identify
-            spending and prepare transactions for your approval.
-          </p>
+          <article className="panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">GROUPS</p>
+                <h3>Your groups</h3>
+              </div>
+            </div>
+            {groups.length === 0 ? (
+              <p className={styles.allClear}>
+                You're not in any groups yet. <Link to="/groups?create=1">Create one</Link> to start sharing costs.
+              </p>
+            ) : (
+              <ul className={styles.groupList}>
+                {sortedGroups.map((g) => (
+                  <li key={g.id}>
+                    <Link to={`/groups/${g.id}`} className={styles.groupItem}>
+                      <div>
+                        <strong>{g.name}</strong>
+                        <small>
+                          {g.memberCount} {g.memberCount === 1 ? 'member' : 'members'} · {g.myRole === 'owner' ? 'Owner' : 'Member'}
+                        </small>
+                      </div>
+                      {lastActivity.get(g.id) && <span>Active {formatTimestamp(lastActivity.get(g.id) as string)}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {groups.length > sortedGroups.length && (
+              <div className={styles.panelFooter}>
+                <Link to="/groups">All groups →</Link>
+              </div>
+            )}
+          </article>
         </div>
-
-        <div className="ai-status">Planned</div>
       </section>
     </>
   )

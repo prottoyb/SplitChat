@@ -1,27 +1,80 @@
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useResource } from '../../shared/hooks/useResource'
+import { ErrorState, LoadingState, Notice } from '../../shared/ui'
+import { useAuth } from '../auth'
+import { listMyGroups } from '../groups'
+import { appendPage, listActivity } from './api/events'
+import { ActivityFeed } from './components/ActivityFeed'
+import styles from './components/activity.module.css'
+
 function ActivityPage() {
+  const { session } = useAuth()
+  const userId = session?.user.id ?? ''
+  const [params, setParams] = useSearchParams()
+  const groupId = params.get('group') ?? ''
+
+  const groups = useResource(userId ? `groups:${userId}` : null, () => listMyGroups(userId))
+  const feed = useResource(userId ? `activity:${userId}:${groupId}` : null, () =>
+    listActivity({ groupId: groupId || undefined, limit: 25 }),
+  )
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [moreError, setMoreError] = useState('')
+
+  const loadMore = async () => {
+    if (feed.status !== 'ready' || !feed.data.next) return
+    setLoadingMore(true)
+    setMoreError('')
+    const result = await listActivity({ groupId: groupId || undefined, before: feed.data.next, limit: 25 })
+    setLoadingMore(false)
+    if (!result.ok) return setMoreError(result.message)
+    feed.setData((current) => appendPage(current, result.value))
+  }
+
   return (
     <>
       <header className="topbar">
         <div>
           <p className="eyebrow">ACTIVITY</p>
-          <h2>Activity</h2>
-
-          <p className="subtitle">
-            Follow recent expenses, settlements and group activity.
-          </p>
+          <h2>What happened</h2>
+          <p className="subtitle">Expenses and membership changes across your groups, newest first.</p>
         </div>
       </header>
 
+      <div className={styles.filters}>
+        <label htmlFor="activity-group">Group</label>
+        <select
+          id="activity-group"
+          value={groupId}
+          onChange={(e) => setParams(e.target.value ? { group: e.target.value } : {}, { replace: true })}
+        >
+          <option value="">All groups</option>
+          {groups.status === 'ready' &&
+            groups.data.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      {moreError && <Notice tone="error">{moreError}</Notice>}
+
       <section className="panel">
-        <div className="empty-state">
-          <div className="empty-icon">◌</div>
-
-          <h4>No recent activity</h4>
-
-          <p>
-            Activity from your groups and shared expenses will appear here.
-          </p>
-        </div>
+        {feed.status === 'loading' ? (
+          <LoadingState title="Loading activity..." />
+        ) : feed.status === 'error' ? (
+          <ErrorState title="Activity unavailable" message={feed.error.message} actions={[{ label: 'Try again', onClick: feed.reload }]} />
+        ) : (
+          <ActivityFeed
+            page={feed.data}
+            currentUserId={userId}
+            showGroup={!groupId}
+            onLoadMore={loadMore}
+            loadingMore={loadingMore}
+            emptyText="Nothing has happened in your groups yet. Add an expense to get started."
+          />
+        )}
       </section>
     </>
   )
