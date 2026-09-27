@@ -23,6 +23,35 @@ operator approval required).
    integer cents throughout; the server re-checks every amount.
 4. SplitChat-Dev rehearsal (M17 only) and API checks.
 
+## Outcome
+
+| Item | Result |
+|---|---|
+| Migration | `20260928110000_settlements.sql` (M17): `settlements` (void-only trigger, composite membership FKs, amount/date/note/void CHECKs, idempotency key unique per group and creator), `private.group_balances`, `get_group_balances`, `record_settlement` (unlocked auth check → group `FOR UPDATE` → re-check; `nothing_to_settle` / `exceeds_balance`), `void_settlement` (party or owner, once), event kinds, `delete_group` backstop. Rollback restores `delete_group` and the kind CHECK exactly (up/down/up verified); fix-forward once settlements exist |
+| Names | settlement parties are named through the events' `people` (no change to `get_ledger_identities`) |
+| Harness | case 220 (75 assertions: surface, balances, partial chaining, refusal of over-settlement and reversal, validation, permissions, former and deleted members, idempotency, voiding, RLS, backstops, solo delete), case 221 (dblink: double payment, racing retry, expense creation waits); test:db 26/26 (561) |
+| Frontend | `features/balances` (server balances with integrity checks, `simplifyDebts` + shared vectors + generated-ledger properties, `BalanceList`, `RepaymentPlan`), `features/settlements` (API, form validation, `SettlementForm`, `SettlementHistory` with void, `/groups/:id/balances`); group page links to it; activity feed describes settlement events and skips unknown kinds |
+| Tests | Vitest 383 (29 files); lint, tsc, build clean |
+
+## SplitChat-Dev rehearsal (2026-09-28)
+
+- Dev at 18 versions (batch 3 + M16); pinned CLI `db push` from a staging
+  copy applied only `20260928110000`.
+- Read-only ledger fingerprint (groups, memberships, expenses, splits,
+  events: counts, cent sums, hashes) identical before and after.
+- Dev schema == harness schema after M17: **IDENTICAL (2453 normalised
+  lines)**.
+- `scripts/rehearsal/api-settlements.mjs`: **19/19** — server balances as
+  JSON integers, outsider refused, partial payment, over-settlement /
+  reversal / non-party refused, idempotent retry, no direct insert/update,
+  outsider and anon read nothing, void permissions, void once, history
+  kept, former member settled by the owner, events in order without note
+  or reason text. `api-activity.mjs` still **11/11**.
+
+## Reviews
+
+In progress: QA/Security (SENSITIVE) and Senior Review.
+
 ## Production
 
-Not applied. M17 joins M16 in the next production release batch.
+Not applied. M17 joins M16 in the next production release batch (M16 must precede M17: M17 extends the event kind CHECK).

@@ -21,10 +21,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). **Current: Phase 4 — Balances, debt simplification and settlements** (ADR-0010 accepted after architect review; `docs/phase4/plan.md`) |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). **Current: Phase 4 — Balances, debt simplification and settlements** (ADR-0010 accepted after architect review; implemented and rehearsed on SplitChat-Dev, in review; `docs/phase4/plan.md`) |
 | Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
 | Branch | `feature/phase4-balances-settlements` (from the Phase 3 head; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
-| Last verified checkpoint | Phase 3 completion commit (`docs: Phase 3 complete`) on `feature/phase3-dashboard-activity` |
+| Last verified checkpoint | CP4-2 `aa45b59` (Phase 4 frontend) on `feature/phase4-balances-settlements`; Phase 3 complete at `9060f35` |
 | Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
 ## Operating model (operator, 2026-09-26)
@@ -72,9 +72,9 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 
 ## Next steps
 
-1. Phase 4 per `docs/phase4/plan.md`: M17 settlements migration + harness case, balances/settlements frontend, dev rehearsal, reviews, checkpoint; then Phases 5–7.
-2. Production backlog for the next release batch: M16 `20260928100000_activity_event_log` (rehearsed on SplitChat-Dev). No production write without its own approval.
-3. SplitChat-Dev is at 18 versions (batch 3 + M16).
+1. Phase 4: resolve QA/Security and Senior Review findings, mark complete, checkpoint; then Phase 5 (group workspace UX; UI/UX designer brief requested), 6, 7.
+2. Production backlog for the next release batch, in order: M16 `20260928100000_activity_event_log`, M17 `20260928110000_settlements` (both rehearsed on SplitChat-Dev). No production write without its own approval.
+3. SplitChat-Dev is at 19 versions (batch 3 + M16 + M17).
 4. `main` holds the local Phase 1 merge `02d6d64`; pushing it is the operator's (`! git push origin main`).
 
 ## How to run
