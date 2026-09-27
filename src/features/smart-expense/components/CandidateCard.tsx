@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Failure } from '../../../shared/api/result'
 import { formatDateLong } from '../../../shared/domain/dates'
@@ -65,7 +65,11 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
   const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'Former member'
   const who = (id: string) => (id === userId ? 'You' : nameOf(id))
   const canManage = c.status === 'proposed' && (c.proposedBy === userId || isOwner)
-  const interpretation = c.source === 'manual' ? null : interpretMessage(message.body, contextFor(message, members))
+  // Display-only hints: the message re-read against today's members.
+  const interpretation = useMemo(
+    () => (c.source === 'manual' ? null : interpretMessage(message.body, contextFor(message, members))),
+    [c.source, message, members],
+  )
   const issues = interpretation?.kind === 'candidate' ? interpretation.issues : []
   const issueFor = (field: Issue['field']) => issues.find((i) => i.field === field)
 

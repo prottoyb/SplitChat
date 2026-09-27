@@ -35,7 +35,9 @@ export function useSmartExpense(
   interpreter: ExpenseInterpreter = deterministicInterpreter,
 ) {
   const [byMessage, setByMessage] = useState<ReadonlyMap<number, Candidate>>(new Map())
-  // Messages whose proposals have been looked up (so "none" is known, not pending).
+  // Messages whose proposals have been looked up (so "none" is known, not
+  // pending). Only successful lookups add to it; a failed lookup removes the
+  // ids from `requested` instead, so they are asked for again next time.
   const [checked, setChecked] = useState<ReadonlySet<number>>(new Set())
   const requested = useRef(new Set<number>())
   const membersRef = useRef(members)
