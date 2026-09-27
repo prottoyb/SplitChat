@@ -13,7 +13,7 @@ current phase is in `docs/phase-state.md`.
 | 4 | Balances, debt simplification and settlements | ✅ Complete (2026-09-28, `feature/phase4-balances-settlements`; M17 awaits a production release batch) |
 | 5 | Group navigation and product UX integration | ✅ Complete (2026-09-28, `feature/phase5-group-workspace`; no database change) |
 | 6 | Group chat | ✅ Complete (2026-09-28, `feature/phase6-group-chat`; M18 awaits a production release batch) |
-| 7 | Deterministic Smart Expense | 🔄 In progress (ADR-0012, `docs/phase7/plan.md`) |
+| 7 | Deterministic Smart Expense | ✅ Complete (2026-09-29, `feature/phase7-smart-expense`; M19, M20 await a production release batch) |
 | 8 | Full integration, security and QA hardening | Not started |
 | 9 | Portfolio/release readiness | Not started |
 

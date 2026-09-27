@@ -152,6 +152,13 @@ history is not kept.
 - Candidate text is permanent after a decision (ADR-0011 trade-off).
 - Owner approval makes the owner the expense creator.
 
+## Amendment (implementation, 2026-09-29)
+QA/Security rated the architect's pre-existing finding — expense creation
+checked membership without locks — MEDIUM. M20 makes the shared core hold
+the actor, payer and participants (group KEY SHARE, memberships FOR SHARE in
+`user_id` order, re-checked) for both manual creation and approvals; v2's
+contract is unchanged (case 242, verified to fail without M20).
+
 ## Binding conditions
 1. One migration M19 in house style (`SET LOCAL lock_timeout`, REVOKE ALL
    then explicit GRANTs, `search_path=''`, header, rollback note).

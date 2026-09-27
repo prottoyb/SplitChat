@@ -86,3 +86,13 @@ SELECT tests.assert(tests.blocked('mk3'), 'a manual expense waits for its payer 
 SELECT tests.finish('lv');
 SELECT tests.assert_eq(tests.outcome('mk3'), 'invalid_payer', 'and is refused once they have left');
 SELECT tests.assert_eq(tests.race_expenses(), 1::bigint, 'nothing more was recorded');
+SELECT tests.readd_e();
+
+-- The creator (not the payer) removed first: refused as no longer a member.
+SELECT tests.as_user('rm3', 'a', $s$public.remove_group_member('10000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-00000000000e')$s$, true);
+SELECT tests.as_user('mk4', 'e', format($s$public.create_equal_split_expense_v2('10000000-0000-4000-8000-000000000001', 'Race', 900, current_date, %L, %L)$s$,
+  tests.u('b'), ARRAY[tests.u('a'), tests.u('b')]), false);
+SELECT tests.assert(tests.blocked('mk4'), 'a manual expense waits for a concurrent removal of its creator');
+SELECT tests.finish('rm3');
+SELECT tests.assert_eq(tests.outcome('mk4'), 'not_found_or_forbidden', 'and is refused once the creator is no longer a member');
+SELECT tests.assert_eq(tests.race_expenses(), 1::bigint, 'nothing more was recorded');

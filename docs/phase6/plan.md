@@ -56,7 +56,6 @@ QA/Security PASS; Senior Review APPROVE). Design: ADR-0011.
   windowing); fine at expected group sizes — Phase 8 performance pass.
 - LOW: `matchMedia('(pointer: fine)')` read per keydown (trivial).
 - Found by the Phase 7 architect, pre-existing (not Phase 6):
-  `create_equal_split_expense_v2` checks membership without locks, so a
-  manual expense can race with a member removal (the expense then includes
-  someone removed a moment earlier). To be rated by QA/Security and fixed
-  in Phase 8 (the Phase 7 core refactor locks memberships for approvals).
+  `create_equal_split_expense_v2` checked membership without locks, so a
+  manual expense could race with a member removal. **Fixed in Phase 7 by
+  M20** (QA/Security rated it MEDIUM; case 242).
