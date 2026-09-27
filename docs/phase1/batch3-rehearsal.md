@@ -220,3 +220,39 @@ M14's reviewed rollback and `migration repair --status reverted`, then
 3b preflight (history, Q-checks, locks PASS; drift ABORT = ACL entry order
 from that rollback only, IDENTICAL ignoring order), dry-run (exactly M14),
 push, **VERIFY PASSED 24/24**.
+
+## PRODUCTION batch 3a — executed and verified (2026-09-27)
+
+Operator execution approval (in conversation): batch 3a only — the five
+files below — on `jhftlnsccurhfgneltgi`, frontend attestation
+`no-live-frontend`; no M14, no batch 3b, no rollback without separate
+approval. Run by the operator in their own PowerShell (`DB_URL` exists only
+there) from commit `25b7deb`; results below are as reported by the
+operator. No rollback, retry or recovery action was needed.
+
+| Step | Result |
+|---|---|
+| fresh `preflight` | target `jhftlnsccurhfgneltgi`; schema exact pre-3a; history exactly 11 (M0–M10); Q11 = Q12 = Q13 = **Q16 = 0**, Q4 = Q5 = 0; ledger snapshot recorded; 0 conflicting locks; 0 long transactions — **PREFLIGHT PASSED** |
+| `dry-run` | exactly `20260927100000`, `20260927110000`, `20260927120000`, `20260927130000`, `20260927135000`; M14 not included |
+| `push` (`SPLITCHAT_PROD_APPROVAL=batch3a`, `SPLITCHAT_FRONTEND_ATTESTATION=no-live-frontend`) | applied; exit 0; variables cleared |
+| `verify` against the same preflight evidence | history **PASS (16 versions)**; post-checks **PASS 24/24**; ledger unchanged **PASS**; schema == reviewed post-3a schema **PASS** — **VERIFY PASSED** |
+
+The 24 post-checks include: M11 (no profiles cascade from `auth.users`;
+memberships/creators → profiles RESTRICT; expenses RESTRICT from groups;
+`deleted_at`; BEFORE DELETE trigger enabled and bound; operator release not
+executable by any client/service role), M12 (stored generated cents
+columns; every expense `amount_cents = amount×100 = Σ share_cents`;
+canonical allocation 334/333/333 to the lowest UUID; legacy RPC is the v2
+wrapper), M13 (`updated_by` → profiles; exact authenticated EXECUTE
+allowlist incl. update/delete), M15 (`delete_group` in the allowlist; no
+service_role grant), the QS-B3-1/2 fix (both functions lock the group row;
+add-by-email before counting the attempt), and the batch 1/2 controls.
+
+Applied file digests (LF-normalised SHA-256, pinned in `prod.mjs`):
+`20260927100000` `26cea13e…1cb4`, `20260927110000` `5cb96e48…bbf4`,
+`20260927120000` `616feb16…a873`, `20260927130000` `0204022c…e3c1`,
+`20260927135000` `ddf392bc…8c96` (full values:
+`docs/phase1/batch3-approval-report.md` §2).
+
+Production is now at **M0–M13, M15 and `20260927135000`** (16 versions).
+M11 is live: fix-forward only.

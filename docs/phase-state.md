@@ -22,10 +22,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 | Field | Value |
 |---|---|
 | Roadmap phase | **Phase 1 — Database and security foundation** (design approved 2026-09-26) |
-| Sub-phase | **M11–M15 implemented and dress-rehearsed on SplitChat-Dev (approved scope); in review.** CA-2 proven through real GoTrue (26/26, re-run on the final trigger). See "In progress" |
+| Sub-phase | **Production batch 3a executed and verified (2026-09-27): production at M0–M13, M15 + `20260927135000` (16 versions).** Batch 3b (M14 only) awaits its own approval |
 | Branch | `feature/phase1-db-hardening`. Backup pushes to origin are allowed for this branch only: no force push, no PR, no merge, no tags |
 | Last verified checkpoint | see `git log -1` on the branch; setup checkpoint follows CP0 `7bd8557` |
-| Next human gate | **Production Batch 3 execution approval** (3a, then 3b), after review sign-off and the approval report. No production operation without it |
+| Next human gate | **Production Batch 3b execution approval (M14 only)** — report `docs/phase1/batch3b-approval-report.md`. No other production operation is approved |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -110,13 +110,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 ## In progress
 
-- **Batch 3 implemented, dress-rehearsed on SplitChat-Dev, round-1 reviewed; not yet pushed.** Commits: M12 `a5ed4e8`, M13 `7636d08`, M15 `d023871`, M14 + ops `9774a8c`, then the QS-B3-1 fix and docs (see `git log`).
-  - Batch 3a = M11, M12, M13, M15, `20260927135000` (QS-B3-1 fix); batch 3b = M14 (frontend attestation >= `a5ed4e8`). `scripts/ops/prod.mjs` holds both manifests.
-  - Evidence: `docs/phase1/batch3-rehearsal.md` (3a/3b VERIFY PASSED on dev, API 36/36 and 28/28, CA-2 re-run 26/26 on the final trigger). SplitChat-Dev is now at the full batch-3 schema (17 versions).
-  - Reviews: round 1 QA/Security PASS (QS-B3-1 MEDIUM fixed), Senior APPROVE WITH CONDITIONS (docs); round 2 QA/Security PASS (QS-B3-2 LOW fixed: lock before counted attempt), Senior APPROVE. Final: QA/Security CONFIRMED (no open findings), Senior APPROVE. **Stopped at the Production Batch 3 approval gate:** report `docs/phase1/batch3-approval-report.md` (3a then 3b, separate execution approvals). Branch backed up to origin.
-  - **2026-09-27:** operator accepted batch 3 for final rehearsal (attestation `no-live-frontend`), approved a dev-only reset, and approved the read-only production 3a preflight + dry-run only (no write). Clean rehearsal from M0–M10 on SplitChat-Dev PASSED for 3a and 3b (`docs/phase1/batch3-rehearsal.md`, last section); dev is now at the full batch-3 schema again. First production 3a preflight (operator) stopped with `Unexpected end of JSON input` (CLI printed a text table outside an agent environment); fixed in `14e4a3d` (strict parser, `--output-format json`, `--agent no`), QA/Security PASS, Senior APPROVE. **Waiting for:** the operator (after rotating the production DB password) to re-run the read-only 3a preflight; then the final Batch 3a write-approval request. **No production write is approved.**
-  - No edit UI in Phase 1 (`update_equal_split_expense` is RPC-only, tested).
-- Historical rehearsal scripts `api.mjs` and `api-batch2.mjs` call the legacy RPC; they target pre-M12 schemas and are superseded by `api-batch3.mjs`.
+- **Production batch 3a DONE (2026-09-27):** operator-run from `25b7deb`: fresh PREFLIGHT PASSED (Q16 = 0), dry-run = the five 3a files, push, **VERIFY PASSED** (16 versions, 24/24, ledger unchanged, exact schema). Evidence: `docs/phase1/batch3-rehearsal.md` (last section). M11 is live and fix-forward only.
+- **Waiting at the Batch 3b gate (M14 only):** `docs/phase1/batch3b-approval-report.md`. Do not run M14 or any other production operation without that approval. After 3b: Phase 1 completion report (remaining design items, e.g. docs/README, CP18), then stop for the phase gate.
+- SplitChat-Dev is at the full batch-3 schema (17 versions) after the clean rehearsal and the 3b write-path check.
+- Production DB password rotated by the operator after the first preflight attempt.
 
 ## Next steps (design §E)
 
@@ -138,6 +135,12 @@ At the batch 3 review-fix checkpoint (2026-09-26): lint ✅, build ✅, test ✅
 Batch 2 checkpoint (production, `f32b56d`): SplitChat-Dev pre-flight 6/6, VERIFY 22/22, API 44/44.
 
 ## Unresolved risks
+
+- **Production after batch 3a (2026-09-27):** account deletion preserves the ledger (trigger on `auth.users`; fix-forward only — note it can be removed only as a dependent object via DROP FUNCTION ... CASCADE, not a reviewed rollback); integer cents + canonical split live; edit/delete and solo-group deletion live; the legacy numeric RPC still exists as the v2 wrapper until batch 3b.
+- No hosted frontend (G5); no CI; orphaned groups after sole-owner deletion have no cleanup path (DS-3); deletions of expenses/solo groups are permanent (activity history is Phase 3).
+
+### Earlier (batch 2) notes
+
 
 - **Production after batch 2 (2026-09-26):** QS-1–QS-6 and QS-9 are closed; the anonymous and signed-in membership oracles are gone; least privilege is in place; membership history is soft, with one owner per group. Remaining items and the migration that closes each:
   - owner learns that an email exists only when that account is added (by design);
