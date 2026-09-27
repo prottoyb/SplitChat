@@ -8,7 +8,7 @@ export function ChatSection({ group, userId }: { group: GroupDetail; userId: str
     <>
       <SectionHeader
         title="Chat"
-        description="Visible to everyone in this group. Mention an expense (or type /expense 20 Lunch paid:me split:all) to propose it for review."
+        description="Visible to everyone in this group. Mention an expense, or use /expense, to propose it for review."
       />
       <SmartChat key={group.id} group={group} userId={userId} />
     </>

@@ -107,6 +107,25 @@ if (!process.env.RENDER_SKIP_CHAT) {
   await say(alex, 'Can we talk about the internet plan? I think we should switch to the NBN 100 plan because the current one keeps dropping out in the evenings when everyone is streaming. It is $89.99 a month including the modem rental, so about $30 each if the three of us who use it most split it.\n\nThoughts?')
   await say(sam, 'Works for me')
   await say(me, 'Sounds good, go for it')
+
+  // Smart Expense (M19): proposals in each state, as the senders' clients
+  // would have proposed them.
+  const propose = async (who, body, draft) => {
+    const msg = await say(who, body)
+    return must(await who.client.rpc('propose_expense_candidate', {
+      p_message_id: msg.id, p_source: body.startsWith('/') ? 'command' : 'natural', p_interpreter_version: 'deterministic-1',
+      p_description: draft.description ?? null, p_amount_cents: draft.cents ?? null, p_expense_date: draft.date ?? null,
+      p_paid_by: draft.paidBy ?? null, p_participant_ids: draft.participants ?? null, p_notes: null,
+    }), 'proposal')
+  }
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const cleaning = await propose(jo, 'I paid $25 for cleaning supplies, split with everyone',
+    { description: 'cleaning supplies', cents: 2500, date: today, paidBy: jo.id, participants: all.map((u) => u.id) })
+  must(await jo.client.rpc('approve_expense_candidate', { p_id: cleaning.id, p_expected_version: 1 }), 'approve')
+  await propose(sam, '/expense 18.50 Parking paid:me', { description: 'Parking', cents: 1850, date: today, paidBy: sam.id })
+  await propose(me, 'I paid $42 for pizza, split with everyone',
+    { description: 'pizza', cents: 4200, date: today, paidBy: me.id, participants: all.map((u) => u.id) })
 }
 
 const ids = { flat, trip, solo, missing: crypto.randomUUID() }

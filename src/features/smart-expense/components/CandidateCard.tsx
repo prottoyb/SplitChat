@@ -178,14 +178,16 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
           <button type="button" className={styles.secondary} disabled={busy} onClick={() => setMode('edit')}>
             {complete ? 'Edit' : 'Add details'}
           </button>
-          <InlineConfirm
-            triggerLabel="Reject"
-            title="Reject this proposal?"
-            description="Nothing will be added to the group’s expenses. The message stays in the chat."
-            confirmLabel="Reject proposal"
-            busyLabel="Rejecting…"
-            onConfirm={() => run(() => onReject(c))}
-          />
+          <span className={styles.rejectSlot}>
+            <InlineConfirm
+              triggerLabel="Reject"
+              title="Reject this proposal?"
+              description="Nothing will be added to the group’s expenses. The message stays in the chat."
+              confirmLabel="Reject proposal"
+              busyLabel="Rejecting…"
+              onConfirm={() => run(() => onReject(c))}
+            />
+          </span>
           {!complete && <p className={styles.note}>To add it, fill in: {missing.join(', ')}.</p>}
         </div>
       )}

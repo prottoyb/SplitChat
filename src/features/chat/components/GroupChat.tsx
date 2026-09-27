@@ -137,6 +137,15 @@ export function GroupChat({ groupId, userId, extensions = {} }: { groupId: strin
     lastCount.current = itemCount
   }, [itemCount, chat.load.status, timeline.epoch])
 
+  // Content can grow without new messages (e.g. an extension's card loads
+  // under a message): a reader at the bottom stays at the bottom.
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (el && atBottom.current && olderAnchor.current === null && el.scrollHeight - el.scrollTop - el.clientHeight > 1) {
+      el.scrollTop = el.scrollHeight
+    }
+  })
+
   const onScroll = () => {
     const el = scroller.current
     if (!el) return

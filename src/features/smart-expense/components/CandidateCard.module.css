@@ -185,3 +185,19 @@
 .form > button {
   justify-self: start;
 }
+
+/* The shared destructive trigger is full width by default; here it sits in
+   the action row. Its confirmation still takes the full row when open. */
+.rejectSlot {
+  display: contents;
+}
+
+.rejectSlot > button {
+  width: auto;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.rejectSlot > [role='group'] {
+  flex-basis: 100%;
+}
