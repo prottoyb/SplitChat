@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useState,
   type FormEvent,
@@ -9,7 +8,14 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
+import {
+  addMemberByEmail,
+  deleteGroup,
+  leaveGroup,
+  removeMember,
+  transferOwnership,
+} from '../lib/membershipApi'
 import { supabase } from '../lib/supabase'
 import styles from './GroupDetailsPage.module.css'
 
@@ -63,137 +69,184 @@ function GroupDetailsPage() {
   const [pendingRemovalUserId, setPendingRemovalUserId] =
     useState<string | null>(null)
 
+  const [pendingTransferUserId, setPendingTransferUserId] =
+    useState<string | null>(null)
+  const [isTransferring, setIsTransferring] = useState(false)
+
   const [showLeaveConfirm, setShowLeaveConfirm] =
+    useState(false)
+
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState(false)
+  const [isDeletingGroup, setIsDeletingGroup] =
     useState(false)
 
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const loadGroup = useCallback(async () => {
-    if (!groupId) {
-      setErrorMessage('Group ID is missing.')
-      setIsLoading(false)
-      return
-    }
+  const [reloadKey, setReloadKey] = useState(0)
 
-    setIsLoading(true)
-    setErrorMessage('')
+  const reload = () => {
+    setReloadKey((key) => key + 1)
+  }
 
-    const { data: groupData, error: groupError } =
-      await supabase
-        .from('groups')
-        .select(
-          'id, name, description, created_by, created_at, updated_at',
-        )
-        .eq('id', groupId)
-        .limit(1)
+  const currentUserId = session?.user.id
 
-    if (groupError) {
-      console.error('Unable to load group:', groupError)
-      setGroup(null)
-      setMembers([])
-      setErrorMessage('Unable to load this group.')
-      setIsLoading(false)
-      return
-    }
+  // Ownership comes from the caller's membership role (the source of truth
+  // since M7), not from groups.created_by, which records the creator only.
+  const isOwner = members.some(
+    (member) =>
+      member.userId === currentUserId && member.role === 'owner',
+  )
 
-    const loadedGroup = groupData?.[0] ?? null
+  // Offered only while the owner is the sole active member. Former members
+  // are not visible here, so the server makes the final decision (M15).
+  const canOfferDelete = isOwner && members.length === 1
 
-    if (!loadedGroup) {
-      setGroup(null)
-      setMembers([])
-      setErrorMessage(
-        'This group does not exist or you do not have access to it.',
-      )
-      setIsLoading(false)
-      return
-    }
+  useEffect(() => {
+    let cancelled = false
 
-    const {
-      data: membershipData,
-      error: membershipError,
-    } = await supabase
-      .from('group_members')
-      .select('group_id, user_id, role, joined_at')
-      .eq('group_id', groupId)
-      .order('joined_at', { ascending: true })
-
-    if (membershipError) {
-      console.error(
-        'Unable to load group members:',
-        membershipError,
-      )
-
-      setGroup(loadedGroup)
-      setMembers([])
-      setErrorMessage('Unable to load the group members.')
-      setIsLoading(false)
-      return
-    }
-
-    const memberships =
-      (membershipData ?? []) as GroupMembership[]
-
-    const memberIds = memberships.map(
-      (membership) => membership.user_id,
-    )
-
-    let profiles: MemberProfile[] = []
-
-    if (memberIds.length > 0) {
-      const {
-        data: profileData,
-        error: profileError,
-      } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', memberIds)
-
-      if (profileError) {
-        console.error(
-          'Unable to load member profiles:',
-          profileError,
-        )
-
-        setGroup(loadedGroup)
-        setMembers([])
-        setErrorMessage('Unable to load member profiles.')
+    const loadGroup = async () => {
+      if (!groupId) {
+        setErrorMessage('Group ID is missing.')
         setIsLoading(false)
         return
       }
 
-      profiles = (profileData ?? []) as MemberProfile[]
-    }
+      setIsLoading(true)
+      setErrorMessage('')
 
-    const profileMap = new Map(
-      profiles.map((profile) => [profile.id, profile]),
-    )
+      const { data: groupData, error: groupError } =
+        await supabase
+          .from('groups')
+          .select(
+            'id, name, description, created_by, created_at, updated_at',
+          )
+          .eq('id', groupId)
+          .limit(1)
 
-    const displayMembers: DisplayMember[] =
-      memberships.map((membership) => {
-        const profile = profileMap.get(
-          membership.user_id,
+      if (cancelled) {
+        return
+      }
+
+      if (groupError) {
+        console.error('Unable to load group:', groupError)
+
+        setGroup(null)
+        setMembers([])
+        setErrorMessage('Unable to load this group.')
+        setIsLoading(false)
+        return
+      }
+
+      const loadedGroup = groupData?.[0] ?? null
+
+      if (!loadedGroup) {
+        setGroup(null)
+        setMembers([])
+        setErrorMessage(
+          'This group does not exist or you do not have access to it.',
+        )
+        setIsLoading(false)
+        return
+      }
+
+      const {
+        data: membershipData,
+        error: membershipError,
+      } = await supabase
+        .from('group_members')
+        .select('group_id, user_id, role, joined_at')
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: true })
+
+      if (cancelled) {
+        return
+      }
+
+      if (membershipError) {
+        console.error(
+          'Unable to load group members:',
+          membershipError,
         )
 
-        return {
-          userId: membership.user_id,
-          fullName:
-            profile?.full_name?.trim() ||
-            'SplitChat member',
-          avatarUrl: profile?.avatar_url ?? null,
-          role: membership.role,
-          joinedAt: membership.joined_at,
+        setGroup(loadedGroup)
+        setMembers([])
+        setErrorMessage('Unable to load the group members.')
+        setIsLoading(false)
+        return
+      }
+
+      const memberships =
+        (membershipData ?? []) as GroupMembership[]
+
+      const memberIds = memberships.map(
+        (membership) => membership.user_id,
+      )
+
+      let profiles: MemberProfile[] = []
+
+      if (memberIds.length > 0) {
+        const {
+          data: profileData,
+          error: profileError,
+        } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', memberIds)
+
+        if (cancelled) {
+          return
         }
-      })
 
-    setGroup(loadedGroup)
-    setMembers(displayMembers)
-    setIsLoading(false)
-  }, [groupId])
+        if (profileError) {
+          console.error(
+            'Unable to load member profiles:',
+            profileError,
+          )
 
-  useEffect(() => {
+          setGroup(loadedGroup)
+          setMembers([])
+          setErrorMessage('Unable to load member profiles.')
+          setIsLoading(false)
+          return
+        }
+
+        profiles = (profileData ?? []) as MemberProfile[]
+      }
+
+      const profileMap = new Map(
+        profiles.map((profile) => [profile.id, profile]),
+      )
+
+      const displayMembers: DisplayMember[] =
+        memberships.map((membership) => {
+          const profile = profileMap.get(
+            membership.user_id,
+          )
+
+          return {
+            userId: membership.user_id,
+            fullName:
+              profile?.full_name?.trim() ||
+              'SplitChat member',
+            avatarUrl: profile?.avatar_url ?? null,
+            role: membership.role,
+            joinedAt: membership.joined_at,
+          }
+        })
+
+      setGroup(loadedGroup)
+      setMembers(displayMembers)
+      setIsLoading(false)
+    }
+
     void loadGroup()
-  }, [loadGroup])
+
+    return () => {
+      cancelled = true
+    }
+  }, [groupId, reloadKey])
 
   const handleAddMember = async (
     event: FormEvent<HTMLFormElement>,
@@ -221,48 +274,47 @@ function GroupDetailsPage() {
     try {
       setIsAddingMember(true)
 
-      const { error } = await supabase.rpc(
-        'add_group_member_by_email',
-        {
-          target_group_id: groupId,
-          target_email: cleanEmail,
-        },
+      const outcome = await addMemberByEmail(
+        groupId,
+        cleanEmail,
       )
 
-      if (error) {
-        console.error(
-          'Unable to add member:',
-          error,
-        )
-        setErrorMessage(error.message)
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 
-      setMemberEmail('')
-
-      await loadGroup()
-
-      setSuccessMessage(
-        'Member added successfully. They can now access this group.',
-      )
+      switch (outcome.result) {
+        case 'added':
+          setMemberEmail('')
+          reload()
+          setSuccessMessage(
+            `${outcome.member.fullName} was added. They can now access this group.`,
+          )
+          break
+        case 'already_member':
+          setErrorMessage(
+            'That person is already a member of this group.',
+          )
+          break
+        case 'member_not_added':
+          // Deliberately does not say whether the email has an account.
+          setErrorMessage(
+            'We could not add anyone with that email. Check the address — the person needs a SplitChat account with a confirmed email.',
+          )
+          break
+        case 'rate_limited':
+          setErrorMessage(
+            'Too many add attempts. Please wait a while and try again.',
+          )
+          break
+      }
     } catch (error) {
       console.error(
         'Unexpected add member error:',
         error,
       )
-
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to add this member.',
-        )
-      }
+      setErrorMessage('Unable to add this member.')
     } finally {
       setIsAddingMember(false)
     }
@@ -279,9 +331,8 @@ function GroupDetailsPage() {
       return
     }
 
-    if (
-      group?.created_by !== session?.user.id
-    ) {
+    // UI guards only; the server enforces the same rules.
+    if (!isOwner) {
       setErrorMessage(
         'Only the group owner can remove members.',
       )
@@ -298,48 +349,129 @@ function GroupDetailsPage() {
     try {
       setIsRemovingMember(true)
 
-      const { error } = await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', groupId)
-        .eq('user_id', member.userId)
+      const outcome = await removeMember(
+        groupId,
+        member.userId,
+      )
 
-      if (error) {
-        console.error(
-          'Unable to remove member:',
-          error,
-        )
-        setErrorMessage(error.message)
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 
       setPendingRemovalUserId(null)
 
-      await loadGroup()
+      // Drop the row immediately so its actions cannot be used while the
+      // list refreshes (review B2-SR-1); the reload confirms server state.
+      setMembers((current) =>
+        current.filter(
+          (existing) => existing.userId !== member.userId,
+        ),
+      )
+
+      reload()
 
       setSuccessMessage(
-        `${member.fullName} was removed from the group.`,
+        `${member.fullName} was removed from the group. Their past expenses are kept.`,
       )
     } catch (error) {
       console.error(
         'Unexpected remove member error:',
         error,
       )
-
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to remove this member.',
-        )
-      }
+      setErrorMessage('Unable to remove this member.')
     } finally {
       setIsRemovingMember(false)
+    }
+  }
+
+  const handleTransferOwnership = async (
+    member: DisplayMember,
+  ) => {
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (!groupId) {
+      setErrorMessage('Group ID is unavailable.')
+      return
+    }
+
+    try {
+      setIsTransferring(true)
+
+      const outcome = await transferOwnership(
+        groupId,
+        member.userId,
+      )
+
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
+        return
+      }
+
+      setPendingTransferUserId(null)
+
+      // Swap roles immediately so owner-only actions disappear at once
+      // (review B2-SR-1); the reload confirms server state.
+      setMembers((current) =>
+        current.map((existing) => ({
+          ...existing,
+          role:
+            existing.userId === member.userId
+              ? 'owner'
+              : existing.role === 'owner'
+                ? 'member'
+                : existing.role,
+        })),
+      )
+
+      reload()
+
+      setSuccessMessage(
+        `${member.fullName} is now the owner of this group.`,
+      )
+    } catch (error) {
+      console.error(
+        'Unexpected transfer ownership error:',
+        error,
+      )
+      setErrorMessage('Unable to transfer ownership.')
+    } finally {
+      setIsTransferring(false)
+    }
+  }
+
+  const handleDeleteGroup = async () => {
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    if (!groupId) {
+      setErrorMessage('Your group information is unavailable.')
+      return
+    }
+
+    try {
+      setIsDeletingGroup(true)
+
+      const outcome = await deleteGroup(groupId)
+
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
+        setShowDeleteConfirm(false)
+        return
+      }
+
+      navigate('/groups', {
+        replace: true,
+      })
+    } catch (error) {
+      console.error(
+        'Unexpected delete group error:',
+        error,
+      )
+      setErrorMessage('Unable to delete this group.')
+    } finally {
+      setIsDeletingGroup(false)
     }
   }
 
@@ -347,18 +479,16 @@ function GroupDetailsPage() {
     setErrorMessage('')
     setSuccessMessage('')
 
-    const userId = session?.user.id
-
-    if (!groupId || !userId) {
+    if (!groupId || !currentUserId) {
       setErrorMessage(
         'Your group or session information is unavailable.',
       )
       return
     }
 
-    if (group?.created_by === userId) {
+    if (isOwner) {
       setErrorMessage(
-        'The group owner cannot leave the group.',
+        'Make another member the owner before leaving this group.',
       )
       return
     }
@@ -366,18 +496,10 @@ function GroupDetailsPage() {
     try {
       setIsLeavingGroup(true)
 
-      const { error } = await supabase
-        .from('group_members')
-        .delete()
-        .eq('group_id', groupId)
-        .eq('user_id', userId)
+      const outcome = await leaveGroup(groupId)
 
-      if (error) {
-        console.error(
-          'Unable to leave group:',
-          error,
-        )
-        setErrorMessage(error.message)
+      if (!outcome.ok) {
+        setErrorMessage(outcome.message)
         return
       }
 
@@ -389,19 +511,7 @@ function GroupDetailsPage() {
         'Unexpected leave group error:',
         error,
       )
-
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage(
-          'Unable to leave this group.',
-        )
-      }
+      setErrorMessage('Unable to leave this group.')
     } finally {
       setIsLeavingGroup(false)
     }
@@ -439,9 +549,6 @@ function GroupDetailsPage() {
     )
   }
 
-  const isOwner =
-    group.created_by === session?.user.id
-
   return (
     <>
       <header className="topbar">
@@ -465,8 +572,17 @@ function GroupDetailsPage() {
           </p>
         </div>
 
-        <div className={styles.groupRole}>
-          {isOwner ? 'Owner' : 'Member'}
+        <div className={styles.headerActions}>
+          <div className={styles.groupRole}>
+            {isOwner ? 'Owner' : 'Member'}
+          </div>
+
+          <Link
+            to="expenses/new"
+            className="primary-button"
+          >
+            + Add expense
+          </Link>
         </div>
       </header>
 
@@ -485,7 +601,9 @@ function GroupDetailsPage() {
       <section className={styles.overviewGrid}>
         <article className={styles.statCard}>
           <span>Members</span>
+
           <strong>{members.length}</strong>
+
           <p>
             People currently sharing this group
           </p>
@@ -493,6 +611,7 @@ function GroupDetailsPage() {
 
         <article className={styles.statCard}>
           <span>Your role</span>
+
           <strong>
             {isOwner ? 'Owner' : 'Member'}
           </strong>
@@ -528,6 +647,7 @@ function GroupDetailsPage() {
               <p className="eyebrow">
                 MEMBERS
               </p>
+
               <h3>Group members</h3>
             </div>
 
@@ -552,6 +672,10 @@ function GroupDetailsPage() {
 
               const isConfirmingRemoval =
                 pendingRemovalUserId ===
+                member.userId
+
+              const isConfirmingTransfer =
+                pendingTransferUserId ===
                 member.userId
 
               return (
@@ -613,7 +737,74 @@ function GroupDetailsPage() {
                       member.role !==
                         'owner' && (
                         <>
-                          {isConfirmingRemoval ? (
+                          {isConfirmingTransfer ? (
+                            <div
+                              className={
+                                styles.confirmActions
+                              }
+                              role="group"
+                              aria-label={`Confirm making ${member.fullName} the owner`}
+                            >
+                              <button
+                                type="button"
+                                className={
+                                  styles.confirmRemoveButton
+                                }
+                                onClick={() =>
+                                  void handleTransferOwnership(
+                                    member,
+                                  )
+                                }
+                                disabled={
+                                  isTransferring
+                                }
+                              >
+                                {isTransferring
+                                  ? 'Transferring...'
+                                  : 'Confirm owner'}
+                              </button>
+
+                              <button
+                                type="button"
+                                className={
+                                  styles.cancelActionButton
+                                }
+                                onClick={() =>
+                                  setPendingTransferUserId(
+                                    null,
+                                  )
+                                }
+                                disabled={
+                                  isTransferring
+                                }
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            !isConfirmingRemoval && (
+                              <button
+                                type="button"
+                                className={
+                                  styles.cancelActionButton
+                                }
+                                onClick={() => {
+                                  setErrorMessage('')
+                                  setSuccessMessage('')
+                                  setPendingRemovalUserId(
+                                    null,
+                                  )
+                                  setPendingTransferUserId(
+                                    member.userId,
+                                  )
+                                }}
+                              >
+                                Make owner
+                              </button>
+                            )
+                          )}
+
+                          {isConfirmingTransfer ? null : isConfirmingRemoval ? (
                             <div
                               className={
                                 styles.confirmActions
@@ -665,9 +856,15 @@ function GroupDetailsPage() {
                                 setErrorMessage(
                                   '',
                                 )
+
                                 setSuccessMessage(
                                   '',
                                 )
+
+                                setPendingTransferUserId(
+                                  null,
+                                )
+
                                 setPendingRemovalUserId(
                                   member.userId,
                                 )
@@ -764,13 +961,110 @@ function GroupDetailsPage() {
                 </strong>
 
                 <p>
-                  For this version, the
-                  person must already have a
-                  SplitChat account. Email
-                  invitations will be added
-                  later.
+                  The person must already have a
+                  SplitChat account with a
+                  confirmed email address.
                 </p>
               </div>
+
+              <div
+                className={styles.infoBox}
+              >
+                <strong>
+                  Leaving this group
+                </strong>
+
+                <p>
+                  As the owner, make another
+                  member the owner first. You
+                  can then leave like any
+                  other member.
+                </p>
+              </div>
+
+              {canOfferDelete && (
+                <div
+                  className={
+                    styles.leaveSection
+                  }
+                >
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      className={
+                        styles.leaveButton
+                      }
+                      onClick={() => {
+                        setErrorMessage('')
+                        setSuccessMessage('')
+                        setShowDeleteConfirm(true)
+                      }}
+                    >
+                      Delete group
+                    </button>
+                  ) : (
+                    <div
+                      className={
+                        styles.leaveConfirmation
+                      }
+                    >
+                      <strong>
+                        Delete this group
+                        permanently?
+                      </strong>
+
+                      <p>
+                        The group and all of its
+                        expenses will be deleted.
+                        This cannot be undone. A
+                        group that anyone else
+                        has ever been part of is
+                        kept instead.
+                      </p>
+
+                      <div
+                        className={
+                          styles.leaveActions
+                        }
+                      >
+                        <button
+                          type="button"
+                          className={
+                            styles.confirmLeaveButton
+                          }
+                          onClick={() =>
+                            void handleDeleteGroup()
+                          }
+                          disabled={
+                            isDeletingGroup
+                          }
+                        >
+                          {isDeletingGroup
+                            ? 'Deleting...'
+                            : 'Yes, delete'}
+                        </button>
+
+                        <button
+                          type="button"
+                          className={
+                            styles.cancelActionButton
+                          }
+                          onClick={() =>
+                            setShowDeleteConfirm(
+                              false,
+                            )
+                          }
+                          disabled={
+                            isDeletingGroup
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <>

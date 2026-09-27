@@ -1,0 +1,251 @@
+﻿Pager usage is off.
+BEGIN
+[guard] transaction_read_only = on
+== 1. RLS status (all non-system schemas) ==
+  schema  |           table            | rls_enabled | rls_forced | est_rows |          owner          
+----------+----------------------------+-------------+------------+----------+-------------------------
+ public   | expense_splits             | t           | f          |       -1 | postgres
+ public   | expenses                   | t           | f          |       -1 | postgres
+ public   | group_members              | t           | f          |       -1 | postgres
+ public   | groups                     | t           | f          |       -1 | postgres
+ public   | profiles                   | t           | f          |       -1 | postgres
+ realtime | messages                   | t           | f          |       -1 | supabase_realtime_admin
+ realtime | schema_migrations          | f           | f          |       81 | supabase_admin
+ realtime | subscription               | f           | f          |       -1 | supabase_realtime_admin
+ storage  | buckets                    | t           | f          |       -1 | supabase_storage_admin
+ storage  | buckets_analytics          | t           | f          |       -1 | supabase_storage_admin
+ storage  | buckets_vectors            | t           | f          |       -1 | supabase_storage_admin
+ storage  | migrations                 | t           | f          |       62 | supabase_storage_admin
+ storage  | objects                    | t           | f          |       -1 | supabase_storage_admin
+ storage  | s3_multipart_uploads       | t           | f          |       -1 | supabase_storage_admin
+ storage  | s3_multipart_uploads_parts | t           | f          |       -1 | supabase_storage_admin
+ storage  | vector_indexes             | t           | f          |       -1 | supabase_storage_admin
+ vault    | secrets                    | f           | f          |       -1 | supabase_admin
+(17 rows)
+
+== 2. Policies outside public (storage/realtime/etc.) ==
+ schemaname | tablename | policyname | cmd | roles | permissive | qual | with_check 
+------------+-----------+------------+-----+-------+------------+------+------------
+(0 rows)
+
+== 3. Policy summary public ==
+   tablename    |  cmd   | n |                        names                        |        roles        | all_permissive 
+----------------+--------+---+-----------------------------------------------------+---------------------+----------------
+ expense_splits | DELETE | 1 | {"Expense creators can delete expense splits"}      | {"{authenticated}"} | t
+ expense_splits | INSERT | 1 | {"Expense creators can create expense splits"}      | {"{authenticated}"} | t
+ expense_splits | SELECT | 1 | {"Group members can view expense splits"}           | {"{authenticated}"} | t
+ expense_splits | UPDATE | 1 | {"Expense creators can update expense splits"}      | {"{authenticated}"} | t
+ expenses       | DELETE | 1 | {"Expense creators can delete expenses"}            | {"{authenticated}"} | t
+ expenses       | INSERT | 1 | {"Group members can create expenses"}               | {"{authenticated}"} | t
+ expenses       | SELECT | 1 | {"Group members can view expenses"}                 | {"{authenticated}"} | t
+ expenses       | UPDATE | 1 | {"Expense creators can update expenses"}            | {"{authenticated}"} | t
+ group_members  | DELETE | 1 | {"Owners can remove members and members can leave"} | {"{authenticated}"} | t
+ group_members  | INSERT | 1 | {"Owners can add group members"}                    | {"{authenticated}"} | t
+ group_members  | SELECT | 1 | {"Members can view group members"}                  | {"{authenticated}"} | t
+ groups         | DELETE | 1 | {"Owners can delete groups"}                        | {"{authenticated}"} | t
+ groups         | INSERT | 1 | {"Users can create groups"}                         | {"{authenticated}"} | t
+ groups         | SELECT | 1 | {"Members can view their groups"}                   | {"{authenticated}"} | t
+ groups         | UPDATE | 1 | {"Owners can update groups"}                        | {"{authenticated}"} | t
+ profiles       | SELECT | 1 | {"Users can view relevant profiles"}                | {"{authenticated}"} | t
+ profiles       | UPDATE | 1 | {"Users can update their own profile"}              | {"{authenticated}"} | t
+(17 rows)
+
+== 4. Non-internal triggers in all schemas (incl. auth.users) ==
+  schema  |    table     |               tgname               | tgenabled |                                                                                                                     def                                                                                                                      
+----------+--------------+------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ auth     | users        | on_auth_user_created               | O         | CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
+ public   | expenses     | expenses_set_updated_at            | O         | CREATE TRIGGER expenses_set_updated_at BEFORE UPDATE ON public.expenses FOR EACH ROW EXECUTE FUNCTION set_expenses_updated_at()
+ public   | groups       | on_group_created                   | O         | CREATE TRIGGER on_group_created AFTER INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION handle_new_group()
+ public   | groups       | set_groups_updated_at              | O         | CREATE TRIGGER set_groups_updated_at BEFORE UPDATE ON public.groups FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+ public   | profiles     | set_profiles_updated_at            | O         | CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+ realtime | subscription | tr_check_filters                   | O         | CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters()
+ storage  | buckets      | enforce_bucket_name_length_trigger | O         | CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length()
+ storage  | buckets      | protect_bucket_control_insert      | O         | CREATE TRIGGER protect_bucket_control_insert BEFORE INSERT ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.protect_bucket_control_columns('service_role')
+ storage  | buckets      | protect_bucket_control_update      | O         | CREATE TRIGGER protect_bucket_control_update BEFORE UPDATE OF lifecycle_configuration, lifecycle_configuration_generation ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.protect_bucket_control_columns()
+ storage  | buckets      | protect_bucket_control_update_role | O         | CREATE TRIGGER protect_bucket_control_update_role AFTER UPDATE OF lifecycle_configuration, lifecycle_configuration_generation ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_lifecycle_service_role('service_role')
+ storage  | buckets      | protect_buckets_delete             | O         | CREATE TRIGGER protect_buckets_delete BEFORE DELETE ON storage.buckets FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete()
+ storage  | objects      | protect_objects_delete             | O         | CREATE TRIGGER protect_objects_delete BEFORE DELETE ON storage.objects FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete()
+ storage  | objects      | update_objects_updated_at          | O         | CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column()
+(13 rows)
+
+== 5. Event triggers ==
+          evtname          |    evtevent     |    evtowner    |         evtfoid         | evtenabled 
+---------------------------+-----------------+----------------+-------------------------+------------
+ issue_graphql_placeholder | sql_drop        | supabase_admin | set_graphql_placeholder | O
+ issue_pg_cron_access      | ddl_command_end | supabase_admin | grant_pg_cron_access    | O
+ issue_pg_graphql_access   | ddl_command_end | supabase_admin | grant_pg_graphql_access | O
+ issue_pg_net_access       | ddl_command_end | supabase_admin | grant_pg_net_access     | O
+ pgrst_ddl_watch           | ddl_command_end | supabase_admin | pgrst_ddl_watch         | O
+ pgrst_drop_watch          | sql_drop        | supabase_admin | pgrst_drop_watch        | O
+(6 rows)
+
+== 6. Public functions: security, config, volatility, ACL ==
+                              function                               | security_definer | vol |            proconfig            |  owner   | returns |                                               proacl                                               
+---------------------------------------------------------------------+------------------+-----+---------------------------------+----------+---------+----------------------------------------------------------------------------------------------------
+ add_group_member_by_email(uuid,text)                                | t                | v   | {"search_path=\"\""}            | postgres | record  | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text) | t                | v   | {"search_path=public, pg_temp"} | postgres | uuid    | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ handle_new_group()                                                  | t                | v   | {"search_path=\"\""}            | postgres | trigger | {postgres=X/postgres,service_role=X/postgres}
+ handle_new_user()                                                   | t                | v   | {"search_path=\"\""}            | postgres | trigger | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ is_group_member(uuid)                                               | t                | s   | {"search_path=\"\""}            | postgres | boolean | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ is_group_owner(uuid)                                                | t                | s   | {"search_path=\"\""}            | postgres | boolean | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ set_expenses_updated_at()                                           | f                | v   | {search_path=public}            | postgres | trigger | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ set_updated_at()                                                    | f                | v   | {"search_path=\"\""}            | postgres | trigger | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ shares_group_with(uuid)                                             | t                | s   | {"search_path=\"\""}            | postgres | boolean | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ split_chat_is_group_member(uuid,uuid)                               | t                | s   | {search_path=public}            | postgres | boolean | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+(10 rows)
+
+== 7. EXECUTE privilege matrix on public functions ==
+                              function                               | anon | authenticated | public_role 
+---------------------------------------------------------------------+------+---------------+-------------
+ add_group_member_by_email(uuid,text)                                | f    | t             | f
+ create_equal_split_expense(uuid,text,numeric,date,uuid,uuid[],text) | t    | t             | f
+ handle_new_group()                                                  | f    | f             | f
+ handle_new_user()                                                   | t    | t             | t
+ is_group_member(uuid)                                               | f    | t             | f
+ is_group_owner(uuid)                                                | f    | t             | f
+ set_expenses_updated_at()                                           | t    | t             | t
+ set_updated_at()                                                    | t    | t             | t
+ shares_group_with(uuid)                                             | f    | t             | f
+ split_chat_is_group_member(uuid,uuid)                               | t    | t             | f
+(10 rows)
+
+== 8. Table privilege matrix (public) ==
+     table      |     role      |                       privileges                        
+----------------+---------------+---------------------------------------------------------
+ expense_splits | anon          | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ expense_splits | authenticated | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ expense_splits | service_role  | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ expenses       | anon          | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ expenses       | authenticated | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ expenses       | service_role  | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ group_members  | anon          | 
+ group_members  | authenticated | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ group_members  | service_role  | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ groups         | anon          | 
+ groups         | authenticated | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ groups         | service_role  | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ profiles       | anon          | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ profiles       | authenticated | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ profiles       | service_role  | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+(15 rows)
+
+== 9. Column-level grants in public ==
+ table_name | column_name | grantee | privilege_type 
+------------+-------------+---------+----------------
+(0 rows)
+
+== 10. Schema privileges ==
+  nspname   |    rolname    | usage | create_priv 
+------------+---------------+-------+-------------
+ auth       | anon          | t     | f
+ auth       | authenticated | t     | f
+ auth       | service_role  | t     | f
+ extensions | anon          | t     | f
+ extensions | authenticated | t     | f
+ extensions | service_role  | t     | f
+ public     | anon          | t     | f
+ public     | authenticated | t     | f
+ public     | service_role  | t     | f
+ storage    | anon          | t     | f
+ storage    | authenticated | t     | f
+ storage    | service_role  | t     | f
+(12 rows)
+
+  nspname   |                                                                                         nspacl                                                                                         
+------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ extensions | {postgres=UC/postgres,anon=U/postgres,authenticated=U/postgres,service_role=U/postgres,dashboard_user=UC/postgres}
+ public     | {pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,postgres=U/pg_database_owner,anon=U/pg_database_owner,authenticated=U/pg_database_owner,service_role=U/pg_database_owner}
+(2 rows)
+
+== 11. API roles attributes ==
+    rolname    | rolsuper | rolbypassrls | rolcanlogin | rolinherit |                                        rolconfig                                         
+---------------+----------+--------------+-------------+------------+------------------------------------------------------------------------------------------
+ anon          | f        | f            | f           | t          | {statement_timeout=3s}
+ authenticated | f        | f            | f           | t          | {statement_timeout=8s}
+ authenticator | f        | f            | t           | f          | {"session_preload_libraries=supautils, safeupdate",statement_timeout=8s,lock_timeout=8s}
+ postgres      | f        | t            | t           | t          | {"search_path=\"\\$user\", public, extensions"}
+ service_role  | f        | t            | f           | t          | 
+(5 rows)
+
+    member     |   member_of   
+---------------+---------------
+ authenticator | anon
+ authenticator | authenticated
+ authenticator | service_role
+(3 rows)
+
+== 12. Views / matviews / sequences / types in public ==
+ relname | relkind | reloptions 
+---------+---------+------------
+(0 rows)
+
+ typname | typtype 
+---------+---------
+(0 rows)
+
+== 13. Realtime publications ==
+      pubname      | puballtables | pubinsert | pubupdate | pubdelete 
+-------------------+--------------+-----------+-----------+-----------
+ supabase_realtime | f            | t         | t         | t
+(1 row)
+
+ pubname | schemaname | tablename 
+---------+------------+-----------
+(0 rows)
+
+== 14. Migration history presence ==
+ nspname 
+---------
+(0 rows)
+
+ migrations_table 
+------------------
+ 
+(1 row)
+
+== 15. Constraints summary (public) ==
+     table      |              conname              | contype |                                                 def                                                 
+----------------+-----------------------------------+---------+-----------------------------------------------------------------------------------------------------
+ expense_splits | expense_splits_percentage_check   | c       | CHECK (((percentage IS NULL) OR ((percentage >= (0)::numeric) AND (percentage <= (100)::numeric))))
+ expense_splits | expense_splits_share_amount_check | c       | CHECK ((share_amount >= (0)::numeric))
+ expenses       | expenses_amount_positive_check    | c       | CHECK ((amount > (0)::numeric))
+ expenses       | expenses_description_length_check | c       | CHECK (((char_length(btrim(description)) >= 1) AND (char_length(btrim(description)) <= 120)))
+ expenses       | expenses_notes_length_check       | c       | CHECK (((notes IS NULL) OR (char_length(notes) <= 500)))
+ expenses       | expenses_split_type_check         | c       | CHECK ((split_type = ANY (ARRAY['equal'::text, 'exact'::text, 'percentage'::text])))
+ group_members  | group_members_role_check          | c       | CHECK ((role = ANY (ARRAY['owner'::text, 'member'::text])))
+ groups         | groups_description_check          | c       | CHECK (((description IS NULL) OR (char_length(description) <= 300)))
+ groups         | groups_name_check                 | c       | CHECK (((char_length(btrim(name)) >= 1) AND (char_length(btrim(name)) <= 80)))
+ expense_splits | expense_splits_expense_id_fkey    | f       | FOREIGN KEY (expense_id) REFERENCES expenses(id) ON DELETE CASCADE
+ expense_splits | expense_splits_user_id_fkey       | f       | FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE RESTRICT
+ expenses       | expenses_created_by_fkey          | f       | FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE RESTRICT
+ expenses       | expenses_group_id_fkey            | f       | FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+ expenses       | expenses_paid_by_fkey             | f       | FOREIGN KEY (paid_by) REFERENCES profiles(id) ON DELETE RESTRICT
+ group_members  | group_members_group_id_fkey       | f       | FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+ group_members  | group_members_user_id_fkey        | f       | FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+ groups         | groups_created_by_fkey            | f       | FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE CASCADE
+ profiles       | profiles_id_fkey                  | f       | FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+ expense_splits | expense_splits_pkey               | p       | PRIMARY KEY (id)
+ expenses       | expenses_pkey                     | p       | PRIMARY KEY (id)
+ group_members  | group_members_pkey                | p       | PRIMARY KEY (group_id, user_id)
+ groups         | groups_pkey                       | p       | PRIMARY KEY (id)
+ profiles       | profiles_pkey                     | p       | PRIMARY KEY (id)
+ expense_splits | expense_splits_unique_participant | u       | UNIQUE (expense_id, user_id)
+(24 rows)
+
+== 16. Functions in other app-relevant schemas that reference public ==
+                      oid                      | prosecdef 
+-----------------------------------------------+-----------
+ grant_pg_graphql_access()                     | f
+ set_graphql_placeholder()                     | f
+ graphql_public.graphql(text,text,jsonb,jsonb) | f
+(3 rows)
+
+== 17. PostgREST-relevant db settings ==
+    setrole    | setdatabase |                                        setconfig                                         
+---------------+-------------+------------------------------------------------------------------------------------------
+ anon          |           0 | {statement_timeout=3s}
+ authenticated |           0 | {statement_timeout=8s}
+ authenticator |           0 | {"session_preload_libraries=supautils, safeupdate",statement_timeout=8s,lock_timeout=8s}
+(3 rows)
+
+ROLLBACK
