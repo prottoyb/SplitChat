@@ -21,10 +21,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). Phase 4 **COMPLETE** (`docs/phase4/plan.md`; ADR-0010). Phase 5 **COMPLETE** (`docs/phase5/plan.md` Outcome; no database change). **Current: Phase 6 — Group chat** — STARTED: ADR-0011 accepted (team, under the operator's 2026-09-28 instruction); M18 `20260928120000_group_messages` drafted, not yet tested |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). Phase 4 **COMPLETE** (`docs/phase4/plan.md`; ADR-0010). Phase 5 **COMPLETE** (`docs/phase5/plan.md` Outcome; no database change). **Current: Phase 6 — Group chat** — IMPLEMENTED, IN REVIEW: ADR-0011; M18 `20260928120000_group_messages` (harness 28/28, rehearsed on SplitChat-Dev: schema IDENTICAL, `api-chat.mjs` 25/25 incl. Realtime isolation); `features/chat` + workspace Chat tab (Vitest 439/439); UI/UX, QA/Security and Senior reviews of `0552b2d..4edcc55` running |
 | Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
 | Branch | `feature/phase6-group-chat` (from the Phase 5 head); Phase 5 on `feature/phase5-group-workspace` (from the Phase 4 head; Phase 4 on `feature/phase4-balances-settlements`; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
-| Last verified checkpoint | Phase 5 completion commit on `feature/phase5-group-workspace` (`docs: Phase 5 complete`, after `3eb228d`) |
+| Last verified checkpoint | `4edcc55` on `feature/phase6-group-chat` (CP6-1 `751b2a7` DB, CP6-2 `648f424` web — note `648f424` alone fails `tsc -b` in a test; fixed in `4edcc55`). Phase 5 completed at `0552b2d` |
 | Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
 ## Operating model (operator, 2026-09-26)
@@ -78,7 +78,7 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
    - Placement: ADR-0008 says cross-feature composition such as the group workspace lives in `src/app/` (features may import only earlier features in `FEATURE_ORDER`, enforced by `scripts/architecture.test.mjs`; `app/` is unrestricted). Section pages reuse existing feature components/APIs; no client-side balance logic (the header position comes from `get_group_balances`).
    - Git-guard matches command *text*: a Bash command containing a push-to-canonical string (even inside a heredoc or doc edit) is blocked whole. Edit docs with the Edit tool.
 2. Production backlog for the next release batch, in order: M16 `20260928100000_activity_event_log`, M17 `20260928110000_settlements` (both rehearsed on SplitChat-Dev). No production write without its own approval.
-3. SplitChat-Dev is at 19 versions (batch 3 + M16 + M17).
+3. SplitChat-Dev is at 20 versions (batch 3 + M16 + M17 + M18). Production backlog now also includes M18 `20260928120000_group_messages` (after M17; pre-check the `supabase_realtime` publication before/after, ADR-0011 condition 14).
 4. The canonical branch and its remote copy are both at `02d6d64` (Phase 1 merge, pushed by the operator 2026-09-28). The repository is public (github.com/prottoyb/SplitChat); the local repo and this file stay authoritative.
 
 ## How to run
