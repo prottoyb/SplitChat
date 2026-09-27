@@ -37,7 +37,7 @@ const MESSAGES: Record<string, string> = {
     'This group cannot be deleted because its history involves other people. Its shared history is kept.',
   invalid_parties: 'Choose two different people from this group.',
   nothing_to_settle:
-    'There is nothing to settle between these two people right now. Balances may have changed — reload and try again.',
+    'Nothing can be settled that way: the payer must owe money and the recipient must be owed. If balances just changed, reload and try again.',
   exceeds_balance:
     'That is more than is owed right now. Balances may have changed — reload and try again.',
   invalid_note: 'The note cannot exceed 200 characters.',

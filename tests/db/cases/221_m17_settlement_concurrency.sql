@@ -87,3 +87,33 @@ SELECT tests.finish('pay');
 SELECT tests.assert_eq(tests.outcome('spend'), 'ok', 'and then proceeds');
 SELECT tests.assert_eq((SELECT sum(net_cents) FROM private.group_balances('10000000-0000-4000-8000-000000000001')), 0::numeric,
   'the group still nets to zero');
+
+-- An expense edit in flight also serialises with a settlement: the edit's
+-- activity event takes a key-share lock on the group row. Edit first (the
+-- taxi drops from 9.00 to 1.00, so Bob is owed 0.50 instead of 4.50): Eve's
+-- 3.33 payment to Bob waits, then sees the edited balances and is refused.
+CREATE FUNCTION tests.as_user(name text, uid text, sql text, wait boolean) RETURNS void LANGUAGE plpgsql AS $f$
+BEGIN
+  PERFORM tests.dblink_connect(name, tests.conn());
+  PERFORM tests.dblink_exec(name, $s$SET lock_timeout = '20s'$s$);
+  PERFORM tests.dblink_exec(name, 'BEGIN');
+  PERFORM tests.dblink_exec(name, format($q$DO $d$BEGIN PERFORM tests.login(%L); END$d$$q$, uid));
+  PERFORM tests.dblink_exec(name, 'SET LOCAL ROLE authenticated');
+  IF wait THEN
+    PERFORM tests.dblink_exec(name, format('DO $d$BEGIN PERFORM %s; END$d$', sql));
+  ELSE
+    PERFORM tests.dblink_send_query(name, format('SELECT (%s)::text', sql));
+  END IF;
+END $f$;
+SELECT tests.as_user('edit', '00000000-0000-4000-8000-00000000000b',
+  (SELECT format($s$public.update_equal_split_expense(%L, %L, 'Taxi', 100, current_date,
+     '00000000-0000-4000-8000-00000000000b', ARRAY['00000000-0000-4000-8000-00000000000a'::uuid, '00000000-0000-4000-8000-00000000000b'::uuid])$s$,
+     id, updated_at) FROM public.expenses WHERE description = 'Taxi'), true);
+SELECT tests.as_user('late', '00000000-0000-4000-8000-00000000000e',
+  $$public.record_settlement('10000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-00000000000e',
+    '00000000-0000-4000-8000-00000000000b', 333, current_date)$$, false);
+SELECT tests.assert(tests.blocked('late'), 'a settlement waits for an in-flight expense edit in the same group');
+SELECT tests.finish('edit');
+SELECT tests.assert_eq(tests.outcome('late'), 'exceeds_balance', 'then checks the edited balances, not the stale ones');
+SELECT tests.assert_eq((SELECT sum(net_cents) FROM private.group_balances('10000000-0000-4000-8000-000000000001')), 0::numeric,
+  'the group still nets to zero after the edit');

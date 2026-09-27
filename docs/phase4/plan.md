@@ -1,6 +1,6 @@
 # Phase 4 — Balances, debt simplification and settlements
 
-**Status:** in progress. Branch `feature/phase4-balances-settlements` (from
+**Status:** ✅ complete 2026-09-28 (QA/Security PASS, Senior APPROVE). Branch `feature/phase4-balances-settlements` (from
 the Phase 3 head). Architecture: ADR-0010 (accepted after Software
 Architect review, FIT WITH CONDITIONS, conditions 1–10 incorporated; no
 operator approval required).
@@ -29,7 +29,7 @@ operator approval required).
 |---|---|
 | Migration | `20260928110000_settlements.sql` (M17): `settlements` (void-only trigger, composite membership FKs, amount/date/note/void CHECKs, idempotency key unique per group and creator), `private.group_balances`, `get_group_balances`, `record_settlement` (unlocked auth check → group `FOR UPDATE` → re-check; `nothing_to_settle` / `exceeds_balance`), `void_settlement` (party or owner, once), event kinds, `delete_group` backstop. Rollback restores `delete_group` and the kind CHECK exactly (up/down/up verified); fix-forward once settlements exist |
 | Names | settlement parties are named through the events' `people` (no change to `get_ledger_identities`) |
-| Harness | case 220 (75 assertions: surface, balances, partial chaining, refusal of over-settlement and reversal, validation, permissions, former and deleted members, idempotency, voiding, RLS, backstops, solo delete), case 221 (dblink: double payment, racing retry, expense creation waits); test:db 26/26 (561) |
+| Harness | case 220 (75 assertions: surface, balances, partial chaining, refusal of over-settlement and reversal, validation, permissions, former and deleted members, idempotency, voiding, RLS, backstops, solo delete), case 221 (dblink: double payment, racing retry, expense creation and edit wait); test:db 26/26 (564) |
 | Frontend | `features/balances` (server balances with integrity checks, `simplifyDebts` + shared vectors + generated-ledger properties, `BalanceList`, `RepaymentPlan`), `features/settlements` (API, form validation, `SettlementForm`, `SettlementHistory` with void, `/groups/:id/balances`); group page links to it; activity feed describes settlement events and skips unknown kinds |
 | Tests | Vitest 383 (29 files); lint, tsc, build clean |
 
@@ -50,7 +50,17 @@ operator approval required).
 
 ## Reviews
 
-In progress: QA/Security (SENSITIVE) and Senior Review.
+- **Software Architect** (ADR-0010): FIT WITH CONDITIONS; conditions 1–10
+  incorporated (condition 4 refined: `delete_group` refuses rather than
+  deletes settlements).
+- **QA/Security:** PASS, no CRITICAL/HIGH. Recommended an expense
+  edit-vs-settlement concurrency test: added to case 221 (13 assertions) —
+  the edit's event write serialises on the group row, and the waiting
+  settlement checks the edited balances. Deferred LOW: `settled_on`'s upper
+  bound (a year ahead) is enforced by the RPC only, not a table CHECK (same
+  as `expense_date`; direct writes are revoked) — Phase 8.
+- **Senior Review:** APPROVE, no CRITICAL/HIGH/MEDIUM. LOW fixed: the
+  `nothing_to_settle` message no longer implies a stale balance only.
 
 ## Production
 

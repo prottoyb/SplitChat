@@ -11,7 +11,7 @@ describe('failureFrom', () => {
     ['owner_must_transfer', 'conflict', /another member the owner/],
     ['group_has_other_members', 'conflict', /other people have been members/],
     ['exceeds_balance', 'conflict', /more than is owed/],
-    ['nothing_to_settle', 'conflict', /nothing to settle/],
+    ['nothing_to_settle', 'conflict', /payer must owe money and the recipient must be owed/],
     ['already_voided', 'conflict', /already been voided/],
     ['invalid_parties', 'validation', /two different people/],
     ['invalid_reason', 'validation', /reason/],

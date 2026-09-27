@@ -117,8 +117,12 @@ settlement can leave someone over-settled — shown as a reversed net
 balance, never silently corrected.
 
 ## Risks
-An expense edit committed after a settlement can still change balances
-(visible, not corrupting). The client plan could briefly differ from live
+Every expense create, edit and delete writes an activity event, whose
+foreign key takes a key-share lock on the group row, so it serialises with
+an in-flight settlement (proven for create and edit in harness case 221).
+An expense change committed *after* a settlement can still change balances
+and leave someone over-settled — visible as a reversed balance, never
+corrupting, and never exploitable by a later settlement, which re-checks. The client plan could briefly differ from live
 balances; the server check makes that harmless (`exceeds_balance`,
 `nothing_to_settle`).
 
