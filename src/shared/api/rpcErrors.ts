@@ -35,6 +35,15 @@ const MESSAGES: Record<string, string> = {
     'This group cannot be deleted because other people have been members of it. Its shared history is kept.',
   group_has_shared_history:
     'This group cannot be deleted because its history involves other people. Its shared history is kept.',
+  invalid_parties: 'Choose two different people from this group.',
+  nothing_to_settle:
+    'There is nothing to settle between these two people right now. Balances may have changed — reload and try again.',
+  exceeds_balance:
+    'That is more than is owed right now. Balances may have changed — reload and try again.',
+  invalid_note: 'The note cannot exceed 200 characters.',
+  duplicate_request: 'This payment was already submitted with different details. Reload and try again.',
+  invalid_reason: 'Please give a reason of up to 200 characters.',
+  already_voided: 'This payment has already been voided.',
 }
 
 export type RpcError = { message?: string } | null | undefined
@@ -44,7 +53,15 @@ export function rpcErrorCode(error: RpcError): string | null {
   return code && /^[a-z_]+$/.test(code) ? code : null
 }
 
-export function rpcErrorMessage(error: RpcError, fallback: string): string {
+/**
+ * `overrides` replaces the text for codes whose wording depends on the call
+ * (e.g. `forbidden` for an expense vs a payment).
+ */
+export function rpcErrorMessage(
+  error: RpcError,
+  fallback: string,
+  overrides: Readonly<Record<string, string>> = {},
+): string {
   const code = rpcErrorCode(error)
-  return (code && MESSAGES[code]) || fallback
+  return (code && (overrides[code] ?? MESSAGES[code])) || fallback
 }

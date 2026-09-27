@@ -1,0 +1,81 @@
+.list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #eceef2;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.who {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.who strong {
+  color: #1c1e26;
+  font-size: 14px;
+}
+
+.tag {
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #5f6470;
+  background: #f1f2f5;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.amount {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.owes {
+  color: #a13f3f;
+}
+
+.owed {
+  color: #297149;
+}
+
+.settled {
+  color: #5f6470;
+}
+
+.sentence {
+  flex: 1;
+  margin: 0;
+  color: #3b3f4a;
+  font-size: 14px;
+}
+
+.planAmount {
+  font-weight: 750;
+  color: #1c1e26;
+}
+
+@media (max-width: 560px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .amount {
+    width: 100%;
+    text-align: left;
+  }
+}

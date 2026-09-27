@@ -21,6 +21,21 @@ describe('describeEvent', () => {
     expect(d.target?.to).toBe('/expenses/x1')
   })
 
+  it('describes settlements as payments between people, linking to balances', () => {
+    const paid = describeEvent(ev('settlement_recorded', { actorId: 'bob', payload: { v: 1, amount_cents: 2500, from_user: 'bob', to_user: 'me' } }), ctx)
+    expect(eventSentence(paid)).toBe('Bob paid you $25.00')
+    expect(paid.target?.to).toBe('/groups/g1/balances')
+    expect(paid.category).toBe('settlement')
+    expect(say(ev('settlement_recorded', { actorId: 'me', payload: { v: 1, amount_cents: 1, from_user: 'bob', to_user: 'cara' } })))
+      .toBe('Bob paid Cara $0.01 (recorded by You)')
+    expect(say(ev('settlement_voided', { actorId: 'cara', payload: { v: 1, amount_cents: 2500, from_user: 'me', to_user: 'bob' } })))
+      .toBe('Cara voided a payment from You to Bob $25.00')
+  })
+
+  it('degrades a malformed settlement payload without throwing', () => {
+    expect(say(ev('settlement_recorded', { actorId: null, payload: { v: 1, amount_cents: 'x', from_user: 7 } }))).toBe('Someone paid Someone')
+  })
+
   it('says "You" for the current user', () => {
     expect(say(ev('expense_created', { actorId: 'me', subjectId: 'x1', payload: { v: 1, amount_cents: 5 } }))).toBe('You added “Dinner” $0.05')
     expect(say(ev('member_added', { subjectUserId: 'me' }))).toBe('Bob added you')

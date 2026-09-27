@@ -10,11 +10,22 @@ describe('failureFrom', () => {
     ['invalid_amount', 'validation', /between \$0\.01/],
     ['owner_must_transfer', 'conflict', /another member the owner/],
     ['group_has_other_members', 'conflict', /other people have been members/],
+    ['exceeds_balance', 'conflict', /more than is owed/],
+    ['nothing_to_settle', 'conflict', /nothing to settle/],
+    ['already_voided', 'conflict', /already been voided/],
+    ['invalid_parties', 'validation', /two different people/],
+    ['invalid_reason', 'validation', /reason/],
   ])('maps %s to %s with its message', (message, code, text) => {
     const failure = failureFrom({ message }, 'fallback')
 
     expect(failure.code).toBe(code)
     expect(failure.message).toMatch(text)
+  })
+
+  it('lets a call override the wording of a code, keeping its category', () => {
+    expect(failureFrom({ message: 'forbidden' }, 'fb', { forbidden: 'Only the two people involved can do that.' }))
+      .toEqual(fail('forbidden', 'Only the two people involved can do that.'))
+    expect(failureFrom({ message: 'stale_expense' }, 'fb', { forbidden: 'x' }).message).toMatch(/changed by someone else/)
   })
 
   it('treats a PostgREST privilege error as an auth failure', () => {

@@ -46,16 +46,24 @@ const CATEGORY: Record<string, ErrorCode> = {
   owner_must_transfer: 'conflict',
   group_has_other_members: 'conflict',
   group_has_shared_history: 'conflict',
+  invalid_parties: 'validation',
+  invalid_note: 'validation',
+  invalid_reason: 'validation',
+  nothing_to_settle: 'conflict',
+  exceeds_balance: 'conflict',
+  duplicate_request: 'conflict',
+  already_voided: 'conflict',
 }
 
 /** Converts a Supabase/PostgREST error into a Failure with a safe message. */
 export function failureFrom(
   error: { message?: string; code?: string } | null | undefined,
   fallback: string,
+  overrides?: Readonly<Record<string, string>>,
 ): Failure {
   const rpcCode = rpcErrorCode(error)
   if (rpcCode && CATEGORY[rpcCode]) {
-    return fail(CATEGORY[rpcCode], rpcErrorMessage(error, fallback))
+    return fail(CATEGORY[rpcCode], rpcErrorMessage(error, fallback, overrides))
   }
   // PostgREST: 42501 = insufficient privilege (e.g. signed out).
   if (error?.code === '42501') return fail('auth', rpcErrorMessage({ message: 'auth_required' }, fallback))

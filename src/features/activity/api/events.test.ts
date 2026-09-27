@@ -74,6 +74,13 @@ describe('listActivity', () => {
     expect(result.ok && result.value.events[0]).toMatchObject({ payload: {}, people: [] })
   })
 
+  it('skips kinds this client does not know, but still pages past them', async () => {
+    supabaseMock.setTable('group_events', [row(3, { kind: 'from_the_future' }), row(2), row(1)])
+    const result = await listActivity({ limit: 2 })
+    expect(result.ok && result.value.events.map((e) => e.id)).toEqual([2])
+    expect(result.ok && result.value.next).toEqual({ createdAt: '2026-09-27T10:00:02.123456+00:00', id: 2 })
+  })
+
   it('returns a safe failure', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     supabaseMock.setTable('group_events', null, { message: 'permission denied for table group_events' })

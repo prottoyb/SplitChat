@@ -4,7 +4,7 @@ import type { ActivityPage } from '../api/events'
 import { describeEvent } from '../domain/describeEvent'
 import styles from './activity.module.css'
 
-const ICON = { expense: '$', member: '◉', group: '◎' } as const
+const ICON = { expense: '$', member: '◉', group: '◎', settlement: '⇄' } as const
 
 const TIME = new Intl.DateTimeFormat('en-AU', { hour: 'numeric', minute: '2-digit' })
 

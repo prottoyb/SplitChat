@@ -504,3 +504,19 @@ ul.memberList {
   padding: 0;
   list-style: none;
 }
+
+.secondaryLink {
+  border: 1px solid #d9d2ff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #5b41e0;
+  background: #f5f3ff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.secondaryLink:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: 2px;
+}

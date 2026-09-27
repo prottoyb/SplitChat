@@ -15,6 +15,7 @@ const EditExpensePage = lazy(() => import('../features/expenses/pages/EditExpens
 const ExpensesPage = lazy(() => import('../features/expenses/pages/ExpensesPage'))
 const ExpenseDetailsPage = lazy(() => import('../features/expenses/pages/ExpenseDetailsPage'))
 const ActivityPage = lazy(() => import('../features/activity/ActivityPage'))
+const GroupBalancesPage = lazy(() => import('../features/settlements/pages/GroupBalancesPage'))
 
 const pageFallback = <LoadingState title="Loading..." />
 
@@ -38,6 +39,7 @@ function App() {
               <Route path="groups" element={<GroupsPage />} />
               <Route path="groups/:groupId" element={<GroupDetailsPage />} />
               <Route path="groups/:groupId/expenses/new" element={<NewExpensePage />} />
+              <Route path="groups/:groupId/balances" element={<GroupBalancesPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
               <Route path="expenses/:expenseId/edit" element={<EditExpensePage />} />

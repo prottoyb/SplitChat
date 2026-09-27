@@ -14,6 +14,14 @@ export type EventKind =
   | 'expense_created'
   | 'expense_updated'
   | 'expense_deleted'
+  | 'settlement_recorded'
+  | 'settlement_voided'
+
+const KNOWN_KINDS: ReadonlySet<string> = new Set<EventKind>([
+  'group_created', 'member_added', 'member_rejoined', 'member_left', 'member_removed', 'member_account_deleted',
+  'ownership_transferred', 'expense_created', 'expense_updated', 'expense_deleted',
+  'settlement_recorded', 'settlement_voided',
+])
 
 export type ActivityEvent = {
   id: number
@@ -102,7 +110,9 @@ export function listActivity({
     const rows = ((result.data ?? []) as EventRow[]).slice(0, size + 1)
     const hasMore = rows.length > size
     const pageRows = rows.slice(0, size)
-    const events: ActivityEvent[] = pageRows.map((r) => ({
+    // A kind this client does not know yet (a newer database) is skipped, not
+    // shown wrongly; paging still advances past it.
+    const events: ActivityEvent[] = pageRows.filter((r) => KNOWN_KINDS.has(r.kind)).map((r) => ({
       id: r.id,
       groupId: r.group_id,
       kind: r.kind,
@@ -131,10 +141,10 @@ export function listActivity({
     if (expenses.error) return failureFrom(expenses.error, 'Unable to load recent activity.')
     if (!names.ok) return names
 
-    const last = events.at(-1)
+    const last = pageRows.at(-1)
     return ok({
       events,
-      next: hasMore && last ? { createdAt: last.createdAt, id: last.id } : null,
+      next: hasMore && last ? { createdAt: last.created_at, id: last.id } : null,
       names: names.value,
       groupNames: new Map(((groups.data ?? []) as { id: string; name: string }[]).map((g) => [g.id, g.name])),
       expenseTitles: new Map(((expenses.data ?? []) as { id: string; description: string }[]).map((x) => [x.id, x.description])),

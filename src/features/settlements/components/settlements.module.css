@@ -1,0 +1,185 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label,
+.voidBox label {
+  color: #3b3f4a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.voidBox input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dfe2e8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #1c1e26;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+}
+
+.field input:focus-visible,
+.field select:focus-visible,
+.voidBox input:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: 1px;
+}
+
+.amountInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amountInput span {
+  color: #5f6470;
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0;
+  color: #5f6470;
+  font-size: 12px;
+}
+
+.fieldError {
+  margin: 0;
+  color: #a13f3f;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.muted {
+  margin: 0;
+  color: #5f6470;
+  font-size: 14px;
+}
+
+.history {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #eceef2;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.entryMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.entryText {
+  margin: 0 0 4px;
+  color: #3b3f4a;
+  font-size: 14px;
+}
+
+.entryAmount {
+  color: #1c1e26;
+  font-weight: 750;
+}
+
+.voided .entryText strong,
+.voided .entryAmount {
+  text-decoration: line-through;
+}
+
+.voidTag {
+  margin-left: 8px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: #a13f3f;
+  background: #fff4f4;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.entryMeta {
+  margin: 0;
+  color: #5f6470;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.linkButton {
+  border: 0;
+  padding: 4px 6px;
+  color: #5b41e0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.linkButton:focus-visible,
+.dangerButton:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: 2px;
+}
+
+.voidBox {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 280px);
+}
+
+.voidActions {
+  display: flex;
+  gap: 8px;
+}
+
+.dangerButton {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #ffffff;
+  background: #b03a3a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dangerButton:disabled,
+.linkButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .pair {
+    grid-template-columns: 1fr;
+  }
+
+  .entry {
+    flex-direction: column;
+  }
+}

@@ -12,7 +12,7 @@ export type DescribedEvent = {
   target: { label: string; to: string | null } | null
   /** Extra detail, e.g. "$12.50" or "amount $10.01 → $15.00". */
   detail: string | null
-  category: 'expense' | 'member' | 'group'
+  category: 'expense' | 'member' | 'group' | 'settlement'
 }
 
 export type DescribeContext = {
@@ -84,6 +84,25 @@ export function describeEvent(event: ActivityEvent, ctx: DescribeContext): Descr
       return { actor: who(event.actorId), action: 'added', target: expenseTarget(), detail: money(p.amount_cents), category: 'expense' }
     case 'expense_updated':
       return { actor: who(event.actorId), action: 'edited', target: expenseTarget(), detail: changeSummary(p, who), category: 'expense' }
+    case 'settlement_recorded': {
+      const from = str(p.from_user)
+      const recorder = event.actorId && event.actorId !== from ? `recorded by ${who(event.actorId)}` : null
+      return {
+        actor: who(from),
+        action: 'paid',
+        target: { label: whom(str(p.to_user)), to: `/groups/${event.groupId}/balances` },
+        detail: [money(p.amount_cents), recorder && `(${recorder})`].filter(Boolean).join(' ') || null,
+        category: 'settlement',
+      }
+    }
+    case 'settlement_voided':
+      return {
+        actor: who(event.actorId),
+        action: 'voided a payment',
+        target: { label: `from ${who(str(p.from_user))} to ${whom(str(p.to_user))}`, to: `/groups/${event.groupId}/balances` },
+        detail: money(p.amount_cents),
+        category: 'settlement',
+      }
     case 'expense_deleted': {
       const amount = money(p.amount_cents)
       const date = day(p.expense_date)

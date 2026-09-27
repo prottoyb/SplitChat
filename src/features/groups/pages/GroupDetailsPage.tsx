@@ -127,6 +127,9 @@ function GroupDetailsPage() {
         </div>
         <div className={styles.headerActions}>
           <div className={styles.groupRole}>{isOwner ? 'Owner' : 'Member'}</div>
+          <Link to={`/groups/${groupId}/balances`} className={styles.secondaryLink}>
+            Balances &amp; settle up
+          </Link>
           <Link to={`/groups/${groupId}/expenses/new`} className="primary-button">
             + Add expense
           </Link>
