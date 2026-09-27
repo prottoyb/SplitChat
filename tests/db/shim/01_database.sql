@@ -59,3 +59,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIO
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+
+-- Realtime publication as on the platform (ADR-0011 condition 8): it exists,
+-- empty, owned by postgres, so migrations can add tables unconditionally.
+CREATE PUBLICATION supabase_realtime;
+ALTER PUBLICATION supabase_realtime OWNER TO postgres;

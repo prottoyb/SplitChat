@@ -5,7 +5,7 @@ SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
   ARRAY['add_group_member_by_email', 'create_equal_split_expense_v2',
         'delete_expense', 'delete_group', 'get_group_balances', 'get_ledger_identities',
-        'leave_group', 'record_settlement', 'remove_group_member', 'transfer_group_ownership',
+        'leave_group', 'record_settlement', 'remove_group_member', 'send_group_message', 'transfer_group_ownership',
         'update_equal_split_expense', 'void_settlement'],
   'public exposes only the client RPCs');
 SELECT tests.assert(
@@ -22,7 +22,7 @@ SELECT tests.assert_eq(
         'get_group_balances(uuid)', 'get_ledger_identities(uuid)', 'leave_group(uuid)',
         'private.my_active_group_ids()', 'private.my_group_peer_ids()',
         'record_settlement(uuid,uuid,uuid,bigint,date,text,uuid)',
-        'remove_group_member(uuid,uuid)', 'transfer_group_ownership(uuid,uuid)',
+        'remove_group_member(uuid,uuid)', 'send_group_message(uuid,text,uuid)', 'transfer_group_ownership(uuid,uuid)',
         'update_equal_split_expense(uuid,timestamp with time zone,text,bigint,date,uuid,uuid[],text)',
         'void_settlement(uuid,text)'],
   'authenticated EXECUTE allowlist (no helper takes an arbitrary user id)');
