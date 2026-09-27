@@ -1,0 +1,54 @@
+# Continuous integration: the same checks the team runs locally before any
+# change is considered done (CLAUDE.md "Checks"). No secrets and no Supabase
+# access: the database job uses a throwaway local PostgreSQL 17 cluster.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Lint, build, test, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm audit
+
+  database:
+    name: Database harness (PostgreSQL 17)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SPLITCHAT_PG_BIN: /usr/lib/postgresql/17/bin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install PostgreSQL 17 (PGDG)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-17
+          "$SPLITCHAT_PG_BIN/initdb" --version
+      - run: npm ci
+      - run: npm run test:db

@@ -21,11 +21,11 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Phase 1 — Database and security foundation: COMPLETE** (2026-09-27), awaiting the operator's phase-completion decision |
-| Production | **Complete batch 3 state: M0–M15 + `20260927135000` (17 versions)**, schema == `supabase/ops/batch3b_expected_schema.sql`, every batch VERIFY PASSED |
-| Branch | `feature/phase1-db-hardening` (backup pushes only: no force push, no PR, no merge, no tags). Not merged to `main` |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). **Current: Phase 2 — Frontend/domain consolidation** (implemented, in review; plan `docs/phase2/plan.md`) |
+| Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
+| Branch | `feature/phase2-frontend-domain` (from `main` @ `02d6d64`, the Phase 1 merge). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
 | Last verified checkpoint | the Phase 1 completion commit at the branch head (`git log -1`) |
-| Next human gate | **Phase 1 completion / Phase 2 start approval.** Also still gated: PR/merge of this branch, any production operation, deleting SplitChat-Dev |
+| Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
 ## Operating model (operator, 2026-09-26)
 
@@ -72,8 +72,9 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 
 ## Next steps
 
-1. Operator: Phase 1 completion decision; decide PR/merge of `feature/phase1-db-hardening` into `main` (gated).
-2. On approval, start Phase 2 (frontend/domain consolidation) per `docs/roadmap.md`, from the branch head (or from `main` once merged).
+1. Phase 2: QA/Security + Senior Review of `feature/phase2-frontend-domain`, resolve findings, checkpoint, push; then Phase 3 (dashboard and activity) per `docs/roadmap.md`.
+2. Phases 3–7 continue autonomously; each ends with full validation, both reviews, docs, a verified checkpoint and a push. Persisted activity/event models or other material database architecture changes stop for approval (Phase 3 rule).
+3. `main` has the local Phase 1 merge `02d6d64`; the push to `origin/main` is the operator's (`! git push origin main`).
 
 ## How to run
 

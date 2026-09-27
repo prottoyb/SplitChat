@@ -1,7 +1,7 @@
 # Phase 2 — Frontend / domain consolidation: plan
 
-**Status:** in progress (autonomous programme Phases 2–7, operator approval
-2026-09-27). Branch `feature/phase2-frontend-domain`, cut from `main` at the
+**Status:** implemented, in review (autonomous programme Phases 2–7,
+operator approval 2026-09-27). Branch `feature/phase2-frontend-domain`, cut from `main` at the
 Phase 1 merge (`02d6d64`). Coordination: the main session acts as
 Engineering Lead and implementer; the Software Architect reviews the module
 boundaries (ADR-0008); QA/Security and Senior Review close the phase.
@@ -71,3 +71,22 @@ phase as well (server enforcement unchanged).
 CP2-1 architecture + shared kernel · CP2-2 groups feature · CP2-3 expenses
 feature + edit UI · CP2-4 routing/bundle · CP2-5 CI · CP2-6 reviews,
 docs, phase checkpoint.
+
+## Outcome (implementation)
+
+| Item | Result |
+|---|---|
+| Architecture | ADR-0008 accepted; `src/{app,shared,features/{auth,people,groups,expenses,dashboard,activity}}`; boundaries enforced by `scripts/architecture.test.mjs` |
+| Data access | all Supabase calls in `features/*/api` + `shared/api`; `Result<T>` with error codes; `guard()` maps thrown errors to `network` |
+| Names | `features/people` — one rule for active and historical names |
+| Money | integer cents end to end; float arithmetic on money checked out of the codebase |
+| Route data | `useResource`; stale-route data fixed (loading on key change, late responses ignored) |
+| Pages | GroupDetails 1182 → ~180 lines + 4 components; ExpenseDetails 1031 → ~230; AddExpense 809 → New/Edit pages (~90/130) + `ExpenseForm`/`SplitPreview` |
+| Dates | strict `YYYY-MM-DD`, 2000-01-01 … today + 365 days, inline errors |
+| Edit UI | `/expenses/:id/edit`; exact `updated_at`; stale → reload; forbidden → read-only; former members kept and labelled |
+| Auth | Supabase Auth behind `auth/api`; fixed messages; sign-up never reveals whether an email exists |
+| Bundle | duplicate router removed; lazy routes; no >500 kB warning (entry 450 kB) |
+| Tests | Vitest 286 (19 files) incl. hook, API, form, page and architecture tests; test:db unchanged 23/23 |
+| CI | `.github/workflows/ci.yml` (lint, build, test, audit; database harness on PostgreSQL 17) |
+
+No database change was needed in Phase 2.
