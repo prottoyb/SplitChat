@@ -65,8 +65,42 @@ export function createSupabaseMock() {
     return chain
   })
 
+  // Realtime channels: tests drive them with emit()/setStatus().
+  type Handler = (payload: { new: unknown }) => void
+  const channels: { name: string; filter: unknown; handler: Handler | null; status: ((s: string) => void) | null; removed: boolean }[] = []
+  const channel = vi.fn((name: string) => {
+    const entry = { name, filter: null as unknown, handler: null as Handler | null, status: null as ((s: string) => void) | null, removed: false }
+    channels.push(entry)
+    const api = {
+      on: (_type: string, filter: unknown, handler: Handler) => {
+        entry.filter = filter
+        entry.handler = handler
+        return api
+      },
+      subscribe: (cb: (s: string) => void) => {
+        entry.status = cb
+        return api
+      },
+      entry,
+    }
+    return api
+  })
+  const removeChannel = vi.fn((api: { entry: { removed: boolean } }) => {
+    api.entry.removed = true
+    return Promise.resolve('ok')
+  })
+
   return {
-    client: { from, rpc },
+    client: { from, rpc, channel, removeChannel },
+    channels,
+    /** Delivers a Realtime INSERT payload to every live channel. */
+    emit(row: unknown) {
+      for (const c of channels) if (!c.removed) c.handler?.({ new: row })
+    },
+    /** Reports a subscription status (e.g. SUBSCRIBED, CHANNEL_ERROR) to every live channel. */
+    setStatus(status: string) {
+      for (const c of channels) if (!c.removed) c.status?.(status)
+    },
     rpc,
     from,
     tableQueries,

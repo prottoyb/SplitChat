@@ -95,6 +95,19 @@ await expense(sam, trip, 'Fuel', 8420, '2026-09-26', [me, alex, sam])
 
 const solo = await group(me, `Solo budget ${run % 1000}`, null, [])
 
+// Chat (M18): a realistic short conversation in the flat.
+const say = async (who, text) =>
+  must(await who.client.rpc('send_group_message', { p_group_id: flat, p_body: text, p_client_request_id: crypto.randomUUID() }), 'message')
+if (!process.env.RENDER_SKIP_CHAT) {
+  await say(sam, 'Electricity bill came in — $187.45 for Aug–Sep. I paid it, added it just now.')
+  await say(jo, 'Thanks Sam!')
+  await say(jo, 'Also did the big shop today, $96.30')
+  await say(me, 'Rent is paid for September 👍')
+  await say(alex, 'Can we talk about the internet plan? I think we should switch to the NBN 100 plan because the current one keeps dropping out in the evenings when everyone is streaming. It is $89.99 a month including the modem rental, so about $30 each if the three of us who use it most split it.\n\nThoughts?')
+  await say(sam, 'Works for me')
+  await say(me, 'Sounds good, go for it')
+}
+
 const ids = { flat, trip, solo, missing: crypto.randomUUID() }
 const defaultRoutes = [
   { name: 'dashboard', path: '/' },
@@ -103,6 +116,8 @@ const defaultRoutes = [
   { name: 'flat-balances', path: '/groups/{flat}/balances' },
   { name: 'flat-activity', path: '/groups/{flat}/activity' },
   { name: 'flat-members', path: '/groups/{flat}/members' },
+  { name: 'flat-chat', path: '/groups/{flat}/chat' },
+  { name: 'solo-chat', path: '/groups/{solo}/chat' },
   { name: 'trip-overview', path: '/groups/{trip}' },
   { name: 'trip-members', path: '/groups/{trip}/members' },
   { name: 'solo-overview', path: '/groups/{solo}' },

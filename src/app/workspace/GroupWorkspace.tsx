@@ -7,6 +7,7 @@ import { balanceTone, loadMyBalance, positionText } from '../../features/balance
 import { GroupMembersSection, loadGroupDetail } from '../../features/groups'
 import { GroupBalancesSection } from '../../features/settlements'
 import { ActivitySection } from './sections/ActivitySection'
+import { ChatSection } from './sections/ChatSection'
 import { ExpensesSection } from './sections/ExpensesSection'
 import { OverviewSection } from './sections/OverviewSection'
 import styles from './GroupWorkspace.module.css'
@@ -15,6 +16,7 @@ const SECTIONS = [
   { path: '', label: 'Overview' },
   { path: 'expenses', label: 'Expenses' },
   { path: 'balances', label: 'Balances' },
+  { path: 'chat', label: 'Chat' },
   { path: 'activity', label: 'Activity' },
   { path: 'members', label: 'Members' },
 ] as const
@@ -145,6 +147,7 @@ function GroupWorkspace() {
             path="balances"
             element={<GroupBalancesSection group={detail} userId={userId} onBalancesChanged={position.reload} />}
           />
+          <Route path="chat" element={<ChatSection group={detail} userId={userId} />} />
           <Route path="activity" element={<ActivitySection group={detail} userId={userId} />} />
           <Route
             path="members"

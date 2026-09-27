@@ -1,4 +1,5 @@
 import { supabase } from '../../../shared/api/supabase'
+import { beforeFilter, isValidCursor, type Cursor } from '../../../shared/api/cursor'
 import { fail, failureFrom, guard, ok, type Result } from '../../../shared/api/result'
 import { resolveDisplayNames, type NameMap } from '../../people'
 
@@ -38,8 +39,8 @@ export type ActivityEvent = {
   createdAt: string
 }
 
-/** Keyset position: the last event already shown (ADR-0009 condition 11). */
-export type Cursor = { createdAt: string; id: number }
+// Keyset position (ADR-0009 condition 11), shared with chat.
+export { isValidCursor, type Cursor }
 
 export type ActivityPage = {
   events: ActivityEvent[]
@@ -66,15 +67,6 @@ type EventRow = {
 
 export const MAX_PAGE_SIZE = 50
 
-// A PostgREST timestamptz as returned for created_at (no quotes, commas or
-// parentheses can occur in a value that passes this).
-const TIMESTAMP = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/
-
-/** True only for a cursor this client could have produced from a server row. */
-export function isValidCursor(cursor: Cursor): boolean {
-  return TIMESTAMP.test(cursor.createdAt) && Number.isSafeInteger(cursor.id) && cursor.id > 0
-}
-
 const EXPENSE_KINDS = new Set<EventKind>(['expense_created', 'expense_updated', 'expense_deleted'])
 
 /**
@@ -99,7 +91,7 @@ export function listActivity({
       // Keyset filter (ADR-0009 condition 11). The cursor was validated
       // strictly above, before any query is built, so no value can
       // break out of the quoted literal or add clauses (QA Phase 3 finding).
-      query = query.or(`created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${before.id})`)
+      query = query.or(beforeFilter(before))
     }
     const result = await query
       .order('created_at', { ascending: false })

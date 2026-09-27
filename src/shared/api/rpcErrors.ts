@@ -44,6 +44,9 @@ const MESSAGES: Record<string, string> = {
   duplicate_request: 'This payment was already submitted with different details. Reload and try again.',
   invalid_reason: 'Please give a reason of up to 200 characters.',
   already_voided: 'This payment has already been voided.',
+  invalid_body: 'Messages must be between 1 and 2,000 characters.',
+  invalid_request: 'That message could not be sent. Please try again.',
+  rate_limited: 'You are sending messages too quickly. Wait a moment and try again.',
 }
 
 export type RpcError = { message?: string } | null | undefined

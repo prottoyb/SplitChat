@@ -105,7 +105,7 @@ describe('GroupWorkspace sections', () => {
     renderAt('/groups/g1')
     const sections = await screen.findByRole('navigation', { name: 'Group sections' })
     expect(within(sections).getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Overview', 'Expenses', 'Balances', 'Activity', 'Members',
+      'Overview', 'Expenses', 'Balances', 'Chat', 'Activity', 'Members',
     ])
     expect(within(sections).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
 

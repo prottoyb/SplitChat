@@ -53,6 +53,9 @@ const CATEGORY: Record<string, ErrorCode> = {
   exceeds_balance: 'conflict',
   duplicate_request: 'conflict',
   already_voided: 'conflict',
+  invalid_body: 'validation',
+  invalid_request: 'validation',
+  rate_limited: 'rate_limited',
 }
 
 /** Converts a Supabase/PostgREST error into a Failure with a safe message. */
