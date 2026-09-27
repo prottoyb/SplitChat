@@ -41,3 +41,12 @@ change from "first selected" to "lowest UUID"; existing rows are unchanged.
 ## Risks
 Generated columns rewrite the tables under a brief lock (small tables).
 Currency is implicitly AUD; multi-currency would need a new ADR.
+
+## Update (2026-09-27)
+Implemented as decided (M12) and in production. `private.equal_split_cents`
+also enforces the rule's error codes, and the 17 shared vectors
+(`src/lib/fixtures/equal-split-vectors.json`) run in Vitest and the database
+harness. The legacy RPC was dropped (M14, batch 3b) with no hosted frontend
+(operator attestation `no-live-frontend`); any future deployment must
+contain frontend commit `a5ed4e8`. Existing rows were verified unchanged.
+

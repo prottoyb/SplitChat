@@ -1,9 +1,16 @@
 # Production Batch 3b — approval report (M14 only)
 
-**Status:** ready for the operator's decision. **Not executed.** Production
-is at M0–M13, M15 and `20260927135000` (batch 3a, executed and verified
-2026-09-27: 16 versions, VERIFY PASSED). This report asks for one execution
-approval (CLAUDE.md Mandatory Gate #5): **batch 3b = M14 only**.
+**Status: APPROVED, EXECUTED AND VERIFIED (2026-09-27).** The operator
+approved batch 3b (M14 only, attestation `no-live-frontend`) and ran it
+from commit `43e02ed`: identify, preflight and dry-run met every condition
+(exact post-3a schema, 16-version history, Q4 = Q5 = 0, locks clear,
+dry-run = M14 only); push applied M14; **VERIFY PASSED** — history 17
+versions, post-checks 24/24, ledger unchanged, schema == reviewed
+post-batch-3b schema. No rollback, retry or recovery was needed. Evidence:
+`docs/phase1/batch3-rehearsal.md` (last section). Production is at the
+complete batch 3 state.
+
+The report as approved follows unchanged.
 
 ## 1. The change
 

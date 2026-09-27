@@ -3,7 +3,11 @@
 **Status:** **Approved** 2026-09-26, subject to "Operator decisions at design
 approval" below. Amended after design review round 1 (see "Review
 resolutions"). Both sections take precedence over conflicting text.
-**Scope:** design only. No migration has been written or applied; no live
+**Execution status (2026-09-27):** implemented and in production —
+batches 1 (M0 repair, M1–M5), 2 (M6–M10), 3a (M11, M12, M13, M15,
+`20260927135000`) and 3b (M14), each verified; M16 deferred to Phase 8. See
+`docs/phase-state.md`. The text below is the approved plan.
+**Scope (original):** design only. No migration has been written or applied; no live
 database operation has been performed for Phase 1.
 **Inputs:** `supabase/baseline/` (Phase 0, commit `cb2db08`), Phase 0 reviews,
 operator product/data decisions (2026-09-26).

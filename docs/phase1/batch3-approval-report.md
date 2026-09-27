@@ -1,6 +1,11 @@
 # Production Batch 3 — approval report (M11–M15)
 
-**Status:** ready for the operator's decision. **Nothing has been run
+**Status: EXECUTED.** Batch 3a applied and verified in production
+2026-09-27 (from `25b7deb`, after the preflight tooling fix `14e4a3d`);
+batch 3b (M14) applied and verified 2026-09-27 (from `43e02ed`). See
+`docs/phase1/batch3-rehearsal.md`. The text below is the report as
+originally prepared; `prod.mjs` changed afterwards (`14e4a3d`, `25b7deb`) —
+its current digest is in `batch3b-approval-report.md`. **Originally: nothing had been run
 against production.** Production is at M0–M10 (checkpoint `f32b56d`,
 verified at batch 2). This report asks for two separate execution
 approvals (CLAUDE.md Mandatory Gate #5): **batch 3a**, then **batch 3b**.

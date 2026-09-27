@@ -256,3 +256,23 @@ Applied file digests (LF-normalised SHA-256, pinned in `prod.mjs`):
 
 Production is now at **M0–M13, M15 and `20260927135000`** (16 versions).
 M11 is live: fix-forward only.
+
+## PRODUCTION batch 3b (M14) — executed and verified (2026-09-27)
+
+Operator execution approval (in conversation): M14
+`20260927140000_drop_legacy_expense_rpc.sql` only, on
+`jhftlnsccurhfgneltgi`, attestation `no-live-frontend`. Run by the operator
+in their own PowerShell from commit `43e02ed` with a script that stopped
+before writing unless: identify = production `jhftlnsccurhfgneltgi`;
+preflight PASSED (exact post-3a schema, 16-version history, Q4 = Q5 = 0,
+locks clear); dry-run listed exactly M14. Results as reported by the
+operator; no rollback, retry or recovery was needed.
+
+| Step | Result |
+|---|---|
+| identify, preflight, dry-run | all conditions met (script would otherwise have stopped before the write) |
+| `push` (`SPLITCHAT_PROD_APPROVAL=batch3b`, `SPLITCHAT_FRONTEND_ATTESTATION=no-live-frontend`) | M14 applied; variables cleared |
+| `verify` against the same preflight evidence | history **PASS (17 versions)**; post-checks **PASS 24/24** (incl. legacy numeric RPC absent; v2 present in the exact authenticated EXECUTE allowlist, no anon/service_role); ledger unchanged **PASS**; schema == `batch3b_expected_schema.sql` **PASS** — **VERIFY PASSED** |
+
+**Production is at the complete batch 3 state: M0–M15 plus `20260927135000`
+(17 versions), schema == reviewed `batch3b_expected_schema.sql`.**

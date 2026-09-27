@@ -53,3 +53,15 @@ Supabase may no longer allow new triggers on `auth.users` (CA-2): this must be
 proven on the dev project first. Fallback: keep RESTRICT plus an explicit
 deletion-request RPC. Personal-data minimisation: the tombstone clears name
 and avatar; email lives only in `auth.users`.
+
+## Update (2026-09-27)
+CA-2 proven on SplitChat-Dev through the real Supabase Auth admin API
+(blocked and allowed paths, transfer, operator release, sole owner: 26/26),
+re-run on the final trigger body. A review fix (`20260927135000`) makes the
+trigger and `add_group_member_by_email` lock the group row, so a concurrent
+self-add cannot leave a group with an active member and no owner. Applied
+to production in batch 3a. Rollback note: `postgres` cannot `DROP TRIGGER`
+on `auth.users`, but dropping the handler function with `CASCADE` removes
+the trigger as a dependent object (observed during an approved dev reset).
+That is an emergency path only; M11 remains fix-forward because tombstoned
+profiles prevent restoring `profiles_id_fkey`.
