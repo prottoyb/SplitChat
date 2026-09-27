@@ -45,6 +45,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isolatedEnv, normaliseDump } from '../db-test.mjs'
 import { loadDevTarget } from '../rehearsal/dev.mjs'
+import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, parseMigrationList } from './cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PROD_REF = 'jhftlnsccurhfgneltgi'
@@ -193,7 +194,14 @@ function pgBin(name) {
   return dir ? path.join(dir, process.platform === 'win32' ? `${name}.exe` : name) : name
 }
 
-const envFor = (t) => ({ ...isolatedEnv(process.env, os.tmpdir()), PGPASSWORD: t.password })
+// Agent-detection variables are removed too: the pinned CLI changes its
+// output format when it detects an AI agent, and the tool must behave the
+// same whoever runs it (CLI_MODE_FLAGS also pins --agent no).
+const AGENT_ENV = /^(AI_AGENT|CLAUDECODE|CLAUDE_.*)$/
+const envFor = (t) => ({
+  ...isolatedEnv(Object.fromEntries(Object.entries(process.env).filter(([k]) => !AGENT_ENV.test(k))), os.tmpdir()),
+  PGPASSWORD: t.password,
+})
 const redact = (t, s) => String(s).split(t.password).join('<redacted>').split(encodeURIComponent(t.password)).join('<redacted>')
 
 function run(t, cmd, args) {
@@ -221,7 +229,7 @@ function readonly(t, body) {
   }
 }
 
-const cli = (t, args, workdir) => run(t, process.execPath, [CLI_JS, ...args, '--db-url', t.dbUrl, ...(workdir ? ['--workdir', workdir] : [])])
+const cli = (t, args, workdir) => run(t, process.execPath, [CLI_JS, ...args, ...CLI_MODE_FLAGS, '--db-url', t.dbUrl, ...(workdir ? ['--workdir', workdir] : [])])
 
 function identify(t) {
   const out = readonly(t, `SELECT to_regnamespace('${DEV_SENTINEL}') IS NULL AS not_dev,
@@ -247,10 +255,11 @@ const matchesBefore = (t, b) => normaliseDump(dump(t)) === normaliseDump(beforeS
 
 function remoteVersions(t, id) {
   if (!id.hasHistory) return []
-  const r = cli(t, ['migration', 'list'])
+  const r = cli(t, MIGRATION_LIST_ARGS)
   if (r.status !== 0) throw new Error(`migration list failed:\n${r.err}`)
-  const json = JSON.parse(r.out.slice(r.out.indexOf('{'), r.out.lastIndexOf('}') + 1))
-  return json.migrations.map((m) => m.remote).filter(Boolean)
+  // The whole of stdout must be the JSON listing; anything else refuses
+  // (never an empty history). See scripts/ops/cliOutput.mjs.
+  return parseMigrationList(r.out)
 }
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 

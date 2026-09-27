@@ -19,6 +19,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isolatedEnv } from '../db-test.mjs'
+import { CLI_MODE_FLAGS } from '../ops/cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PROD_REF = 'jhftlnsccurhfgneltgi'
@@ -143,7 +144,7 @@ function main() {
     }
     case 'cli': {
       // Pinned CLI run directly with node: no shell, no password in argv.
-      const c = spawnSync(process.execPath, [CLI_JS, ...rest, '--db-url', t.dbUrl], { encoding: 'utf8', env: envFor(t), maxBuffer: 64 * 1024 * 1024 })
+      const c = spawnSync(process.execPath, [CLI_JS, ...rest, ...CLI_MODE_FLAGS, '--db-url', t.dbUrl], { encoding: 'utf8', env: envFor(t), maxBuffer: 64 * 1024 * 1024 })
       r = { status: c.status, out: redact(c.stdout, t), err: redact(c.stderr, t) }
       break
     }

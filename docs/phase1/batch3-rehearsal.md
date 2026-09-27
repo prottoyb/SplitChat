@@ -181,3 +181,42 @@ calls `create_equal_split_expense_v2`. `preflight` PASSED (exact 3a schema,
 refused; push (`no-live-frontend`) applied M14; **VERIFY PASSED 24/24**;
 `api-batch3 verify3b` **28/28** (legacy `PGRST202`); CA-2 again **26/26**;
 race **6/6**.
+
+## Production preflight failure and tooling fix (2026-09-27)
+
+The operator's read-only `prod.mjs --batch batch3a preflight` stopped after
+the drift gate with `ERROR: Unexpected end of JSON input` (target and drift
+gates PASS; the read-only dry-run listed exactly the five 3a migrations).
+
+**Cause.** The pinned Supabase CLI 2.117.0 picks its default output format
+from the environment: when it detects an AI agent (`AI_AGENT`, `CLAUDECODE`,
+... — set in every rehearsal, which ran under Claude Code) `migration list`
+prints JSON; in the operator's own shell it prints a text table.
+`remoteVersions()` sliced stdout from the first `{` to the last `}`; the
+table has neither, the slice was `''`, and `JSON.parse('')` threw. The gate
+failed closed (correct), but the rehearsals had not reproduced the
+operator's environment. Reproduced on SplitChat-Dev with the pre-fix tool
+and all agent variables removed: the same two lines, then the same error.
+
+**Fix (tooling only; no gate weakened).**
+- `scripts/ops/cliOutput.mjs`: `parseMigrationList` requires the *whole*
+  stdout to be one JSON document with a `migrations` array of 14-digit
+  versions; empty, truncated, table, trailing/leading text, duplicates or
+  malformed versions all throw `REFUSING: could not read the migration
+  history ...` — never an empty or partial history.
+- `prod.mjs`: `migration list --output-format json` (explicit); every CLI
+  call gets `--agent no` and the CLI environment has the agent-detection
+  variables removed, so rehearsals run exactly as the operator does.
+  `dev.mjs cli` gets `--agent no` too.
+- Tests: `scripts/ops/cliOutput.test.mjs` (24; the text table from the
+  failure, empty, truncated and other malformed cases), now part of
+  `npm test`.
+
+**Verification on SplitChat-Dev, agent variables removed (operator's
+environment):** `preflight` reads the history correctly (17 versions);
+`verify` PASSED; with the agent environment as well: PASSED. The write path
+was exercised in the operator's environment: dev returned to pre-3b with
+M14's reviewed rollback and `migration repair --status reverted`, then
+3b preflight (history, Q-checks, locks PASS; drift ABORT = ACL entry order
+from that rollback only, IDENTICAL ignoring order), dry-run (exactly M14),
+push, **VERIFY PASSED 24/24**.
