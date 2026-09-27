@@ -41,7 +41,16 @@ function EditExpensePage() {
   }
 
   const { groupId, groupName, people, expense } = context.data
-  if (!expense) return null
+  if (!expense) {
+    // Not expected (a missing expense fails the load above), but never a blank page.
+    return (
+      <ErrorState
+        title="Expense unavailable"
+        message="This expense does not exist or you do not have access to it."
+        actions={[{ label: '← Back to expenses', to: '/expenses' }]}
+      />
+    )
+  }
   const readOnly = !expense.canManage || failure?.code === 'forbidden'
 
   const submit = async (input: ExpenseInput) => {

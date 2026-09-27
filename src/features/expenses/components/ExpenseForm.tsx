@@ -83,10 +83,15 @@ export function ExpenseForm({ mode, people, currentUserId, initial, onSubmit, st
   }
 
   const fieldId = (name: string) => `${ids}-${name}`
-  const errorProps = (field: ExpenseField) =>
-    errors[field]
-      ? { 'aria-invalid': true as const, 'aria-describedby': fieldId(`${field}-error`) }
-      : {}
+  // aria-describedby lists the field's own hint (if any) and, when present,
+  // its error, so neither replaces the other for screen-reader users.
+  const errorProps = (field: ExpenseField, hintId?: string) => {
+    const describedBy = [hintId, errors[field] ? fieldId(`${field}-error`) : null].filter(Boolean).join(' ')
+    return {
+      ...(errors[field] ? { 'aria-invalid': true as const } : {}),
+      ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+    }
+  }
   const fieldError = (field: ExpenseField) =>
     errors[field] ? (
       <p id={fieldId(`${field}-error`)} className={styles.fieldError}>
@@ -196,8 +201,7 @@ export function ExpenseForm({ mode, people, currentUserId, initial, onSubmit, st
                 maxLength={MAX_NOTES_LENGTH}
                 rows={4}
                 disabled={disabled}
-                aria-describedby={fieldId('notes-count')}
-                {...errorProps('notes')}
+                {...errorProps('notes', fieldId('notes-count'))}
               />
               <small id={fieldId('notes-count')} className={styles.characterCount}>
                 {values.notes.length}/{MAX_NOTES_LENGTH}

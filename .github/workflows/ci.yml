@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
@@ -29,6 +29,9 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm test
+      # Deliberately strict (any severity fails): a known vulnerability is only
+      # accepted through the exception process in .claude/rules/security.md
+      # (Mandatory Gate #3), never by a threshold.
       - run: npm audit
 
   database:
@@ -38,8 +41,8 @@ jobs:
     env:
       SPLITCHAT_PG_BIN: /usr/lib/postgresql/17/bin
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
