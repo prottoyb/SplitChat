@@ -21,9 +21,9 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`; QA PASS, Senior APPROVE). **Current: Phase 3 — Dashboard and activity** (architecture: ADR-0009 activity model under review) |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). **Current: Phase 3 — Dashboard and activity** (implemented and rehearsed on SplitChat-Dev, in review; `docs/phase3/plan.md`; ADR-0009 event log operator-approved 2026-09-27) |
 | Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
-| Branch | `feature/phase2-frontend-domain` (from `main` @ `02d6d64`, the Phase 1 merge). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
+| Branch | `feature/phase3-dashboard-activity` (from the Phase 2 head; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
 | Last verified checkpoint | the Phase 1 completion commit at the branch head (`git log -1`) |
 | Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
@@ -72,9 +72,10 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 
 ## Next steps
 
-1. Phase 3: decide the activity model (ADR-0009, architect review). A persisted event log is a material database change → operator approval before implementing it; dashboard work that uses existing data proceeds meanwhile.
-2. Phases 4–7 follow autonomously, each ending with full validation, both reviews, docs, a verified checkpoint and a push.
-3. `main` holds the local Phase 1 merge `02d6d64`; pushing it to `origin/main` is the operator's (`! git push origin main`).
+1. Phase 3: QA/Security + Senior Review, resolve findings, checkpoint, push; then Phase 4 (balances, debt simplification, settlements — its own ADR).
+2. Production backlog for the next release batch: M16 `20260928100000_activity_event_log` (rehearsed on SplitChat-Dev). No production write without its own approval.
+3. SplitChat-Dev is at 18 versions (batch 3 + M16).
+4. `main` holds the local Phase 1 merge `02d6d64`; pushing it is the operator's (`! git push origin main`).
 
 ## How to run
 
