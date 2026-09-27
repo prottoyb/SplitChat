@@ -194,9 +194,11 @@ function pgBin(name) {
   return dir ? path.join(dir, process.platform === 'win32' ? `${name}.exe` : name) : name
 }
 
-// Agent-detection variables are removed too: the pinned CLI changes its
-// output format when it detects an AI agent, and the tool must behave the
-// same whoever runs it (CLI_MODE_FLAGS also pins --agent no).
+// The pinned CLI changes its output format when it detects an AI agent, and
+// the tool must behave the same whoever runs it. The authoritative control is
+// `--agent no` (CLI_MODE_FLAGS) on every call. Removing the Claude Code
+// variables present during rehearsals is defence in depth only: the CLI also
+// recognises other markers (e.g. CURSOR_AGENT, GEMINI_CLI, CODEX_*, REPL_ID).
 const AGENT_ENV = /^(AI_AGENT|CLAUDECODE|CLAUDE_.*)$/
 const envFor = (t) => ({
   ...isolatedEnv(Object.fromEntries(Object.entries(process.env).filter(([k]) => !AGENT_ENV.test(k))), os.tmpdir()),
