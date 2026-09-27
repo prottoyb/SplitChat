@@ -1,7 +1,7 @@
 # Phase 2 — Frontend / domain consolidation: plan
 
-**Status:** implemented, in review (autonomous programme Phases 2–7,
-operator approval 2026-09-27). Branch `feature/phase2-frontend-domain`, cut from `main` at the
+**Status: COMPLETE** (2026-09-27; autonomous programme Phases 2–7, operator
+approval 2026-09-27). Branch `feature/phase2-frontend-domain`, cut from `main` at the
 Phase 1 merge (`02d6d64`). Coordination: the main session acts as
 Engineering Lead and implementer; the Software Architect reviews the module
 boundaries (ADR-0008); QA/Security and Senior Review close the phase.
@@ -90,3 +90,18 @@ docs, phase checkpoint.
 | CI | `.github/workflows/ci.yml` (lint, build, test, audit; database harness on PostgreSQL 17) |
 
 No database change was needed in Phase 2.
+
+## Reviews
+
+- Software Architect (ADR-0008): FIT WITH CONDITIONS — all nine conditions
+  adopted in the accepted ADR.
+- QA/Security: **PASS** — LOW (actions not SHA-pinned) fixed in `82e5f7b`.
+- Senior Review: APPROVE WITH CONDITIONS → **APPROVE** after `82e5f7b`
+  (MEDIUM: notes counter dropped from `aria-describedby` on error — fixed
+  with tests; LOW: blank no-expense branch → error state; LOW: `npm audit`
+  kept deliberately strict and documented).
+
+Final checks: lint, tsc, build (no >500 kB warning), Vitest 289/289 (20
+files), test:db 23/23. CI results are not visible from the implementing
+session (private repository, no `gh`); first runs are on
+`feature/phase2-frontend-domain`.

@@ -8,8 +8,8 @@ current phase is in `docs/phase-state.md`.
 |---|---|---|
 | 0 | Production schema baseline capture | ✅ Done (`cb2db08`) |
 | 1 | Database and security foundation | ✅ Complete in production (2026-09-27; batches 1, 2, 3a, 3b verified) — awaiting phase-completion approval |
-| 2 | Frontend/domain consolidation | Not started |
-| 3 | Dashboard and activity | Not started |
+| 2 | Frontend/domain consolidation | ✅ Complete (2026-09-27, `feature/phase2-frontend-domain`) |
+| 3 | Dashboard and activity | 🔄 In progress |
 | 4 | Balances, debt simplification and settlements | Not started |
 | 5 | Group navigation and product UX integration | Not started |
 | 6 | Group chat | Not started |
