@@ -4,8 +4,9 @@
 // which targets PRODUCTION), and captures full-page screenshots in headless
 // Chrome over the DevTools protocol at desktop, tablet and mobile widths.
 //
-// Fail closed: every browser request is intercepted and any request to the
-// production project is blocked and makes the run fail.
+// Fail closed: every browser request is intercepted; only the local Vite
+// origin and the SplitChat-Dev project are allowed, anything else (production
+// above all) is blocked and makes the run fail.
 //
 //   node scripts/rehearsal/render-review.mjs <out-dir> [--routes <file.json>]
 //
@@ -165,15 +166,24 @@ try {
       ws.send(JSON.stringify({ id, method, params }))
     })
 
-  // Fail closed on production; everything else continues.
+  // Fail closed: only the local Vite origin and the SplitChat-Dev project may
+  // be reached. Anything else (production above all) is blocked and fails
+  // the run, so the guard does not depend on spotting the production ref.
+  const allowedOrigins = new Set([`http://localhost:${PORT}`, new URL(t.url).origin])
   listeners.push((event) => {
     if (event.method !== 'Fetch.requestPaused') return
     const { requestId, request } = event.params
-    if (request.url.includes(PROD_REF)) {
+    let allowed = /^(data|blob):/.test(request.url)
+    try {
+      allowed ||= allowedOrigins.has(new URL(request.url).origin)
+    } catch {
+      allowed = false
+    }
+    if (allowed && !request.url.includes(PROD_REF)) {
+      void send('Fetch.continueRequest', { requestId })
+    } else {
       violations.push(request.url)
       void send('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' })
-    } else {
-      void send('Fetch.continueRequest', { requestId })
     }
   })
   await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] })
@@ -228,9 +238,10 @@ try {
 }
 
 if (violations.length) {
-  console.error(`FAIL: ${violations.length} request(s) to the production project were blocked`)
+  console.error(`FAIL: ${violations.length} request(s) outside SplitChat-Dev and the local app were blocked:`)
+  for (const url of violations) console.error(`  ${new URL(url).origin}`)
   exitCode = 1
 } else {
-  console.log('No request reached the production project.')
+  console.log('Only the local app and SplitChat-Dev were reached (no request to production or elsewhere).')
 }
 process.exit(exitCode)

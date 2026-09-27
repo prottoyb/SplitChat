@@ -32,6 +32,8 @@ function useSectionFocus(nav: RefObject<HTMLElement | null>, ready: boolean) {
     if (previous.current === pathname) return
     previous.current = pathname
     document.getElementById(SECTION_HEADING_ID)?.focus()
+    // `ready` is not read: it re-runs the effect once the header (and so the
+    // nav) has rendered after the group loads.
   }, [pathname, nav, ready])
 }
 

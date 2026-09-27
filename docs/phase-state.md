@@ -21,10 +21,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). Phase 4 **COMPLETE** (`docs/phase4/plan.md`; ADR-0010). **Current: Phase 5 — Group navigation and product UX integration** — NOT STARTED (no Phase 5 code yet; designer brief in `docs/phase5/plan.md`; operator paused the session 2026-09-28 before implementation) |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). Phase 4 **COMPLETE** (`docs/phase4/plan.md`; ADR-0010). Phase 5 **COMPLETE** (`docs/phase5/plan.md` Outcome; no database change). **Current: Phase 6 — Group chat** — STARTED: ADR-0011 accepted (team, under the operator's 2026-09-28 instruction); M18 `20260928120000_group_messages` drafted, not yet tested |
 | Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
-| Branch | `feature/phase5-group-workspace` (from the Phase 4 head; Phase 4 on `feature/phase4-balances-settlements`; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
-| Last verified checkpoint | Phase 4 completion commit `94b5397` (`docs: Phase 4 complete`); `feature/phase5-group-workspace` = that commit + this handover note only |
+| Branch | `feature/phase6-group-chat` (from the Phase 5 head); Phase 5 on `feature/phase5-group-workspace` (from the Phase 4 head; Phase 4 on `feature/phase4-balances-settlements`; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
+| Last verified checkpoint | Phase 5 completion commit on `feature/phase5-group-workspace` (`docs: Phase 5 complete`, after `3eb228d`) |
 | Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
 ## Operating model (operator, 2026-09-26)
@@ -72,9 +72,9 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 
 ## Next steps
 
-1. Phase 5 per `docs/phase5/plan.md` (group workspace shell, sections, header position, dashboard positions); then Phases 6 (chat, Realtime ADR) and 7 (Smart Expense). Findings from the paused session, to reuse rather than re-derive:
+1. Phase 6 per ADR-0011 (binding conditions 1–15): M18 + shim publication + harness cases 230/231 → SplitChat-Dev rehearsal incl. Realtime proofs (condition 13) → `features/chat` + workspace Chat tab → rendered review → QA/Security + Senior. Then Phase 7 (Smart Expense; ADR-0012 to write, sketch in the architect's ADR-0011 hand-off: candidates table keyed by message id, approve RPC over a shared private expense-creation core). **Operator confirmation to record in the end-of-programme report:** chat messages are permanent and survive account deletion (ADR-0011 status). Reusable findings:
    - **`.env.local` points at the PRODUCTION Supabase project.** `npm run dev` with default env talks to production. Any rendered review / screenshots must run Vite with `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` overridden to SplitChat-Dev (process env beats `.env*` files in Vite; values from `.env.splitchat-dev.local` via `loadDevTarget`) and must block any request to `jhftlnsccurhfgneltgi` (fail closed).
-   - Rendered review is required for Phase 5 sign-off (operator). Available without new dependencies: Node 24 and Chrome/Edge (`C:/Program Files/Google/Chrome/Application/chrome.exe`) driven headless over the DevTools protocol (Node's built-in WebSocket): sign a synthetic dev user in with supabase-js, inject the session into localStorage, capture desktop / tablet / mobile widths. The designer agent can Read the PNGs.
+   - Rendered review: `node scripts/rehearsal/render-review.mjs <out-dir> [--routes file.json]` (SplitChat-Dev only; seeds synthetic users/groups; screenshots desktop 1440 / tablet 900 / mobile 390; browser requests restricted to localhost + Dev, anything else fails the run). Put output in the session scratchpad, never the repo; the designer agent Reads the PNGs.
    - Placement: ADR-0008 says cross-feature composition such as the group workspace lives in `src/app/` (features may import only earlier features in `FEATURE_ORDER`, enforced by `scripts/architecture.test.mjs`; `app/` is unrestricted). Section pages reuse existing feature components/APIs; no client-side balance logic (the header position comes from `get_group_balances`).
    - Git-guard matches command *text*: a Bash command containing a push-to-canonical string (even inside a heredoc or doc edit) is blocked whole. Edit docs with the Edit tool.
 2. Production backlog for the next release batch, in order: M16 `20260928100000_activity_event_log`, M17 `20260928110000_settlements` (both rehearsed on SplitChat-Dev). No production write without its own approval.
@@ -86,6 +86,10 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 - `npm run lint`, `npm run build`, `npm test` (Vitest: `src/**` and `scripts/**/*.test.mjs`), `npm run test:db` (add `-- --case 030`, `-- --keep`, `-- --export-dump <file>`, `-- --export-dump-at <version> <file>`).
 - Rehearsal (SplitChat-Dev only): `node scripts/rehearsal/dev.mjs <check|sql|file|readonly|dump|cli ...>`, `api.mjs`, `api-batch2.mjs`, `api-batch3.mjs <prepare|verify3a|verify3b>`, `api-ca2.mjs`, `api-race.mjs`, `compare-dumps.mjs`; the production tool itself with `--rehearse-on-dev`.
 - Needs PostgreSQL 17 binaries (default Windows path, or `SPLITCHAT_PG_BIN`).
+
+## Validation status (Phase 5 completion, 2026-09-28)
+
+lint ✅ · build ✅ · Vitest ✅ **398/398** (30 files) · npm audit ✅ 0 · **test:db ✅ 26/26 cases, 564 assertions** (no database change in Phase 5) · rendered review on SplitChat-Dev ✅ (36 screenshots + targeted re-renders; no request outside localhost/Dev).
 
 ## Validation status (Phase 1 completion, 2026-09-27)
 
