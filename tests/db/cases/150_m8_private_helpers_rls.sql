@@ -3,10 +3,10 @@
 -- Function surface: exactly the client RPCs remain in public.
 SELECT tests.assert_eq(
   (SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE pronamespace = 'public'::regnamespace),
-  ARRAY['add_group_member_by_email', 'create_equal_split_expense_v2',
+  ARRAY['add_group_member_by_email', 'approve_expense_candidate', 'create_equal_split_expense_v2',
         'delete_expense', 'delete_group', 'get_group_balances', 'get_ledger_identities',
-        'leave_group', 'record_settlement', 'remove_group_member', 'send_group_message', 'transfer_group_ownership',
-        'update_equal_split_expense', 'void_settlement'],
+        'leave_group', 'propose_expense_candidate', 'record_settlement', 'reject_expense_candidate', 'remove_group_member',
+        'send_group_message', 'transfer_group_ownership', 'update_equal_split_expense', 'update_expense_candidate', 'void_settlement'],
   'public exposes only the client RPCs');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
@@ -16,14 +16,16 @@ SELECT tests.assert_eq(
   (SELECT array_agg(p.oid::regprocedure::text ORDER BY p.oid::regprocedure::text) FROM pg_proc p
     WHERE p.pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
       AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
-  ARRAY['add_group_member_by_email(uuid,text)',
+  ARRAY['add_group_member_by_email(uuid,text)', 'approve_expense_candidate(uuid,integer)',
         'create_equal_split_expense_v2(uuid,text,bigint,date,uuid,uuid[],text)',
         'delete_expense(uuid,timestamp with time zone)', 'delete_group(uuid)',
         'get_group_balances(uuid)', 'get_ledger_identities(uuid)', 'leave_group(uuid)',
         'private.my_active_group_ids()', 'private.my_group_peer_ids()',
+        'propose_expense_candidate(bigint,text,text,text,bigint,date,uuid,uuid[],text)',
         'record_settlement(uuid,uuid,uuid,bigint,date,text,uuid)',
-        'remove_group_member(uuid,uuid)', 'send_group_message(uuid,text,uuid)', 'transfer_group_ownership(uuid,uuid)',
+        'reject_expense_candidate(uuid,integer)', 'remove_group_member(uuid,uuid)', 'send_group_message(uuid,text,uuid)', 'transfer_group_ownership(uuid,uuid)',
         'update_equal_split_expense(uuid,timestamp with time zone,text,bigint,date,uuid,uuid[],text)',
+        'update_expense_candidate(uuid,integer,text,bigint,date,uuid,uuid[],text)',
         'void_settlement(uuid,text)'],
   'authenticated EXECUTE allowlist (no helper takes an arbitrary user id)');
 SELECT tests.assert(
