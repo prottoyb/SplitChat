@@ -1,5 +1,5 @@
 import { supabase } from '../../../shared/api/supabase'
-import { failureFrom, guard, ok, type Result } from '../../../shared/api/result'
+import { fail, failureFrom, guard, ok, type Result } from '../../../shared/api/result'
 import { resolveDisplayNames, type NameMap } from '../../people'
 
 /** Event kinds recorded by the database (ADR-0009 condition 3). */
@@ -58,6 +58,15 @@ type EventRow = {
 
 export const MAX_PAGE_SIZE = 50
 
+// A PostgREST timestamptz as returned for created_at (no quotes, commas or
+// parentheses can occur in a value that passes this).
+const TIMESTAMP = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/
+
+/** True only for a cursor this client could have produced from a server row. */
+export function isValidCursor(cursor: Cursor): boolean {
+  return TIMESTAMP.test(cursor.createdAt) && Number.isSafeInteger(cursor.id) && cursor.id > 0
+}
+
 const EXPENSE_KINDS = new Set<EventKind>(['expense_created', 'expense_updated', 'expense_deleted'])
 
 /**
@@ -72,17 +81,17 @@ export function listActivity({
   limit = 20,
 }: { groupId?: string; before?: Cursor | null; limit?: number } = {}): Promise<Result<ActivityPage>> {
   return guard(async () => {
+    if (before && !isValidCursor(before)) return fail('validation', 'Unable to load more activity.')
     const size = Math.max(1, Math.min(limit, MAX_PAGE_SIZE))
     let query = supabase
       .from('group_events')
       .select('id, group_id, kind, actor_id, subject_id, subject_user_id, people, payload, backfilled, created_at')
     if (groupId) query = query.eq('group_id', groupId)
     if (before) {
-      // Keyset filter (ADR-0009 condition 11). The cursor always comes from a
-      // row this client just read (a server timestamp and an integer id), never
-      // from user input; values are double-quoted because timestamps contain
-      // ':' and '+', and the id is forced to an integer.
-      query = query.or(`created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${Math.trunc(Number(before.id))})`)
+      // Keyset filter (ADR-0009 condition 11). The cursor was validated
+      // strictly above, before any query is built, so no value can
+      // break out of the quoted literal or add clauses (QA Phase 3 finding).
+      query = query.or(`created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${before.id})`)
     }
     const result = await query
       .order('created_at', { ascending: false })

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSupabaseMock } from '../../../test/supabaseMock'
-import { appendPage, listActivity } from './events'
+import { appendPage, isValidCursor, listActivity } from './events'
 
 const mock = vi.hoisted(() => ({ current: null as unknown }))
 
@@ -90,5 +90,34 @@ describe('appendPage', () => {
     if (!first.ok || !second.ok) throw new Error('unexpected')
 
     expect(appendPage(first.value, second.value).events.map((e) => e.id)).toEqual([3, 2, 1])
+  })
+})
+
+describe('cursor validation (keyset filter safety)', () => {
+  it.each([
+    '2026-09-27T10:00:02.123456+00:00',
+    '2026-09-27T10:00:02Z',
+    '2026-09-27 10:00:02.5+10',
+  ])('accepts server timestamp %s', (createdAt) => {
+    expect(isValidCursor({ createdAt, id: 7 })).toBe(true)
+  })
+
+  it.each([
+    ['a quote break-out', '2026-09-27T10:00:02Z",id.gt.0,created_at.lt."x', 7],
+    ['a comma clause', '2026-09-27T10:00:02Z,id.gt.0', 7],
+    ['parentheses', '2026-09-27T10:00:02Z)', 7],
+    ['free text', 'yesterday', 7],
+    ['a fractional id', '2026-09-27T10:00:02Z', 1.5],
+    ['a negative id', '2026-09-27T10:00:02Z', -1],
+    ['an unsafe id', '2026-09-27T10:00:02Z', Number.MAX_SAFE_INTEGER + 2],
+  ])('rejects %s', (_label, createdAt, id) => {
+    expect(isValidCursor({ createdAt: createdAt as string, id: id as number })).toBe(false)
+  })
+
+  it('refuses an invalid cursor before sending any query', async () => {
+    const result = await listActivity({ before: { createdAt: '2026-09-27T10:00:02Z",id.gt.0', id: 2 } })
+
+    expect(result).toEqual({ ok: false, code: 'validation', message: 'Unable to load more activity.' })
+    expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 })
