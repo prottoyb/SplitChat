@@ -63,9 +63,12 @@ describe('GroupChat', () => {
 
   it('sends through the RPC, shows it at once, and shows it once when Realtime echoes it', async () => {
     const user = userEvent.setup()
-    let resolveSend: (v: unknown) => void = () => {}
+    type RpcResult = { data: unknown; error: { message: string } | null }
+    let resolveSend: (v: RpcResult) => void = () => {}
     supabaseMock.rpc.mockImplementation((name) =>
-      name === 'send_group_message' ? new Promise((r) => (resolveSend = r)) : Promise.resolve({ data: [], error: null }),
+      name === 'send_group_message'
+        ? new Promise<RpcResult>((r) => (resolveSend = r))
+        : Promise.resolve({ data: [], error: null }),
     )
     render(<GroupChat groupId={G} userId={ME} />)
     await screen.findByRole('log')
