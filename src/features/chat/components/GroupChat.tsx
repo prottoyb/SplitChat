@@ -82,6 +82,7 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
   const followNext = useRef(true)
   const olderAnchor = useRef<number | null>(null)
   const lastCount = useRef(0)
+  const lastEpoch = useRef(0)
 
   const itemCount = timeline.messages.length + timeline.pending.length
   const section = useRef<HTMLElement>(null)
@@ -98,7 +99,13 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el) return
-    if (olderAnchor.current !== null) {
+    if (timeline.epoch !== lastEpoch.current) {
+      // The list was replaced after a long disconnect: show the latest.
+      lastEpoch.current = timeline.epoch
+      olderAnchor.current = null
+      el.scrollTop = el.scrollHeight
+      setUnseen(false)
+    } else if (olderAnchor.current !== null) {
       el.scrollTop = el.scrollHeight - olderAnchor.current
       olderAnchor.current = null
     } else if (itemCount > lastCount.current) {
@@ -111,7 +118,7 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
     }
     followNext.current = false
     lastCount.current = itemCount
-  }, [itemCount, chat.load.status])
+  }, [itemCount, chat.load.status, timeline.epoch])
 
   const onScroll = () => {
     const el = scroller.current

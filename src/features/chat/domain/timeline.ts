@@ -27,9 +27,15 @@ export type Timeline = {
   /** More (older) messages exist on the server before the first one loaded. */
   hasOlder: boolean
   live: LiveStatus
+  /**
+   * Counts wholesale replacements of the list (a reconnect whose newest
+   * page does not overlap what was shown), so the view can reset its
+   * position instead of reflowing under the reader.
+   */
+  epoch: number
 }
 
-export const emptyTimeline: Timeline = { messages: [], pending: [], hasOlder: false, live: 'connecting' }
+export const emptyTimeline: Timeline = { messages: [], pending: [], hasOlder: false, live: 'connecting', epoch: 0 }
 
 const TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(Z|([+-])(\d{2}):?(\d{2})?)$/
 
@@ -95,6 +101,9 @@ export function timelineReducer(me: string) {
         return { ...state, messages: merge(state.messages, action.messages), hasOlder: action.hasOlder }
       case 'gapFilled': {
         const known = new Set(state.messages.map((m) => m.id))
+        // Merging is safe when the page shares a message with what is shown,
+        // or when nothing older exists: then the page is the whole history,
+        // a superset of anything shown.
         const overlaps = state.messages.length === 0 || action.messages.some((m) => known.has(m.id)) || !action.hasOlder
         const messages = overlaps ? merge(state.messages, action.messages) : merge([], action.messages)
         return {
@@ -104,6 +113,7 @@ export function timelineReducer(me: string) {
           // nothing was loaded). Replaced: the page decides.
           hasOlder: overlaps && state.messages.length > 0 ? state.hasOlder : action.hasOlder,
           pending: settle(state.pending, messages, me),
+          epoch: overlaps ? state.epoch : state.epoch + 1,
         }
       }
       case 'received':

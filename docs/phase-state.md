@@ -21,10 +21,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). Phase 4 **COMPLETE** (`docs/phase4/plan.md`; ADR-0010). Phase 5 **COMPLETE** (`docs/phase5/plan.md` Outcome; no database change). **Current: Phase 6 — Group chat** — IMPLEMENTED, IN REVIEW: ADR-0011; M18 `20260928120000_group_messages` (harness 28/28, rehearsed on SplitChat-Dev: schema IDENTICAL, `api-chat.mjs` 25/25 incl. Realtime isolation); `features/chat` + workspace Chat tab (Vitest 439/439); UI/UX, QA/Security and Senior reviews of `0552b2d..4edcc55` running |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). Phase 4 **COMPLETE** (`docs/phase4/plan.md`; ADR-0010). Phase 5 **COMPLETE** (`docs/phase5/plan.md` Outcome; no database change). Phase 6 **COMPLETE** (`docs/phase6/plan.md`; ADR-0011; M18). **Current: Phase 7 — Smart Expense** — STARTED: ADR-0012 (architect design) to be saved and implemented on `feature/phase7-smart-expense` |
 | Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
-| Branch | `feature/phase6-group-chat` (from the Phase 5 head); Phase 5 on `feature/phase5-group-workspace` (from the Phase 4 head; Phase 4 on `feature/phase4-balances-settlements`; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
-| Last verified checkpoint | `4edcc55` on `feature/phase6-group-chat` (CP6-1 `751b2a7` DB, CP6-2 `648f424` web — note `648f424` alone fails `tsc -b` in a test; fixed in `4edcc55`). Phase 5 completed at `0552b2d` |
+| Branch | `feature/phase7-smart-expense` (from the Phase 6 head); Phase 6 on `feature/phase6-group-chat` (from the Phase 5 head); Phase 5 on `feature/phase5-group-workspace` (from the Phase 4 head; Phase 4 on `feature/phase4-balances-settlements`; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
+| Last verified checkpoint | Phase 6 completion commit on `feature/phase6-group-chat` (`docs: Phase 6 complete`). Phase 5 completed at `0552b2d` |
 | Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
 ## Operating model (operator, 2026-09-26)
@@ -72,7 +72,7 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 
 ## Next steps
 
-1. Phase 6 per ADR-0011 (binding conditions 1–15): M18 + shim publication + harness cases 230/231 → SplitChat-Dev rehearsal incl. Realtime proofs (condition 13) → `features/chat` + workspace Chat tab → rendered review → QA/Security + Senior. Then Phase 7 (Smart Expense; ADR-0012 to write, sketch in the architect's ADR-0011 hand-off: candidates table keyed by message id, approve RPC over a shared private expense-creation core). **Operator confirmation to record in the end-of-programme report:** chat messages are permanent and survive account deletion (ADR-0011 status). Reusable findings:
+1. Phase 7 per ADR-0012 (binding conditions): M19 candidates + private expense core (v2 contract byte-identical) → harness → SplitChat-Dev → `features/smart-expense` (pure interpreter behind `ExpenseInterpreter`, CandidateCard in chat) → rendered review → QA/Security + Senior. Then the end-of-programme report (stop; no Phase 8). Earlier: Phase 7 (Smart Expense; ADR-0012 to write, sketch in the architect's ADR-0011 hand-off: candidates table keyed by message id, approve RPC over a shared private expense-creation core). **Operator confirmation to record in the end-of-programme report:** chat messages are permanent and survive account deletion (ADR-0011 status). Reusable findings:
    - **`.env.local` points at the PRODUCTION Supabase project.** `npm run dev` with default env talks to production. Any rendered review / screenshots must run Vite with `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` overridden to SplitChat-Dev (process env beats `.env*` files in Vite; values from `.env.splitchat-dev.local` via `loadDevTarget`) and must block any request to `jhftlnsccurhfgneltgi` (fail closed).
    - Rendered review: `node scripts/rehearsal/render-review.mjs <out-dir> [--routes file.json]` (SplitChat-Dev only; seeds synthetic users/groups; screenshots desktop 1440 / tablet 900 / mobile 390; browser requests restricted to localhost + Dev, anything else fails the run). Put output in the session scratchpad, never the repo; the designer agent Reads the PNGs.
    - Placement: ADR-0008 says cross-feature composition such as the group workspace lives in `src/app/` (features may import only earlier features in `FEATURE_ORDER`, enforced by `scripts/architecture.test.mjs`; `app/` is unrestricted). Section pages reuse existing feature components/APIs; no client-side balance logic (the header position comes from `get_group_balances`).
@@ -86,6 +86,10 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 - `npm run lint`, `npm run build`, `npm test` (Vitest: `src/**` and `scripts/**/*.test.mjs`), `npm run test:db` (add `-- --case 030`, `-- --keep`, `-- --export-dump <file>`, `-- --export-dump-at <version> <file>`).
 - Rehearsal (SplitChat-Dev only): `node scripts/rehearsal/dev.mjs <check|sql|file|readonly|dump|cli ...>`, `api.mjs`, `api-batch2.mjs`, `api-batch3.mjs <prepare|verify3a|verify3b>`, `api-ca2.mjs`, `api-race.mjs`, `compare-dumps.mjs`; the production tool itself with `--rehearse-on-dev`.
 - Needs PostgreSQL 17 binaries (default Windows path, or `SPLITCHAT_PG_BIN`).
+
+## Validation status (Phase 6 completion, 2026-09-28)
+
+lint ✅ · build ✅ · Vitest ✅ **439/439** (33 files) · npm audit ✅ 0 · **test:db ✅ 28/28 (629)** · SplitChat-Dev M18: schema IDENTICAL, `api-chat.mjs` 25/25 · rendered review ✅.
 
 ## Validation status (Phase 5 completion, 2026-09-28)
 

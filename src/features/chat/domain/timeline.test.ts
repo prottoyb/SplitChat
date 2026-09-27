@@ -80,6 +80,7 @@ describe('timelineReducer', () => {
     t = reduce(t, { type: 'gapFilled', messages: [msg(2, '2026-09-28T10:00:02Z'), msg(3, '2026-09-28T10:00:03Z')], hasOlder: true })
     expect(ids(t)).toEqual([1, 2, 3])
     expect(t.hasOlder).toBe(true)
+    expect(t.epoch).toBe(0)
   })
 
   it('replaces the list after a long disconnect whose page does not overlap', () => {
@@ -87,6 +88,7 @@ describe('timelineReducer', () => {
     t = reduce(t, { type: 'gapFilled', messages: [msg(90, '2026-09-28T11:00:00Z'), msg(91, '2026-09-28T11:00:01Z')], hasOlder: true })
     expect(ids(t)).toEqual([90, 91])
     expect(t.hasOlder).toBe(true)
+    expect(t.epoch).toBe(1) // the view resets to the latest messages
   })
 
   it('tracks the live status', () => {
