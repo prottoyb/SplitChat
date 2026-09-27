@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../features/auth/useAuth'
+import { supabase } from '../shared/api/supabase'
 
 function AppLayout() {
   const navigate = useNavigate()

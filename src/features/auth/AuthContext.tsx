@@ -4,7 +4,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../shared/api/supabase'
 import { AuthContext, type Profile } from './authState'
 
 type AuthProviderProps = {

@@ -5,17 +5,17 @@ import {
   type FormEvent,
 } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../../auth/useAuth'
+import { supabase } from '../../../shared/api/supabase'
 import {
   allocateEqualSplit,
   validateExpenseInput,
-} from '../lib/expenseSplit'
+} from '../domain/expenseSplit'
 import {
   formatCents,
   parseAmountToCents,
-} from '../lib/money'
-import { createEqualSplitExpense } from '../lib/expenseApi'
+} from '../../../shared/domain/money'
+import { createEqualSplitExpense } from '../api'
 import styles from './AddExpensePage.module.css'
 
 type Group = {

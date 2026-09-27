@@ -4,8 +4,8 @@ import {
   type FormEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../../auth/useAuth'
+import { supabase } from '../../../shared/api/supabase'
 import styles from './GroupsPage.module.css'
 
 type Group = {

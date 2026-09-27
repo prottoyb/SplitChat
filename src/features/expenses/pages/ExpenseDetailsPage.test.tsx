@@ -2,18 +2,18 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSupabaseMock } from '../test/supabaseMock'
+import { createSupabaseMock } from '../../../test/supabaseMock'
 import ExpenseDetailsPage from './ExpenseDetailsPage'
 
 const mock = vi.hoisted(() => ({ current: null as unknown }))
 
-vi.mock('../lib/supabase', () => ({
+vi.mock('../../../shared/api/supabase', () => ({
   get supabase() {
     return (mock.current as ReturnType<typeof createSupabaseMock>).client
   },
 }))
 
-vi.mock('../auth/useAuth', () => ({
+vi.mock('../../auth/useAuth', () => ({
   useAuth: () => ({ session: { user: { id: 'u1' } } }),
 }))
 

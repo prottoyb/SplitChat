@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSupabaseMock } from '../test/supabaseMock'
+import { createSupabaseMock } from '../../test/supabaseMock'
 import {
   createEqualSplitExpense,
   deleteExpense,
   updateEqualSplitExpense,
   type ExpenseInput,
-} from './expenseApi'
+} from './api'
 
 const mock = vi.hoisted(() => ({ current: null as unknown }))
 
-vi.mock('./supabase', () => ({
+vi.mock('../../shared/api/supabase', () => ({
   get supabase() {
     return (mock.current as ReturnType<typeof createSupabaseMock>).client
   },

@@ -1,5 +1,5 @@
-import { rpcErrorMessage } from './rpcErrors'
-import { supabase } from './supabase'
+import { rpcErrorMessage } from '../../shared/api/rpcErrors'
+import { supabase } from '../../shared/api/supabase'
 
 /** Result of an RPC call: either success or a user-facing error message. */
 export type RpcOutcome = { ok: true } | { ok: false; message: string }

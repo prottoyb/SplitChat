@@ -1,4 +1,4 @@
-import { MAX_AMOUNT_CENTS, parseAmountToCents } from './money'
+import { MAX_AMOUNT_CENTS, parseAmountToCents } from '../../../shared/domain/money'
 
 export const MAX_DESCRIPTION_LENGTH = 120
 export const MAX_NOTES_LENGTH = 500

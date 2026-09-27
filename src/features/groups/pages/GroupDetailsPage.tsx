@@ -8,15 +8,15 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
+import { useAuth } from '../../auth/useAuth'
 import {
   addMemberByEmail,
   deleteGroup,
   leaveGroup,
   removeMember,
   transferOwnership,
-} from '../lib/membershipApi'
-import { supabase } from '../lib/supabase'
+} from '../membershipApi'
+import { supabase } from '../../../shared/api/supabase'
 import styles from './GroupDetailsPage.module.css'
 
 type Group = {

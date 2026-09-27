@@ -8,11 +8,11 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
-import { fetchLedgerIdentityNames } from '../lib/ledgerIdentities'
-import { deleteExpense } from '../lib/expenseApi'
-import { formatCents, readCents } from '../lib/money'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../../auth/useAuth'
+import { fetchLedgerIdentityNames } from '../../groups/ledgerIdentities'
+import { deleteExpense } from '../api'
+import { formatCents, readCents } from '../../../shared/domain/money'
+import { supabase } from '../../../shared/api/supabase'
 import styles from './ExpenseDetailsPage.module.css'
 
 type Expense = {

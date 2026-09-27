@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../shared/api/supabase'
 import styles from './AuthPage.module.css'
 
 type AuthMode = 'signin' | 'signup'

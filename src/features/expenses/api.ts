@@ -1,5 +1,5 @@
-import { rpcErrorMessage } from './rpcErrors'
-import { supabase } from './supabase'
+import { rpcErrorMessage } from '../../shared/api/rpcErrors'
+import { supabase } from '../../shared/api/supabase'
 
 /**
  * The client side of the canonical expense service (ADR-0002, ADR-0006).

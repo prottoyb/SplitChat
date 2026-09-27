@@ -4,10 +4,10 @@ import {
   useState,
 } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
-import { fetchLedgerIdentityNames } from '../lib/ledgerIdentities'
-import { formatCents, readCents } from '../lib/money'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../../auth/useAuth'
+import { fetchLedgerIdentityNames } from '../../groups/ledgerIdentities'
+import { formatCents, readCents } from '../../../shared/domain/money'
+import { supabase } from '../../../shared/api/supabase'
 import styles from './ExpensesPage.module.css'
 
 type Expense = {

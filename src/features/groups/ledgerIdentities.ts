@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase } from '../../shared/api/supabase'
 
 type IdentityRow = { user_id: string; display_name: string }
 

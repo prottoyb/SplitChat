@@ -48,7 +48,7 @@ const MIGRATIONS_DIR = path.join(root, 'supabase', 'migrations')
 const ROLLBACKS_DIR = path.join(root, 'supabase', 'rollbacks')
 const SHIM_DIR = path.join(root, 'tests', 'db', 'shim')
 const CASES_DIR = path.join(root, 'tests', 'db', 'cases')
-const SPLIT_VECTORS = path.join(root, 'src', 'lib', 'fixtures', 'equal-split-vectors.json')
+const SPLIT_VECTORS = path.join(root, 'src', 'features', 'expenses', 'domain', 'fixtures', 'equal-split-vectors.json')
 
 const FORBIDDEN_ENV = /^(PG.*|SUPABASE_.*|DATABASE_URL|DB_URL|POSTGRES_.*)$/i
 
