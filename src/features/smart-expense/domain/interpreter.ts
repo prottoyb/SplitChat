@@ -1,5 +1,5 @@
 import { addDays, checkExpenseDate, isIsoDate } from '../../../shared/domain/dates'
-import { MAX_AMOUNT_CENTS } from '../../../shared/domain/money'
+import { MAX_AMOUNT_CENTS, parseAmountToCents } from '../../../shared/domain/money'
 
 /**
  * Deterministic Smart Expense interpretation (ADR-0012). An interpreter only
@@ -92,9 +92,10 @@ function readAmount(token: string, next: string | undefined): AmountToken | null
   if (!m) return NUMERIC_LOOKING.test(t) ? { kind: 'invalid' } : null
   const whole = m[2].replace(/,/g, '').replace(/^0+(?=\d)/, '')
   if (whole.length > 10) return { kind: 'invalid' }
-  const cents = Number(whole) * 100 + Number((m[3] ?? '').padEnd(2, '0'))
-  if (cents < 1 || cents > MAX_AMOUNT_CENTS) return { kind: 'invalid' }
-  return { kind: 'amount', cents, marked: Boolean(m[1] || m[4] || nextWord === 'aud') }
+  // The shared parser (integer cents, no floats) does the arithmetic.
+  const parsed = parseAmountToCents(m[3] ? `${whole}.${m[3]}` : whole)
+  if (!parsed.ok || parsed.cents > MAX_AMOUNT_CENTS) return { kind: 'invalid' }
+  return { kind: 'amount', cents: parsed.cents, marked: Boolean(m[1] || m[4] || nextWord === 'aud') }
 }
 
 // ---------------------------------------------------------------------------

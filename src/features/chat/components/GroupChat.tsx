@@ -66,13 +66,26 @@ function PendingItem({ pending, onRetry, onDiscard }: { pending: PendingMessage;
 }
 
 /**
+ * Optional hooks for features layered on chat (Smart Expense, ADR-0012);
+ * chat itself knows nothing about them.
+ */
+export type ChatExtensions = {
+  /** Called once for each message I sent, when the server confirms it. */
+  onOwnMessageConfirmed?: (message: ChatMessage) => void
+  /** Called with the ids of the messages currently loaded. */
+  onMessagesShown?: (ids: readonly number[]) => void
+  /** Content shown as its own list item right after a message (never inside the bubble). */
+  renderAfterMessage?: (message: ChatMessage) => ReactNode
+}
+
+/**
  * A group's chat (ADR-0011): messages are plain text (never HTML), newest at
  * the bottom; "Load earlier messages" keeps the reading position; the view
  * follows new messages only when the reader is at the bottom or has just
  * sent one. Chat messages are conversation, not financial records.
  */
-export function GroupChat({ groupId, userId }: { groupId: string; userId: string }) {
-  const chat = useGroupChat(groupId, userId)
+export function GroupChat({ groupId, userId, extensions = {} }: { groupId: string; userId: string; extensions?: ChatExtensions }) {
+  const chat = useGroupChat(groupId, userId, extensions.onOwnMessageConfirmed)
   const { timeline } = chat
   const [draft, setDraft] = useState('')
   const [draftError, setDraftError] = useState('')
@@ -85,6 +98,10 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
   const lastEpoch = useRef(0)
 
   const itemCount = timeline.messages.length + timeline.pending.length
+  const { onMessagesShown, renderAfterMessage } = extensions
+  useEffect(() => {
+    if (timeline.messages.length) onMessagesShown?.(timeline.messages.map((m) => m.id))
+  }, [timeline.messages, onMessagesShown])
   const section = useRef<HTMLElement>(null)
   const ready = chat.load.status === 'ready'
 
@@ -193,6 +210,15 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
       />,
     )
     previous = message
+    const extra = renderAfterMessage?.(message)
+    if (extra) {
+      items.push(
+        <li key={`extra-${message.id}`} className={`${styles.extra} ${message.senderId === userId ? styles.extraMine : ''}`}>
+          {extra}
+        </li>,
+      )
+      previous = null // the next message starts a new run
+    }
   }
 
   return (

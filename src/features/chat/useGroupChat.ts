@@ -12,7 +12,7 @@ type LoadState = { status: 'loading' } | { status: 'ready' } | { status: 'error'
  * optimistic sends confirmed by id, and older pages on request. Sending never
  * depends on Realtime. Mount one per group (key the caller by group id).
  */
-export function useGroupChat(groupId: string, userId: string) {
+export function useGroupChat(groupId: string, userId: string, onOwnMessageConfirmed?: (message: ChatMessage) => void) {
   const invalid = !isUuid(groupId) || !userId
   const reducer = useMemo(() => timelineReducer(userId), [userId])
   const [timeline, dispatch] = useReducer(reducer, emptyTimeline)
@@ -27,7 +27,9 @@ export function useGroupChat(groupId: string, userId: string) {
   // Latest values for callbacks that must not re-subscribe when they change.
   const messagesRef = useRef<ChatMessage[]>([])
   const namesRef = useRef(names)
+  const confirmedRef = useRef(onOwnMessageConfirmed)
   useLayoutEffect(() => {
+    confirmedRef.current = onOwnMessageConfirmed
     messagesRef.current = timeline.messages
     namesRef.current = names
   })
@@ -96,7 +98,13 @@ export function useGroupChat(groupId: string, userId: string) {
   const deliver = useCallback(
     async (clientRequestId: string, body: string) => {
       const result = await sendMessage(groupId, body, clientRequestId)
-      if (result.ok) return dispatch({ type: 'sendConfirmed', message: result.value })
+      if (result.ok) {
+        dispatch({ type: 'sendConfirmed', message: result.value })
+        // Only a send confirmed here (never history or realtime) is offered
+        // to extensions such as Smart Expense (ADR-0012 condition 11).
+        confirmedRef.current?.(result.value)
+        return
+      }
       if (result.code === 'not_found') setRemoved(true)
       dispatch({ type: 'sendFailed', clientRequestId, error: result.message })
     },

@@ -1,13 +1,16 @@
 import { SectionHeader } from '../../../shared/ui'
-import { GroupChat } from '../../../features/chat'
+import { SmartChat } from '../../../features/smart-expense'
 import type { GroupDetail } from '../../../features/groups'
 
-/** The group's chat (ADR-0011): conversation between current members. */
+/** The group's chat (ADR-0011) with Smart Expense proposals (ADR-0012). */
 export function ChatSection({ group, userId }: { group: GroupDetail; userId: string }) {
   return (
     <>
-      <SectionHeader title="Chat" description="Messages are visible to everyone currently in this group." />
-      <GroupChat key={group.id} groupId={group.id} userId={userId} />
+      <SectionHeader
+        title="Chat"
+        description="Visible to everyone in this group. Mention an expense (or type /expense 20 Lunch paid:me split:all) to propose it for review."
+      />
+      <SmartChat key={group.id} group={group} userId={userId} />
     </>
   )
 }

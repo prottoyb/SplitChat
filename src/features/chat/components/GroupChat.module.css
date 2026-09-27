@@ -98,6 +98,15 @@
   justify-items: end;
 }
 
+.extra {
+  width: min(88%, 520px);
+  margin: 6px 0 4px;
+}
+
+.extraMine {
+  justify-self: end;
+}
+
 .runStart {
   margin-top: 10px;
 }

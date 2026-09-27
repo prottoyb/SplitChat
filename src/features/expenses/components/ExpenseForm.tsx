@@ -24,6 +24,8 @@ type Props = {
   /** Shown above the submit button (e.g. a stale-data notice with a reload action). */
   status?: ReactNode
   readOnly?: boolean
+  /** Overrides the form's accessible name and submit text (e.g. editing a proposed expense). */
+  labels?: { form: string; submit: string; busy: string }
 }
 
 /**
@@ -32,7 +34,7 @@ type Props = {
  * existing payer and participants, labelled "Former member" when they have
  * left (the server allows keeping them, never adding new ones).
  */
-export function ExpenseForm({ mode, people, currentUserId, initial, onSubmit, status, readOnly = false }: Props) {
+export function ExpenseForm({ mode, people, currentUserId, initial, onSubmit, status, readOnly = false, labels }: Props) {
   const ids = useId()
   const [values, setValues] = useState<ExpenseFormValues>(initial)
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -102,7 +104,7 @@ export function ExpenseForm({ mode, people, currentUserId, initial, onSubmit, st
   const nameOf = (userId: string) => people.find((p) => p.userId === userId)?.name ?? 'Not selected'
 
   return (
-    <form className={styles.formGrid} onSubmit={submit} noValidate aria-label={mode === 'create' ? 'New expense' : 'Edit expense'}>
+    <form className={styles.formGrid} onSubmit={submit} noValidate aria-label={labels?.form ?? (mode === 'create' ? 'New expense' : 'Edit expense')}>
       <section className={styles.mainColumn}>
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
@@ -287,9 +289,11 @@ export function ExpenseForm({ mode, people, currentUserId, initial, onSubmit, st
         {status}
 
         <button type="submit" className="primary-button" disabled={disabled || people.length === 0}>
-          {mode === 'create'
-            ? submitting ? 'Creating expense...' : 'Create expense'
-            : submitting ? 'Saving...' : 'Save changes'}
+          {labels
+            ? submitting ? labels.busy : labels.submit
+            : mode === 'create'
+              ? submitting ? 'Creating expense...' : 'Create expense'
+              : submitting ? 'Saving...' : 'Save changes'}
         </button>
         <p className={styles.submitHint}>The expense and every participant split are saved together.</p>
       </aside>

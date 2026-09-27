@@ -56,6 +56,11 @@ const CATEGORY: Record<string, ErrorCode> = {
   invalid_body: 'validation',
   invalid_request: 'validation',
   rate_limited: 'rate_limited',
+  stale_candidate: 'stale',
+  candidate_decided: 'conflict',
+  candidate_rejected: 'conflict',
+  candidate_incomplete: 'validation',
+  invalid_source: 'validation',
 }
 
 /** Converts a Supabase/PostgREST error into a Failure with a safe message. */

@@ -21,6 +21,14 @@ describe('describeEvent', () => {
     expect(d.target?.to).toBe('/expenses/x1')
   })
 
+  it('reads an expense created from a Smart Expense proposal like any other (ADR-0012 provenance keys)', () => {
+    const d = describeEvent(ev('expense_created', {
+      subjectId: 'x1',
+      payload: { v: 1, amount_cents: 1001, candidate_id: 'c1', message_id: 42, proposed_by: 'cara' },
+    }), ctx)
+    expect(eventSentence(d)).toBe('Bob added “Dinner” $10.01')
+  })
+
   it('describes settlements as payments between people, linking to balances', () => {
     const paid = describeEvent(ev('settlement_recorded', { actorId: 'bob', payload: { v: 1, amount_cents: 2500, from_user: 'bob', to_user: 'me' } }), ctx)
     expect(eventSentence(paid)).toBe('Bob paid you $25.00')

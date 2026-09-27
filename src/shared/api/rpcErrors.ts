@@ -47,6 +47,11 @@ const MESSAGES: Record<string, string> = {
   invalid_body: 'Messages must be between 1 and 2,000 characters.',
   invalid_request: 'That message could not be sent. Please try again.',
   rate_limited: 'You are sending messages too quickly. Wait a moment and try again.',
+  stale_candidate: 'This proposal was changed by someone else. Review the latest version and try again.',
+  candidate_decided: 'This proposal has already been decided.',
+  candidate_rejected: 'This proposal was rejected, so it cannot be added.',
+  candidate_incomplete: 'Fill in every detail before adding this expense.',
+  invalid_source: 'This proposal could not be saved. Please try again.',
 }
 
 export type RpcError = { message?: string } | null | undefined

@@ -1,5 +1,7 @@
 export { listMyExpenses, loadExpenseDetail, type ExpenseDetail, type ExpenseListItem } from './api/queries'
+export { ExpenseForm } from './components/ExpenseForm'
 export { ExpenseList } from './components/ExpenseList'
+export type { FormPerson } from './api/queries'
 export { createEqualSplitExpense, deleteExpense, updateEqualSplitExpense } from './api/mutations'
-export { validateExpenseForm, type ExpenseInput } from './domain/expenseForm'
+export { validateExpenseForm, type ExpenseFormValues, type ExpenseInput } from './domain/expenseForm'
 export { allocateEqualSplit } from './domain/expenseSplit'

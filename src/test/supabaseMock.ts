@@ -67,14 +67,14 @@ export function createSupabaseMock() {
 
   // Realtime channels: tests drive them with emit()/setStatus().
   type Handler = (payload: { new: unknown }) => void
-  const channels: { name: string; filter: unknown; handler: Handler | null; status: ((s: string) => void) | null; removed: boolean }[] = []
+  const channels: { name: string; filter: unknown; handlers: Handler[]; status: ((s: string) => void) | null; removed: boolean }[] = []
   const channel = vi.fn((name: string) => {
-    const entry = { name, filter: null as unknown, handler: null as Handler | null, status: null as ((s: string) => void) | null, removed: false }
+    const entry = { name, filter: null as unknown, handlers: [] as Handler[], status: null as ((s: string) => void) | null, removed: false }
     channels.push(entry)
     const api = {
       on: (_type: string, filter: unknown, handler: Handler) => {
-        entry.filter = filter
-        entry.handler = handler
+        entry.filter ??= filter
+        entry.handlers.push(handler)
         return api
       },
       subscribe: (cb: (s: string) => void) => {
@@ -93,9 +93,9 @@ export function createSupabaseMock() {
   return {
     client: { from, rpc, channel, removeChannel },
     channels,
-    /** Delivers a Realtime INSERT payload to every live channel. */
-    emit(row: unknown) {
-      for (const c of channels) if (!c.removed) c.handler?.({ new: row })
+    /** Delivers a Realtime payload to every live channel whose name starts with `prefix` (all by default). */
+    emit(row: unknown, prefix = '') {
+      for (const c of channels) if (!c.removed && c.name.startsWith(prefix)) c.handlers.forEach((h) => h({ new: row }))
     },
     /** Reports a subscription status (e.g. SUBSCRIBED, CHANNEL_ERROR) to every live channel. */
     setStatus(status: string) {
