@@ -89,3 +89,15 @@ export function readCents(value: unknown): number | null {
 
   return null
 }
+
+/**
+ * Integer cents as the plain decimal text a user would type
+ * (1050 -> "10.50"), with the same exact integer split as `formatCents`.
+ */
+export function centsToDecimalText(cents: number): string {
+  if (!Number.isSafeInteger(cents) || cents < 0) {
+    throw new RangeError('centsToDecimalText expects non-negative safe integer cents')
+  }
+  const remainder = cents % 100
+  return `${(cents - remainder) / 100}.${String(remainder).padStart(2, '0')}`
+}

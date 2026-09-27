@@ -1,106 +1,57 @@
-import {
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../shared/api/supabase'
+import { getSession, loadProfile, onSessionChange } from './api/auth'
 import { AuthContext, type Profile } from './authState'
 
-type AuthProviderProps = {
-  children: ReactNode
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-
   const [isLoading, setIsLoading] = useState(true)
-  const [isProfileLoading, setIsProfileLoading] = useState(false)
+  // The profile loaded for a user id; stale entries are ignored below.
+  const [loaded, setLoaded] = useState<{ userId: string; profile: Profile | null } | null>(null)
 
   useEffect(() => {
     let isMounted = true
 
-    const loadSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
+    void getSession().then((current) => {
       if (isMounted) {
-        setSession(session)
+        setSession(current)
         setIsLoading(false)
       }
-    }
+    })
 
-    void loadSession()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const unsubscribe = onSessionChange((next) => {
       if (isMounted) {
-        setSession(session)
+        setSession(next)
         setIsLoading(false)
       }
     })
 
     return () => {
       isMounted = false
-      subscription.unsubscribe()
+      unsubscribe()
     }
   }, [])
 
+  const userId = session?.user.id ?? null
+
   useEffect(() => {
+    if (!userId) return
     let isCancelled = false
-
-    const loadProfile = async () => {
-      const userId = session?.user.id
-
-      if (!userId) {
-        setProfile(null)
-        setIsProfileLoading(false)
-        return
-      }
-
-      setIsProfileLoading(true)
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, created_at, updated_at')
-        .eq('id', userId)
-        .single()
-
-      if (isCancelled) {
-        return
-      }
-
-      if (error) {
-        console.error('Unable to load profile:', error)
-        setProfile(null)
-        setIsProfileLoading(false)
-        return
-      }
-
-      setProfile(data)
-      setIsProfileLoading(false)
-    }
-
-    void loadProfile()
-
+    void loadProfile(userId).then((result) => {
+      if (!isCancelled) setLoaded({ userId, profile: result.ok ? result.value : null })
+    })
     return () => {
       isCancelled = true
     }
-  }, [session?.user.id])
+  }, [userId])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        profile,
-        isLoading,
-        isProfileLoading,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+  const current = userId && loaded?.userId === userId ? loaded : null
+  const value = {
+    session,
+    profile: current?.profile ?? null,
+    isLoading,
+    isProfileLoading: Boolean(userId) && current === null,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -471,3 +471,34 @@
     font-size: 12px;
   }
 }
+/* Phase 2: semantic lists (dl / ul) and the edit action. */
+.infoList {
+  margin: 0;
+}
+
+.infoList dt {
+  color: #8c909b;
+  font-size: 11px;
+}
+
+.infoList dd {
+  max-width: 60%;
+  margin: 0;
+  color: #40434d;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+ul.splitList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.editLink {
+  display: block;
+  margin-bottom: 10px;
+  text-align: center;
+  text-decoration: none;
+}

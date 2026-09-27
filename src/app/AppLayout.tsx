@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/useAuth'
-import { supabase } from '../shared/api/supabase'
+import { signOut, useAuth } from '../features/auth'
+import { LoadingState } from '../shared/ui'
 
 function AppLayout() {
   const navigate = useNavigate()
@@ -33,20 +33,13 @@ function AppLayout() {
       .join('') || 'SC'
 
   const handleSignOut = async () => {
-    try {
-      setIsSigningOut(true)
-
-      const { error } = await supabase.auth.signOut()
-
-      if (error) {
-        throw error
-      }
-
-      navigate('/login', { replace: true })
-    } catch (error) {
-      console.error('Unable to sign out:', error)
+    setIsSigningOut(true)
+    const result = await signOut()
+    if (!result.ok) {
       setIsSigningOut(false)
+      return
     }
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -123,7 +116,9 @@ function AppLayout() {
       </aside>
 
       <main className="main-content">
-        <Outlet />
+        <Suspense fallback={<LoadingState title="Loading..." />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

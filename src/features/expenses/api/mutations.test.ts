@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSupabaseMock } from '../../test/supabaseMock'
+import { createSupabaseMock } from '../../../test/supabaseMock'
 import {
   createEqualSplitExpense,
   deleteExpense,
   updateEqualSplitExpense,
-  type ExpenseInput,
-} from './api'
+} from './mutations'
+import type { ExpenseInput } from '../domain/expenseForm'
 
 const mock = vi.hoisted(() => ({ current: null as unknown }))
 
-vi.mock('../../shared/api/supabase', () => ({
+vi.mock('../../../shared/api/supabase', () => ({
   get supabase() {
     return (mock.current as ReturnType<typeof createSupabaseMock>).client
   },
@@ -51,12 +51,14 @@ describe('createEqualSplitExpense', () => {
     supabaseMock.setRpc('create_equal_split_expense_v2', null, { message: 'invalid_payer' })
     await expect(createEqualSplitExpense('g1', input)).resolves.toEqual({
       ok: false,
+      code: 'validation',
       message: 'The payer must be a current member of this group.',
     })
 
     supabaseMock.setRpc('create_equal_split_expense_v2', null, { message: 'relation "x" does not exist' })
     await expect(createEqualSplitExpense('g1', input)).resolves.toEqual({
       ok: false,
+      code: 'unknown',
       message: 'Unable to create this expense. Please try again.',
     })
   })
@@ -82,15 +84,26 @@ describe('updateEqualSplitExpense', () => {
   })
 
   it.each([
-    ['stale_expense', /changed by someone else/],
-    ['forbidden', /added this expense or the group owner/],
-    ['not_found_or_forbidden', /unavailable, or you do not have permission/],
-  ])('maps %s', async (code, text) => {
-    supabaseMock.setRpc('update_equal_split_expense', null, { message: code })
+    ['stale_expense', 'stale', /changed by someone else/],
+    ['forbidden', 'forbidden', /added this expense or the group owner/],
+    ['not_found_or_forbidden', 'not_found', /unavailable, or you do not have permission/],
+  ])('maps %s to the %s code', async (rpcCode, code, text) => {
+    supabaseMock.setRpc('update_equal_split_expense', null, { message: rpcCode })
     const outcome = await updateEqualSplitExpense('x1', 't', input)
 
-    expect(outcome.ok).toBe(false)
+    expect(outcome).toMatchObject({ ok: false, code })
     expect(!outcome.ok && outcome.message).toMatch(text)
+  })
+
+  it('sends the loaded updated_at string unchanged (microsecond precision)', async () => {
+    supabaseMock.setRpc('update_equal_split_expense', '2026-09-27T01:00:00.000001+00:00')
+    const loaded = '2026-09-26T12:46:35.510649+00:00'
+
+    await updateEqualSplitExpense('x1', loaded, input)
+
+    const args = supabaseMock.rpc.mock.calls.at(-1)?.[1]
+    expect(args?.p_expected_updated_at).toBe(loaded)
+    expect(new Date(loaded).toISOString()).not.toBe(loaded) // a Date round trip would lose it
   })
 })
 
@@ -107,12 +120,14 @@ describe('deleteExpense', () => {
     supabaseMock.setRpc('delete_expense', null, { message: 'stale_expense' })
     await expect(deleteExpense('x1', 't1')).resolves.toEqual({
       ok: false,
+      code: 'stale',
       message: 'This expense was changed by someone else. Reload it and try again.',
     })
 
     supabaseMock.setRpc('delete_expense', null, { message: 'boom' })
     await expect(deleteExpense('x1', 't1')).resolves.toEqual({
       ok: false,
+      code: 'unknown',
       message: 'Unable to delete this expense. Please try again.',
     })
   })

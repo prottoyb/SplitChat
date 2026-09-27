@@ -1,641 +1,154 @@
-import {
-  useEffect,
-  useState,
-  type FormEvent,
-} from 'react'
-import {
-  Link,
-  useNavigate,
-  useParams,
-} from 'react-router-dom'
-import { useAuth } from '../../auth/useAuth'
-import {
-  addMemberByEmail,
-  deleteGroup,
-  leaveGroup,
-  removeMember,
-  transferOwnership,
-} from '../membershipApi'
-import { supabase } from '../../../shared/api/supabase'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { formatDateShort } from '../../../shared/domain/dates'
+import { useResource } from '../../../shared/hooks/useResource'
+import { ErrorState, LoadingState, Notice } from '../../../shared/ui'
+import { useAuth } from '../../auth'
+import { loadGroupDetail, type Member } from '../api/groups'
+import { addMemberByEmail, deleteGroup, leaveGroup, removeMember, transferOwnership } from '../api/membership'
+import { MemberList } from '../components/MemberList'
+import { MembershipPanel } from '../components/MembershipPanel'
 import styles from './GroupDetailsPage.module.css'
 
-type Group = {
-  id: string
-  name: string
-  description: string | null
-  created_by: string
-  created_at: string
-  updated_at: string
-}
+type Feedback = { tone: 'success' | 'error'; text: string } | null
 
-type GroupMembership = {
-  group_id: string
-  user_id: string
-  role: 'owner' | 'member'
-  joined_at: string
-}
-
-type MemberProfile = {
-  id: string
-  full_name: string
-  avatar_url: string | null
-}
-
-type DisplayMember = {
-  userId: string
-  fullName: string
-  avatarUrl: string | null
-  role: 'owner' | 'member'
-  joinedAt: string
-}
+const ADD_OUTCOME_TEXT = {
+  already_member: 'That person is already a member of this group.',
+  // Deliberately does not say whether the email has an account.
+  member_not_added:
+    'We could not add anyone with that email. Check the address — the person needs a SplitChat account with a confirmed email.',
+  rate_limited: 'Too many add attempts. Please wait a while and try again.',
+} as const
 
 function GroupDetailsPage() {
   const navigate = useNavigate()
-  const { groupId } = useParams<{ groupId: string }>()
+  const { groupId = '' } = useParams<{ groupId: string }>()
   const { session } = useAuth()
+  const userId = session?.user.id ?? ''
 
-  const [group, setGroup] = useState<Group | null>(null)
-  const [members, setMembers] = useState<DisplayMember[]>([])
+  const group = useResource(groupId && userId ? `${groupId}:${userId}` : null, () => loadGroupDetail(groupId, userId))
+  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [busy, setBusy] = useState(false)
 
-  const [memberEmail, setMemberEmail] = useState('')
-
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAddingMember, setIsAddingMember] = useState(false)
-  const [isRemovingMember, setIsRemovingMember] =
-    useState(false)
-  const [isLeavingGroup, setIsLeavingGroup] =
-    useState(false)
-
-  const [pendingRemovalUserId, setPendingRemovalUserId] =
-    useState<string | null>(null)
-
-  const [pendingTransferUserId, setPendingTransferUserId] =
-    useState<string | null>(null)
-  const [isTransferring, setIsTransferring] = useState(false)
-
-  const [showLeaveConfirm, setShowLeaveConfirm] =
-    useState(false)
-
-  const [showDeleteConfirm, setShowDeleteConfirm] =
-    useState(false)
-  const [isDeletingGroup, setIsDeletingGroup] =
-    useState(false)
-
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-
-  const [reloadKey, setReloadKey] = useState(0)
-
-  const reload = () => {
-    setReloadKey((key) => key + 1)
+  if (group.status === 'loading') {
+    return <LoadingState title="Loading group..." message="Getting the group and its members." />
   }
-
-  const currentUserId = session?.user.id
-
-  // Ownership comes from the caller's membership role (the source of truth
-  // since M7), not from groups.created_by, which records the creator only.
-  const isOwner = members.some(
-    (member) =>
-      member.userId === currentUserId && member.role === 'owner',
-  )
-
-  // Offered only while the owner is the sole active member. Former members
-  // are not visible here, so the server makes the final decision (M15).
-  const canOfferDelete = isOwner && members.length === 1
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadGroup = async () => {
-      if (!groupId) {
-        setErrorMessage('Group ID is missing.')
-        setIsLoading(false)
-        return
-      }
-
-      setIsLoading(true)
-      setErrorMessage('')
-
-      const { data: groupData, error: groupError } =
-        await supabase
-          .from('groups')
-          .select(
-            'id, name, description, created_by, created_at, updated_at',
-          )
-          .eq('id', groupId)
-          .limit(1)
-
-      if (cancelled) {
-        return
-      }
-
-      if (groupError) {
-        console.error('Unable to load group:', groupError)
-
-        setGroup(null)
-        setMembers([])
-        setErrorMessage('Unable to load this group.')
-        setIsLoading(false)
-        return
-      }
-
-      const loadedGroup = groupData?.[0] ?? null
-
-      if (!loadedGroup) {
-        setGroup(null)
-        setMembers([])
-        setErrorMessage(
-          'This group does not exist or you do not have access to it.',
-        )
-        setIsLoading(false)
-        return
-      }
-
-      const {
-        data: membershipData,
-        error: membershipError,
-      } = await supabase
-        .from('group_members')
-        .select('group_id, user_id, role, joined_at')
-        .eq('group_id', groupId)
-        .order('joined_at', { ascending: true })
-
-      if (cancelled) {
-        return
-      }
-
-      if (membershipError) {
-        console.error(
-          'Unable to load group members:',
-          membershipError,
-        )
-
-        setGroup(loadedGroup)
-        setMembers([])
-        setErrorMessage('Unable to load the group members.')
-        setIsLoading(false)
-        return
-      }
-
-      const memberships =
-        (membershipData ?? []) as GroupMembership[]
-
-      const memberIds = memberships.map(
-        (membership) => membership.user_id,
-      )
-
-      let profiles: MemberProfile[] = []
-
-      if (memberIds.length > 0) {
-        const {
-          data: profileData,
-          error: profileError,
-        } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', memberIds)
-
-        if (cancelled) {
-          return
-        }
-
-        if (profileError) {
-          console.error(
-            'Unable to load member profiles:',
-            profileError,
-          )
-
-          setGroup(loadedGroup)
-          setMembers([])
-          setErrorMessage('Unable to load member profiles.')
-          setIsLoading(false)
-          return
-        }
-
-        profiles = (profileData ?? []) as MemberProfile[]
-      }
-
-      const profileMap = new Map(
-        profiles.map((profile) => [profile.id, profile]),
-      )
-
-      const displayMembers: DisplayMember[] =
-        memberships.map((membership) => {
-          const profile = profileMap.get(
-            membership.user_id,
-          )
-
-          return {
-            userId: membership.user_id,
-            fullName:
-              profile?.full_name?.trim() ||
-              'SplitChat member',
-            avatarUrl: profile?.avatar_url ?? null,
-            role: membership.role,
-            joinedAt: membership.joined_at,
-          }
-        })
-
-      setGroup(loadedGroup)
-      setMembers(displayMembers)
-      setIsLoading(false)
-    }
-
-    void loadGroup()
-
-    return () => {
-      cancelled = true
-    }
-  }, [groupId, reloadKey])
-
-  const handleAddMember = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault()
-
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    const cleanEmail =
-      memberEmail.trim().toLowerCase()
-
-    if (!groupId) {
-      setErrorMessage('Group ID is unavailable.')
-      return
-    }
-
-    if (!cleanEmail) {
-      setErrorMessage(
-        'Please enter the member email address.',
-      )
-      return
-    }
-
-    try {
-      setIsAddingMember(true)
-
-      const outcome = await addMemberByEmail(
-        groupId,
-        cleanEmail,
-      )
-
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message)
-        return
-      }
-
-      switch (outcome.result) {
-        case 'added':
-          setMemberEmail('')
-          reload()
-          setSuccessMessage(
-            `${outcome.member.fullName} was added. They can now access this group.`,
-          )
-          break
-        case 'already_member':
-          setErrorMessage(
-            'That person is already a member of this group.',
-          )
-          break
-        case 'member_not_added':
-          // Deliberately does not say whether the email has an account.
-          setErrorMessage(
-            'We could not add anyone with that email. Check the address — the person needs a SplitChat account with a confirmed email.',
-          )
-          break
-        case 'rate_limited':
-          setErrorMessage(
-            'Too many add attempts. Please wait a while and try again.',
-          )
-          break
-      }
-    } catch (error) {
-      console.error(
-        'Unexpected add member error:',
-        error,
-      )
-      setErrorMessage('Unable to add this member.')
-    } finally {
-      setIsAddingMember(false)
-    }
-  }
-
-  const handleRemoveMember = async (
-    member: DisplayMember,
-  ) => {
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    if (!groupId) {
-      setErrorMessage('Group ID is unavailable.')
-      return
-    }
-
-    // UI guards only; the server enforces the same rules.
-    if (!isOwner) {
-      setErrorMessage(
-        'Only the group owner can remove members.',
-      )
-      return
-    }
-
-    if (member.role === 'owner') {
-      setErrorMessage(
-        'The group owner cannot be removed.',
-      )
-      return
-    }
-
-    try {
-      setIsRemovingMember(true)
-
-      const outcome = await removeMember(
-        groupId,
-        member.userId,
-      )
-
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message)
-        return
-      }
-
-      setPendingRemovalUserId(null)
-
-      // Drop the row immediately so its actions cannot be used while the
-      // list refreshes (review B2-SR-1); the reload confirms server state.
-      setMembers((current) =>
-        current.filter(
-          (existing) => existing.userId !== member.userId,
-        ),
-      )
-
-      reload()
-
-      setSuccessMessage(
-        `${member.fullName} was removed from the group. Their past expenses are kept.`,
-      )
-    } catch (error) {
-      console.error(
-        'Unexpected remove member error:',
-        error,
-      )
-      setErrorMessage('Unable to remove this member.')
-    } finally {
-      setIsRemovingMember(false)
-    }
-  }
-
-  const handleTransferOwnership = async (
-    member: DisplayMember,
-  ) => {
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    if (!groupId) {
-      setErrorMessage('Group ID is unavailable.')
-      return
-    }
-
-    try {
-      setIsTransferring(true)
-
-      const outcome = await transferOwnership(
-        groupId,
-        member.userId,
-      )
-
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message)
-        return
-      }
-
-      setPendingTransferUserId(null)
-
-      // Swap roles immediately so owner-only actions disappear at once
-      // (review B2-SR-1); the reload confirms server state.
-      setMembers((current) =>
-        current.map((existing) => ({
-          ...existing,
-          role:
-            existing.userId === member.userId
-              ? 'owner'
-              : existing.role === 'owner'
-                ? 'member'
-                : existing.role,
-        })),
-      )
-
-      reload()
-
-      setSuccessMessage(
-        `${member.fullName} is now the owner of this group.`,
-      )
-    } catch (error) {
-      console.error(
-        'Unexpected transfer ownership error:',
-        error,
-      )
-      setErrorMessage('Unable to transfer ownership.')
-    } finally {
-      setIsTransferring(false)
-    }
-  }
-
-  const handleDeleteGroup = async () => {
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    if (!groupId) {
-      setErrorMessage('Your group information is unavailable.')
-      return
-    }
-
-    try {
-      setIsDeletingGroup(true)
-
-      const outcome = await deleteGroup(groupId)
-
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message)
-        setShowDeleteConfirm(false)
-        return
-      }
-
-      navigate('/groups', {
-        replace: true,
-      })
-    } catch (error) {
-      console.error(
-        'Unexpected delete group error:',
-        error,
-      )
-      setErrorMessage('Unable to delete this group.')
-    } finally {
-      setIsDeletingGroup(false)
-    }
-  }
-
-  const handleLeaveGroup = async () => {
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    if (!groupId || !currentUserId) {
-      setErrorMessage(
-        'Your group or session information is unavailable.',
-      )
-      return
-    }
-
-    if (isOwner) {
-      setErrorMessage(
-        'Make another member the owner before leaving this group.',
-      )
-      return
-    }
-
-    try {
-      setIsLeavingGroup(true)
-
-      const outcome = await leaveGroup(groupId)
-
-      if (!outcome.ok) {
-        setErrorMessage(outcome.message)
-        return
-      }
-
-      navigate('/groups', {
-        replace: true,
-      })
-    } catch (error) {
-      console.error(
-        'Unexpected leave group error:',
-        error,
-      )
-      setErrorMessage('Unable to leave this group.')
-    } finally {
-      setIsLeavingGroup(false)
-    }
-  }
-
-  if (isLoading) {
+  if (group.status === 'error') {
     return (
-      <section className={styles.stateCard}>
-        <div className={styles.stateIcon}>◎</div>
-        <h2>Loading group...</h2>
-        <p>Getting the latest group information.</p>
-      </section>
+      <ErrorState
+        title="Group unavailable"
+        message={group.error.message}
+        actions={[
+          ...(group.error.code === 'network' || group.error.code === 'unknown'
+            ? [{ label: 'Try again', onClick: group.reload }]
+            : []),
+          { label: '← Back to groups', to: '/groups' },
+        ]}
+      />
     )
   }
 
-  if (!group) {
-    return (
-      <section className={styles.stateCard}>
-        <div className={styles.stateIcon}>!</div>
+  const detail = group.data
+  const isOwner = detail.myRole === 'owner'
+  const report = (tone: 'success' | 'error', text: string) => setFeedback({ tone, text })
 
-        <h2>Group unavailable</h2>
+  const handleAdd = async (email: string) => {
+    setFeedback(null)
+    const result = await addMemberByEmail(groupId, email)
+    if (!result.ok) {
+      report('error', result.message)
+      return false
+    }
+    if (result.value.result === 'added') {
+      report('success', `${result.value.member.fullName} was added. They can now access this group.`)
+      group.reload()
+      return true
+    }
+    report('error', ADD_OUTCOME_TEXT[result.value.result])
+    return false
+  }
 
-        <p>
-          {errorMessage ||
-            'This group does not exist or you cannot access it.'}
-        </p>
+  const handleRemove = async (member: Member) => {
+    setFeedback(null)
+    setBusy(true)
+    const result = await removeMember(groupId, member.userId)
+    setBusy(false)
+    if (!result.ok) return report('error', result.message)
+    // Drop the row at once so its actions cannot be reused (B2-SR-1); the
+    // reload confirms the server state.
+    group.setData((d) => ({ ...d, members: d.members.filter((m) => m.userId !== member.userId) }))
+    group.reload()
+    report('success', `${member.fullName} was removed from the group. Their past expenses are kept.`)
+  }
 
-        <Link
-          to="/groups"
-          className={styles.backLink}
-        >
-          ← Back to groups
-        </Link>
-      </section>
-    )
+  const handleTransfer = async (member: Member) => {
+    setFeedback(null)
+    setBusy(true)
+    const result = await transferOwnership(groupId, member.userId)
+    setBusy(false)
+    if (!result.ok) return report('error', result.message)
+    // Swap roles at once so owner-only actions disappear (B2-SR-1).
+    group.setData((d) => ({
+      ...d,
+      myRole: 'member',
+      members: d.members.map((m) => ({
+        ...m,
+        role: m.userId === member.userId ? 'owner' : m.role === 'owner' ? 'member' : m.role,
+      })),
+    }))
+    group.reload()
+    report('success', `${member.fullName} is now the owner of this group.`)
+  }
+
+  const handleLeave = async () => {
+    setFeedback(null)
+    const result = await leaveGroup(groupId)
+    if (!result.ok) return report('error', result.message)
+    navigate('/groups', { replace: true })
+  }
+
+  const handleDelete = async () => {
+    setFeedback(null)
+    const result = await deleteGroup(groupId)
+    if (!result.ok) return report('error', result.message)
+    navigate('/groups', { replace: true })
   }
 
   return (
     <>
       <header className="topbar">
         <div>
-          <Link
-            to="/groups"
-            className={styles.breadcrumb}
-          >
+          <Link to="/groups" className={styles.breadcrumb}>
             ← Groups
           </Link>
-
-          <p className="eyebrow">
-            GROUP DETAILS
-          </p>
-
-          <h2>{group.name}</h2>
-
-          <p className="subtitle">
-            {group.description ||
-              'No description has been added to this group.'}
-          </p>
+          <p className="eyebrow">GROUP DETAILS</p>
+          <h2>{detail.name}</h2>
+          <p className="subtitle">{detail.description || 'No description has been added to this group.'}</p>
         </div>
-
         <div className={styles.headerActions}>
-          <div className={styles.groupRole}>
-            {isOwner ? 'Owner' : 'Member'}
-          </div>
-
-          <Link
-            to="expenses/new"
-            className="primary-button"
-          >
+          <div className={styles.groupRole}>{isOwner ? 'Owner' : 'Member'}</div>
+          <Link to={`/groups/${groupId}/expenses/new`} className="primary-button">
             + Add expense
           </Link>
         </div>
       </header>
 
-      {successMessage && (
-        <div className={styles.successMessage}>
-          {successMessage}
-        </div>
-      )}
-
-      {errorMessage && (
-        <div className={styles.errorMessage}>
-          {errorMessage}
-        </div>
-      )}
+      {feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}
 
       <section className={styles.overviewGrid}>
         <article className={styles.statCard}>
           <span>Members</span>
-
-          <strong>{members.length}</strong>
-
-          <p>
-            People currently sharing this group
-          </p>
+          <strong>{detail.members.length}</strong>
+          <p>People currently sharing this group</p>
         </article>
-
         <article className={styles.statCard}>
           <span>Your role</span>
-
-          <strong>
-            {isOwner ? 'Owner' : 'Member'}
-          </strong>
-
-          <p>
-            {isOwner
-              ? 'You manage this group'
-              : 'You are part of this group'}
-          </p>
+          <strong>{isOwner ? 'Owner' : 'Member'}</strong>
+          <p>{isOwner ? 'You manage this group' : 'You are part of this group'}</p>
         </article>
-
         <article className={styles.statCard}>
           <span>Created</span>
-
-          <strong>
-            {new Intl.DateTimeFormat('en-AU', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            }).format(
-              new Date(group.created_at),
-            )}
-          </strong>
-
+          <strong>{formatDateShort(detail.createdAt.slice(0, 10))}</strong>
           <p>Group creation date</p>
         </article>
       </section>
@@ -644,537 +157,28 @@ function GroupDetailsPage() {
         <article className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <p className="eyebrow">
-                MEMBERS
-              </p>
-
+              <p className="eyebrow">MEMBERS</p>
               <h3>Group members</h3>
             </div>
-
-            <span className={styles.memberCount}>
-              {members.length}
-            </span>
+            <span className={styles.memberCount}>{detail.members.length}</span>
           </div>
-
-          <div className={styles.memberList}>
-            {members.map((member) => {
-              const initials =
-                member.fullName
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part) =>
-                    part
-                      .charAt(0)
-                      .toUpperCase(),
-                  )
-                  .join('') || 'SC'
-
-              const isConfirmingRemoval =
-                pendingRemovalUserId ===
-                member.userId
-
-              const isConfirmingTransfer =
-                pendingTransferUserId ===
-                member.userId
-
-              return (
-                <div
-                  key={member.userId}
-                  className={styles.memberRow}
-                >
-                  <div
-                    className={
-                      styles.memberAvatar
-                    }
-                  >
-                    {initials}
-                  </div>
-
-                  <div
-                    className={
-                      styles.memberInfo
-                    }
-                  >
-                    <strong>
-                      {member.fullName}
-                    </strong>
-
-                    <span>
-                      Joined{' '}
-                      {new Intl.DateTimeFormat(
-                        'en-AU',
-                        {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        },
-                      ).format(
-                        new Date(
-                          member.joinedAt,
-                        ),
-                      )}
-                    </span>
-                  </div>
-
-                  <div
-                    className={
-                      styles.memberControls
-                    }
-                  >
-                    <span
-                      className={
-                        member.role ===
-                        'owner'
-                          ? styles.ownerBadge
-                          : styles.memberBadge
-                      }
-                    >
-                      {member.role}
-                    </span>
-
-                    {isOwner &&
-                      member.role !==
-                        'owner' && (
-                        <>
-                          {isConfirmingTransfer ? (
-                            <div
-                              className={
-                                styles.confirmActions
-                              }
-                              role="group"
-                              aria-label={`Confirm making ${member.fullName} the owner`}
-                            >
-                              <button
-                                type="button"
-                                className={
-                                  styles.confirmRemoveButton
-                                }
-                                onClick={() =>
-                                  void handleTransferOwnership(
-                                    member,
-                                  )
-                                }
-                                disabled={
-                                  isTransferring
-                                }
-                              >
-                                {isTransferring
-                                  ? 'Transferring...'
-                                  : 'Confirm owner'}
-                              </button>
-
-                              <button
-                                type="button"
-                                className={
-                                  styles.cancelActionButton
-                                }
-                                onClick={() =>
-                                  setPendingTransferUserId(
-                                    null,
-                                  )
-                                }
-                                disabled={
-                                  isTransferring
-                                }
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            !isConfirmingRemoval && (
-                              <button
-                                type="button"
-                                className={
-                                  styles.cancelActionButton
-                                }
-                                onClick={() => {
-                                  setErrorMessage('')
-                                  setSuccessMessage('')
-                                  setPendingRemovalUserId(
-                                    null,
-                                  )
-                                  setPendingTransferUserId(
-                                    member.userId,
-                                  )
-                                }}
-                              >
-                                Make owner
-                              </button>
-                            )
-                          )}
-
-                          {isConfirmingTransfer ? null : isConfirmingRemoval ? (
-                            <div
-                              className={
-                                styles.confirmActions
-                              }
-                            >
-                              <button
-                                type="button"
-                                className={
-                                  styles.confirmRemoveButton
-                                }
-                                onClick={() =>
-                                  void handleRemoveMember(
-                                    member,
-                                  )
-                                }
-                                disabled={
-                                  isRemovingMember
-                                }
-                              >
-                                {isRemovingMember
-                                  ? 'Removing...'
-                                  : 'Confirm'}
-                              </button>
-
-                              <button
-                                type="button"
-                                className={
-                                  styles.cancelActionButton
-                                }
-                                onClick={() =>
-                                  setPendingRemovalUserId(
-                                    null,
-                                  )
-                                }
-                                disabled={
-                                  isRemovingMember
-                                }
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className={
-                                styles.removeButton
-                              }
-                              onClick={() => {
-                                setErrorMessage(
-                                  '',
-                                )
-
-                                setSuccessMessage(
-                                  '',
-                                )
-
-                                setPendingTransferUserId(
-                                  null,
-                                )
-
-                                setPendingRemovalUserId(
-                                  member.userId,
-                                )
-                              }}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </>
-                      )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <MemberList
+            members={detail.members}
+            currentUserId={userId}
+            canManage={isOwner}
+            busy={busy}
+            onRemove={handleRemove}
+            onTransfer={handleTransfer}
+          />
         </article>
 
-        <article className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-              <p className="eyebrow">
-                {isOwner
-                  ? 'ADD MEMBER'
-                  : 'MEMBERSHIP'}
-              </p>
-
-              <h3>
-                {isOwner
-                  ? 'Add someone'
-                  : 'Group access'}
-              </h3>
-            </div>
-          </div>
-
-          {isOwner ? (
-            <>
-              <p
-                className={
-                  styles.panelDescription
-                }
-              >
-                Add an existing SplitChat user
-                using the email address
-                connected to their account.
-              </p>
-
-              <form
-                className={
-                  styles.addMemberForm
-                }
-                onSubmit={handleAddMember}
-              >
-                <label
-                  className={styles.field}
-                >
-                  <span>
-                    Email address
-                  </span>
-
-                  <input
-                    type="email"
-                    value={memberEmail}
-                    onChange={(event) =>
-                      setMemberEmail(
-                        event.target.value,
-                      )
-                    }
-                    placeholder="member@example.com"
-                    autoComplete="email"
-                    disabled={
-                      isAddingMember
-                    }
-                  />
-                </label>
-
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={
-                    isAddingMember
-                  }
-                >
-                  {isAddingMember
-                    ? 'Adding member...'
-                    : '+ Add member'}
-                </button>
-              </form>
-
-              <div
-                className={styles.infoBox}
-              >
-                <strong>
-                  Existing accounts only
-                </strong>
-
-                <p>
-                  The person must already have a
-                  SplitChat account with a
-                  confirmed email address.
-                </p>
-              </div>
-
-              <div
-                className={styles.infoBox}
-              >
-                <strong>
-                  Leaving this group
-                </strong>
-
-                <p>
-                  As the owner, make another
-                  member the owner first. You
-                  can then leave like any
-                  other member.
-                </p>
-              </div>
-
-              {canOfferDelete && (
-                <div
-                  className={
-                    styles.leaveSection
-                  }
-                >
-                  {!showDeleteConfirm ? (
-                    <button
-                      type="button"
-                      className={
-                        styles.leaveButton
-                      }
-                      onClick={() => {
-                        setErrorMessage('')
-                        setSuccessMessage('')
-                        setShowDeleteConfirm(true)
-                      }}
-                    >
-                      Delete group
-                    </button>
-                  ) : (
-                    <div
-                      className={
-                        styles.leaveConfirmation
-                      }
-                    >
-                      <strong>
-                        Delete this group
-                        permanently?
-                      </strong>
-
-                      <p>
-                        The group and all of its
-                        expenses will be deleted.
-                        This cannot be undone. A
-                        group that anyone else
-                        has ever been part of is
-                        kept instead.
-                      </p>
-
-                      <div
-                        className={
-                          styles.leaveActions
-                        }
-                      >
-                        <button
-                          type="button"
-                          className={
-                            styles.confirmLeaveButton
-                          }
-                          onClick={() =>
-                            void handleDeleteGroup()
-                          }
-                          disabled={
-                            isDeletingGroup
-                          }
-                        >
-                          {isDeletingGroup
-                            ? 'Deleting...'
-                            : 'Yes, delete'}
-                        </button>
-
-                        <button
-                          type="button"
-                          className={
-                            styles.cancelActionButton
-                          }
-                          onClick={() =>
-                            setShowDeleteConfirm(
-                              false,
-                            )
-                          }
-                          disabled={
-                            isDeletingGroup
-                          }
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div
-                className={
-                  styles.memberNotice
-                }
-              >
-                <div
-                  className={
-                    styles.stateIcon
-                  }
-                >
-                  ✓
-                </div>
-
-                <h4>
-                  You are a member of this
-                  group
-                </h4>
-
-                <p>
-                  You can view this group and
-                  participate in its shared
-                  activity.
-                </p>
-              </div>
-
-              <div
-                className={
-                  styles.leaveSection
-                }
-              >
-                {!showLeaveConfirm ? (
-                  <button
-                    type="button"
-                    className={
-                      styles.leaveButton
-                    }
-                    onClick={() => {
-                      setErrorMessage('')
-                      setSuccessMessage('')
-                      setShowLeaveConfirm(
-                        true,
-                      )
-                    }}
-                  >
-                    Leave group
-                  </button>
-                ) : (
-                  <div
-                    className={
-                      styles.leaveConfirmation
-                    }
-                  >
-                    <strong>
-                      Leave this group?
-                    </strong>
-
-                    <p>
-                      You will lose access to
-                      this group and its
-                      shared information.
-                    </p>
-
-                    <div
-                      className={
-                        styles.leaveActions
-                      }
-                    >
-                      <button
-                        type="button"
-                        className={
-                          styles.confirmLeaveButton
-                        }
-                        onClick={() =>
-                          void handleLeaveGroup()
-                        }
-                        disabled={
-                          isLeavingGroup
-                        }
-                      >
-                        {isLeavingGroup
-                          ? 'Leaving...'
-                          : 'Yes, leave'}
-                      </button>
-
-                      <button
-                        type="button"
-                        className={
-                          styles.cancelActionButton
-                        }
-                        onClick={() =>
-                          setShowLeaveConfirm(
-                            false,
-                          )
-                        }
-                        disabled={
-                          isLeavingGroup
-                        }
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </article>
+        <MembershipPanel
+          isOwner={isOwner}
+          isSoleMember={detail.members.length === 1}
+          onAdd={handleAdd}
+          onLeave={handleLeave}
+          onDelete={handleDelete}
+        />
       </section>
     </>
   )

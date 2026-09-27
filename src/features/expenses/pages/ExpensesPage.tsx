@@ -1,722 +1,148 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../../auth/useAuth'
-import { fetchLedgerIdentityNames } from '../../groups/ledgerIdentities'
-import { formatCents, readCents } from '../../../shared/domain/money'
-import { supabase } from '../../../shared/api/supabase'
+import { Link, useLocation } from 'react-router-dom'
+import { formatDateShort } from '../../../shared/domain/dates'
+import { formatCents } from '../../../shared/domain/money'
+import { useResource } from '../../../shared/hooks/useResource'
+import { ErrorState, LoadingState, Notice } from '../../../shared/ui'
+import { useAuth } from '../../auth'
+import { listMyExpenses, type ExpenseListItem } from '../api/queries'
 import styles from './ExpensesPage.module.css'
 
-type Expense = {
-  id: string
-  group_id: string
-  description: string
-  amount_cents: number | string
-  expense_date: string
-  paid_by: string
-  created_by: string
-  split_type: 'equal' | 'exact' | 'percentage'
-  notes: string | null
-  created_at: string
-  updated_at: string
-}
-
-type Group = {
-  id: string
-  name: string
-}
-
-type Profile = {
-  id: string
-  full_name: string
-  avatar_url: string | null
-}
-
-type ExpenseSplit = {
-  expense_id: string
-  user_id: string
-  share_cents: number | string
-}
-
-type DisplayExpense = {
-  id: string
-  groupId: string
-  groupName: string
-  description: string
-  amountCents: number
-  expenseDate: string
-  paidById: string
-  paidByName: string
-  splitType: 'equal' | 'exact' | 'percentage'
-  notes: string | null
-  yourShareCents: number | null
-}
-
-function formatExpenseDate(date: string) {
-  return new Intl.DateTimeFormat('en-AU', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(
-    new Date(`${date}T00:00:00`),
+function ExpenseRow({ expense, userId }: { expense: ExpenseListItem; userId: string }) {
+  return (
+    <li className={styles.expenseRow}>
+      <div className={styles.expenseIcon} aria-hidden="true">
+        $
+      </div>
+      <div className={styles.expenseMain}>
+        <div className={styles.expenseTitleRow}>
+          <div>
+            <h4>
+              <Link to={`/expenses/${expense.id}`} className={styles.detailsLink}>
+                {expense.description}
+              </Link>
+            </h4>
+            <div className={styles.expenseMeta}>
+              <Link to={`/groups/${expense.groupId}`} className={styles.groupLink}>
+                {expense.groupName}
+              </Link>
+              <span aria-hidden="true">•</span>
+              <span>{formatDateShort(expense.expenseDate)}</span>
+            </div>
+          </div>
+          <strong className={styles.expenseAmount}>{formatCents(expense.amountCents)}</strong>
+        </div>
+        <div className={styles.expenseDetails}>
+          <span>
+            Paid by <strong>{expense.paidBy === userId ? 'You' : expense.paidByName}</strong>
+          </span>
+          <span>
+            Split <strong>equally</strong>
+          </span>
+          <span>
+            Your share <strong>{expense.myShareCents === null ? 'Not included' : formatCents(expense.myShareCents)}</strong>
+          </span>
+        </div>
+        {expense.notes && <p className={styles.expenseNotes}>{expense.notes}</p>}
+      </div>
+    </li>
   )
-}
-
-function getSplitLabel(
-  splitType: DisplayExpense['splitType'],
-) {
-  if (splitType === 'equal') {
-    return 'equally'
-  }
-
-  if (splitType === 'exact') {
-    return 'by exact amounts'
-  }
-
-  return 'by percentage'
 }
 
 function ExpensesPage() {
+  const location = useLocation()
   const { session } = useAuth()
+  const userId = session?.user.id ?? ''
+  const expenses = useResource(userId ? `expenses:${userId}` : null, () => listMyExpenses(userId))
+  const notice = (location.state as { notice?: string } | null)?.notice
 
-  const [expenses, setExpenses] =
-    useState<DisplayExpense[]>([])
-
-  const [isLoading, setIsLoading] =
-    useState(true)
-
-  const [errorMessage, setErrorMessage] =
-    useState('')
-
-  const userId = session?.user.id
-
-  const [reloadKey, setReloadKey] = useState(0)
-
-  const reload = () => {
-    setReloadKey((key) => key + 1)
-  }
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadExpenses = async () => {
-      if (!userId) {
-        setExpenses([])
-        setErrorMessage(
-          'Your session information is unavailable.',
-        )
-        setIsLoading(false)
-        return
-      }
-
-      setIsLoading(true)
-      setErrorMessage('')
-
-      const {
-        data: expenseData,
-        error: expenseError,
-      } = await supabase
-        .from('expenses')
-        .select(
-          `
-          id,
-          group_id,
-          description,
-          amount_cents,
-          expense_date,
-          paid_by,
-          created_by,
-          split_type,
-          notes,
-          created_at,
-          updated_at
-          `,
-        )
-        .order('expense_date', {
-          ascending: false,
-        })
-        .order('created_at', {
-          ascending: false,
-        })
-
-      if (cancelled) {
-        return
-      }
-
-      if (expenseError) {
-        console.error(
-          'Unable to load expenses:',
-          expenseError,
-        )
-
-        setExpenses([])
-        setErrorMessage(
-          'Unable to load your expenses.',
-        )
-        setIsLoading(false)
-        return
-      }
-
-      const loadedExpenses =
-        (expenseData ?? []) as Expense[]
-
-      if (loadedExpenses.length === 0) {
-        setExpenses([])
-        setIsLoading(false)
-        return
-      }
-
-      const groupIds = Array.from(
-        new Set(
-          loadedExpenses.map(
-            (expense) => expense.group_id,
-          ),
-        ),
-      )
-
-      const profileIds = Array.from(
-        new Set(
-          loadedExpenses.map(
-            (expense) => expense.paid_by,
-          ),
-        ),
-      )
-
-      const expenseIds = loadedExpenses.map(
-        (expense) => expense.id,
-      )
-
-      const [
-        groupResult,
-        profileResult,
-        splitResult,
-      ] = await Promise.all([
-        supabase
-          .from('groups')
-          .select('id, name')
-          .in('id', groupIds),
-
-        supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', profileIds),
-
-        supabase
-          .from('expense_splits')
-          .select(
-            'expense_id, user_id, share_cents',
-          )
-          .in('expense_id', expenseIds)
-          .eq('user_id', userId),
-      ])
-
-      if (cancelled) {
-        return
-      }
-
-      if (groupResult.error) {
-        console.error(
-          'Unable to load expense groups:',
-          groupResult.error,
-        )
-
-        setExpenses([])
-        setErrorMessage(
-          'Unable to load expense group information.',
-        )
-        setIsLoading(false)
-        return
-      }
-
-      if (profileResult.error) {
-        console.error(
-          'Unable to load expense profiles:',
-          profileResult.error,
-        )
-
-        setExpenses([])
-        setErrorMessage(
-          'Unable to load expense member information.',
-        )
-        setIsLoading(false)
-        return
-      }
-
-      if (splitResult.error) {
-        console.error(
-          'Unable to load your expense shares:',
-          splitResult.error,
-        )
-
-        setExpenses([])
-        setErrorMessage(
-          'Unable to load your expense shares.',
-        )
-        setIsLoading(false)
-        return
-      }
-
-      const groups =
-        (groupResult.data ?? []) as Group[]
-
-      const profiles =
-        (profileResult.data ?? []) as Profile[]
-
-      const userSplits =
-        (splitResult.data ?? []) as ExpenseSplit[]
-
-      const groupMap = new Map(
-        groups.map((group) => [
-          group.id,
-          group.name,
-        ]),
-      )
-
-      const profileMap = new Map(
-        profiles.map((profile) => [
-          profile.id,
-          profile.full_name?.trim() ||
-            'SplitChat member',
-        ]),
-      )
-
-      // Payers who are no longer active members are not in `profiles`;
-      // their preserved display names come from the ledger (G1).
-      const groupsWithHistoricalPayers = loadedExpenses
-        .filter((expense) => !profileMap.has(expense.paid_by))
-        .map((expense) => expense.group_id)
-
-      if (groupsWithHistoricalPayers.length > 0) {
-        const historicalNames = await fetchLedgerIdentityNames(
-          groupsWithHistoricalPayers,
-        )
-
-        if (cancelled) {
-          return
-        }
-
-        for (const [id, displayName] of historicalNames) {
-          if (!profileMap.has(id)) {
-            profileMap.set(id, displayName)
-          }
-        }
-      }
-
-      const splitMap = new Map(
-        userSplits.map((split) => [
-          split.expense_id,
-          readCents(split.share_cents),
-        ]),
-      )
-
-      // Money arrives as integer cents; a value that is not one is an
-      // unexpected response and is never displayed as an amount.
-      if (
-        loadedExpenses.some(
-          (expense) => readCents(expense.amount_cents) === null,
-        ) ||
-        [...splitMap.values()].some((cents) => cents === null)
-      ) {
-        console.error('Unexpected expense amount in response')
-
-        setExpenses([])
-        setErrorMessage('Unable to load your expenses.')
-        setIsLoading(false)
-        return
-      }
-
-      const displayExpenses: DisplayExpense[] =
-        loadedExpenses.map((expense) => ({
-          id: expense.id,
-
-          groupId: expense.group_id,
-
-          groupName:
-            groupMap.get(expense.group_id) ||
-            'SplitChat group',
-
-          description: expense.description,
-
-          amountCents: readCents(expense.amount_cents) ?? 0,
-
-          expenseDate: expense.expense_date,
-
-          paidById: expense.paid_by,
-
-          paidByName:
-            profileMap.get(expense.paid_by) ||
-            'SplitChat member',
-
-          splitType: expense.split_type,
-
-          notes: expense.notes,
-
-          yourShareCents:
-            splitMap.get(expense.id) ?? null,
-        }))
-
-      setExpenses(displayExpenses)
-      setIsLoading(false)
-    }
-
-    void loadExpenses()
-
-    return () => {
-      cancelled = true
-    }
-  }, [userId, reloadKey])
-
-  const totalSpend = useMemo(
-    () =>
-      expenses.reduce(
-        (total, expense) =>
-          total + expense.amountCents,
-        0,
-      ),
-    [expenses],
+  const header = (
+    <header className="topbar">
+      <div>
+        <p className="eyebrow">EXPENSES</p>
+        <h2>Shared expenses</h2>
+        <p className="subtitle">Review costs recorded across all of your SplitChat groups.</p>
+      </div>
+      <Link to="/groups" className="primary-button">
+        + Add expense
+      </Link>
+    </header>
   )
 
-  const yourTotalShare = useMemo(
-    () =>
-      expenses.reduce(
-        (total, expense) =>
-          total + (expense.yourShareCents ?? 0),
-        0,
-      ),
-    [expenses],
-  )
-
-  const groupCount = useMemo(
-    () =>
-      new Set(
-        expenses.map(
-          (expense) => expense.groupId,
-        ),
-      ).size,
-    [expenses],
-  )
-
-  if (isLoading) {
+  if (expenses.status === 'loading') {
     return (
-      <section className={styles.stateCard}>
-        <div className={styles.stateIcon}>
-          ◎
-        </div>
-
-        <h2>Loading expenses...</h2>
-
-        <p>
-          Getting your shared expense history.
-        </p>
-      </section>
+      <>
+        {header}
+        <LoadingState title="Loading expenses..." message="Getting your shared expense history." />
+      </>
+    )
+  }
+  if (expenses.status === 'error') {
+    return (
+      <>
+        {header}
+        <ErrorState
+          title="Expenses unavailable"
+          message={expenses.error.message}
+          actions={[{ label: 'Try again', onClick: expenses.reload }]}
+        />
+      </>
     )
   }
 
-  if (errorMessage) {
-    return (
-      <section className={styles.stateCard}>
-        <div className={styles.stateIcon}>
-          !
-        </div>
-
-        <h2>Unable to load expenses</h2>
-
-        <p>{errorMessage}</p>
-
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() =>
-            reload()
-          }
-        >
-          Try again
-        </button>
-      </section>
-    )
-  }
+  const items = expenses.data
+  const totalSpend = items.reduce((sum, e) => sum + e.amountCents, 0)
+  const myTotal = items.reduce((sum, e) => sum + (e.myShareCents ?? 0), 0)
 
   return (
     <>
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">
-            EXPENSES
-          </p>
+      {header}
+      {notice && <Notice tone="success">{notice}</Notice>}
 
-          <h2>Shared expenses</h2>
-
-          <p className="subtitle">
-            Review costs recorded across all of
-            your SplitChat groups.
-          </p>
-        </div>
-
-        <Link
-          to="/groups"
-          className="primary-button"
-        >
-          + Add expense
-        </Link>
-      </header>
-
-      {expenses.length === 0 ? (
+      {items.length === 0 ? (
         <section className={styles.emptyState}>
-          <div className={styles.emptyIcon}>
+          <div className={styles.emptyIcon} aria-hidden="true">
             $
           </div>
-
-          <p className="eyebrow">
-            NO EXPENSES YET
-          </p>
-
-          <h3>
-            Your shared expenses will appear here
-          </h3>
-
-          <p>
-            Open one of your groups to record
-            your first shared expense.
-          </p>
-
-          <Link
-            to="/groups"
-            className="primary-button"
-          >
+          <p className="eyebrow">NO EXPENSES YET</p>
+          <h3>Your shared expenses will appear here</h3>
+          <p>Open one of your groups to record your first shared expense.</p>
+          <Link to="/groups" className="secondary-button">
             View groups
           </Link>
         </section>
       ) : (
         <>
-          <section
-            className={styles.overviewGrid}
-          >
-            <article
-              className={styles.statCard}
-            >
-              <span>
-                Total shared spend
-              </span>
-
-              <strong>
-                {formatCents(totalSpend)}
-              </strong>
-
-              <p>
-                Across expenses you can access
-              </p>
+          <section className={styles.overviewGrid}>
+            <article className={styles.statCard}>
+              <span>Total shared spend</span>
+              <strong>{formatCents(totalSpend)}</strong>
+              <p>Across expenses you can access</p>
             </article>
-
-            <article
-              className={styles.statCard}
-            >
-              <span>
-                Your total share
-              </span>
-
-              <strong>
-                {formatCents(yourTotalShare)}
-              </strong>
-
-              <p>
-                Your recorded portion of these
-                costs
-              </p>
+            <article className={styles.statCard}>
+              <span>Your total share</span>
+              <strong>{formatCents(myTotal)}</strong>
+              <p>Your recorded portion of these costs</p>
             </article>
-
-            <article
-              className={styles.statCard}
-            >
+            <article className={styles.statCard}>
               <span>Expenses</span>
-
-              <strong>
-                {expenses.length}
-              </strong>
-
-              <p>
-                Shared costs currently recorded
-              </p>
-            </article>
-
-            <article
-              className={styles.statCard}
-            >
-              <span>Groups</span>
-
-              <strong>
-                {groupCount}
-              </strong>
-
-              <p>
-                Groups represented in this history
-              </p>
+              <strong>{items.length}</strong>
+              <p>Recorded in your active groups</p>
             </article>
           </section>
 
-          <section
-            className={styles.expensePanel}
-          >
-            <div
-              className={styles.panelHeader}
-            >
+          <section className={styles.expensePanel}>
+            <div className={styles.panelHeader}>
               <div>
-                <p className="eyebrow">
-                  RECENT ACTIVITY
-                </p>
-
-                <h3>
-                  Expense history
-                </h3>
+                <p className="eyebrow">HISTORY</p>
+                <h3>All expenses</h3>
               </div>
-
-              <span
-                className={
-                  styles.expenseCount
-                }
-              >
-                {expenses.length}
-              </span>
+              <span className={styles.expenseCount}>{items.length}</span>
             </div>
-
-            <div
-              className={styles.expenseList}
-            >
-              {expenses.map((expense) => {
-                const youPaid =
-                  expense.paidById ===
-                  session?.user.id
-
-                return (
-                  <article
-                    key={expense.id}
-                    className={
-                      styles.expenseRow
-                    }
-                  >
-                    <div
-                      className={
-                        styles.expenseIcon
-                      }
-                    >
-                      $
-                    </div>
-
-                    <div
-                      className={
-                        styles.expenseMain
-                      }
-                    >
-                      <div
-                        className={
-                          styles.expenseTitleRow
-                        }
-                      >
-                        <div>
-                          <h4>
-                            {
-                              expense.description
-                            }
-                          </h4>
-
-                          <div
-                            className={
-                              styles.expenseMeta
-                            }
-                          >
-                            <Link
-                              to={`/groups/${expense.groupId}`}
-                              className={
-                                styles.groupLink
-                              }
-                            >
-                              {
-                                expense.groupName
-                              }
-                            </Link>
-
-                            <span>•</span>
-
-                            <span>
-                              {formatExpenseDate(
-                                expense.expenseDate,
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        <strong
-                          className={
-                            styles.expenseAmount
-                          }
-                        >
-                          {formatCents(
-                            expense.amountCents,
-                          )}
-                        </strong>
-                      </div>
-
-                      <div
-                        className={
-                          styles.expenseDetails
-                        }
-                      >
-                        <span>
-                          Paid by{' '}
-                          <strong>
-                            {youPaid
-                              ? 'You'
-                              : expense.paidByName}
-                          </strong>
-                        </span>
-
-                        <span>
-                          Split{' '}
-                          <strong>
-                            {getSplitLabel(
-                              expense.splitType,
-                            )}
-                          </strong>
-                        </span>
-
-                        {expense.yourShareCents !==
-                          null && (
-                          <span>
-                            Your share{' '}
-                            <strong>
-                              {formatCents(
-                                expense.yourShareCents,
-                              )}
-                            </strong>
-                          </span>
-                        )}
-
-                        <Link
-                          to={`/expenses/${expense.id}`}
-                          className={
-                            styles.detailsLink
-                          }
-                        >
-                          View details →
-                        </Link>
-                      </div>
-
-                      {expense.notes && (
-                        <p
-                          className={
-                            styles.expenseNotes
-                          }
-                        >
-                          {expense.notes}
-                        </p>
-                      )}
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
+            <ul className={styles.expenseList} aria-label="Expenses">
+              {items.map((expense) => (
+                <ExpenseRow key={expense.id} expense={expense} userId={userId} />
+              ))}
+            </ul>
           </section>
         </>
       )}

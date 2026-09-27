@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../../shared/api/supabase'
+import { signIn, signUp } from './api/auth'
 import styles from './AuthPage.module.css'
 
 type AuthMode = 'signin' | 'signup'
@@ -63,28 +63,21 @@ function AuthPage() {
       setIsLoading(true)
 
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: {
-              full_name: cleanFullName,
-            },
-          },
-        })
+        const result = await signUp(cleanEmail, password, cleanFullName)
 
-        if (error) {
-          throw error
+        if (!result.ok) {
+          setErrorMessage(result.message)
+          return
         }
 
-        if (data.session) {
+        if (result.value.signedIn) {
           navigate('/')
           return
         }
 
+        // Same message whether or not the address already had an account.
         setSuccessMessage(
-          'Account created. Check your email and confirm your address before signing in.',
+          'Check your email: if this address can be used, we have sent a link to confirm it before you sign in.',
         )
 
         setPassword('')
@@ -92,22 +85,14 @@ function AuthPage() {
         return
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      })
+      const result = await signIn(cleanEmail, password)
 
-      if (error) {
-        throw error
+      if (!result.ok) {
+        setErrorMessage(result.message)
+        return
       }
 
       navigate('/')
-    } catch (error) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage('Something went wrong. Please try again.')
-      }
     } finally {
       setIsLoading(false)
     }

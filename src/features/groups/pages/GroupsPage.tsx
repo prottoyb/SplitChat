@@ -1,178 +1,54 @@
-import {
-  useEffect,
-  useState,
-  type FormEvent,
-} from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../auth/useAuth'
-import { supabase } from '../../../shared/api/supabase'
+import { formatDateShort } from '../../../shared/domain/dates'
+import { useResource } from '../../../shared/hooks/useResource'
+import { ErrorState, LoadingState, Notice } from '../../../shared/ui'
+import { useAuth } from '../../auth'
+import { createGroup, listMyGroups, type GroupSummary } from '../api/groups'
+import { CreateGroupForm } from '../components/CreateGroupForm'
+import type { GroupInput } from '../domain/groupForm'
 import styles from './GroupsPage.module.css'
 
-type Group = {
-  id: string
-  name: string
-  description: string | null
-  created_by: string
-  created_at: string
-  updated_at: string
+function GroupCard({ group }: { group: GroupSummary }) {
+  return (
+    <Link to={`/groups/${group.id}`} className={styles.groupCardLink}>
+      <article className={styles.groupCard}>
+        <div className={styles.groupCardTop}>
+          <div className={styles.groupIcon} aria-hidden="true">
+            ◎
+          </div>
+          <span className={styles.ownerBadge}>{group.myRole === 'owner' ? 'Owner' : 'Member'}</span>
+        </div>
+        <h3>{group.name}</h3>
+        <p>{group.description || 'No description has been added yet.'}</p>
+        <div className={styles.groupMeta}>
+          {group.memberCount} {group.memberCount === 1 ? 'member' : 'members'} · Created{' '}
+          {formatDateShort(group.createdAt.slice(0, 10))}
+        </div>
+      </article>
+    </Link>
+  )
 }
 
 function GroupsPage() {
   const { session } = useAuth()
-  const userId = session?.user.id
+  const userId = session?.user.id ?? ''
+  const groups = useResource(userId ? `groups:${userId}` : null, () => listMyGroups(userId))
+  const [showCreate, setShowCreate] = useState(false)
+  const [success, setSuccess] = useState('')
 
-  const [groups, setGroups] = useState<Group[]>([])
-  const [ownedGroupIds, setOwnedGroupIds] = useState<Set<string>>(
-    () => new Set(),
-  )
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-
-  const [reloadKey, setReloadKey] = useState(0)
-
-  const reload = () => {
-    setReloadKey((key) => key + 1)
+  const handleCreate = async (input: GroupInput) => {
+    const result = await createGroup(input, userId)
+    if (!result.ok) return result.message
+    setShowCreate(false)
+    setSuccess('Group created successfully.')
+    groups.reload()
+    return null
   }
 
-  useEffect(() => {
-    let cancelled = false
-
-    const loadGroups = async () => {
-      setIsLoading(true)
-      setErrorMessage('')
-
-      const { data, error } = await supabase
-        .from('groups')
-        .select('id, name, description, created_by, created_at, updated_at')
-        .order('created_at', { ascending: false })
-
-      if (cancelled) {
-        return
-      }
-
-      if (error) {
-        console.error('Unable to load groups:', error)
-        setErrorMessage('Unable to load your groups.')
-        setGroups([])
-        setIsLoading(false)
-        return
-      }
-
-      // Ownership comes from the caller's membership role (M7), not from
-      // groups.created_by, which only records who created the group.
-      const { data: roleData, error: roleError } = userId
-        ? await supabase
-            .from('group_members')
-            .select('group_id, role')
-            .eq('user_id', userId)
-        : { data: [], error: null }
-
-      if (cancelled) {
-        return
-      }
-
-      if (roleError) {
-        console.error('Unable to load your group roles:', roleError)
-      }
-
-      setOwnedGroupIds(
-        new Set(
-          ((roleData ?? []) as { group_id: string; role: string }[])
-            .filter((membership) => membership.role === 'owner')
-            .map((membership) => membership.group_id),
-        ),
-      )
-      setGroups(data ?? [])
-      setIsLoading(false)
-    }
-
-    void loadGroups()
-
-    return () => {
-      cancelled = true
-    }
-  }, [reloadKey, userId])
-
-  const resetForm = () => {
-    setName('')
-    setDescription('')
-    setErrorMessage('')
-  }
-
-  const closeCreateForm = () => {
-    resetForm()
-    setShowCreateForm(false)
-  }
-
-  const handleCreateGroup = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault()
-
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    const cleanName = name.trim()
-    const cleanDescription = description.trim()
-
-    if (!userId) {
-      setErrorMessage('Your session is unavailable. Please sign in again.')
-      return
-    }
-
-    if (!cleanName) {
-      setErrorMessage('Please enter a group name.')
-      return
-    }
-
-    if (cleanName.length > 80) {
-      setErrorMessage('Group names must be 80 characters or fewer.')
-      return
-    }
-
-    if (cleanDescription.length > 300) {
-      setErrorMessage('Descriptions must be 300 characters or fewer.')
-      return
-    }
-
-    try {
-      setIsCreating(true)
-
-      const { error } = await supabase
-        .from('groups')
-        .insert({
-          name: cleanName,
-          description: cleanDescription || null,
-          created_by: userId,
-        })
-
-      if (error) {
-        throw error
-      }
-
-      reload()
-
-      resetForm()
-      setShowCreateForm(false)
-      setSuccessMessage('Group created successfully.')
-    } catch (error) {
-      console.error('Unable to create group:', error)
-
-      if (error instanceof Error) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage('Unable to create the group.')
-      }
-    } finally {
-      setIsCreating(false)
-    }
+  const openCreate = () => {
+    setSuccess('')
+    setShowCreate(true)
   }
 
   return (
@@ -181,188 +57,43 @@ function GroupsPage() {
         <div>
           <p className="eyebrow">GROUPS</p>
           <h2>Your groups</h2>
-          <p className="subtitle">
-            Organise shared expenses by trip, household, event or anything
-            else you share with others.
-          </p>
+          <p className="subtitle">Create groups for trips, households and anything you share.</p>
         </div>
-
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => {
-            setErrorMessage('')
-            setSuccessMessage('')
-            setShowCreateForm(true)
-          }}
-        >
+        <button type="button" className="primary-button" onClick={openCreate} disabled={showCreate}>
           + Create group
         </button>
       </header>
 
-      {successMessage && (
-        <div className={styles.successMessage}>
-          {successMessage}
-        </div>
-      )}
+      {success && <Notice tone="success">{success}</Notice>}
 
-      {errorMessage && !showCreateForm && (
-        <div className={styles.errorMessage}>
-          {errorMessage}
-        </div>
-      )}
+      {showCreate && <CreateGroupForm onCreate={handleCreate} onClose={() => setShowCreate(false)} />}
 
-      {showCreateForm && (
-        <section className={styles.createPanel}>
-          <div className={styles.createHeader}>
-            <div>
-              <p className="eyebrow">NEW GROUP</p>
-              <h3>Create a group</h3>
-              <p>
-                Give the group a clear name and an optional description.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={closeCreateForm}
-              disabled={isCreating}
-              aria-label="Close create group form"
-            >
-              ×
-            </button>
-          </div>
-
-          <form
-            className={styles.createForm}
-            onSubmit={handleCreateGroup}
-          >
-            <label className={styles.field}>
-              <span>Group name</span>
-
-              <input
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Bali Trip 2026"
-                maxLength={80}
-                disabled={isCreating}
-                autoFocus
-              />
-
-              <small>{name.length}/80</small>
-            </label>
-
-            <label className={styles.field}>
-              <span>Description</span>
-
-              <textarea
-                value={description}
-                onChange={(event) =>
-                  setDescription(event.target.value)
-                }
-                placeholder="Optional — what is this group for?"
-                maxLength={300}
-                disabled={isCreating}
-              />
-
-              <small>{description.length}/300</small>
-            </label>
-
-            {errorMessage && (
-              <div className={styles.errorMessage}>
-                {errorMessage}
-              </div>
-            )}
-
-            <div className={styles.formActions}>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={closeCreateForm}
-                disabled={isCreating}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={isCreating}
-              >
-                {isCreating ? 'Creating...' : 'Create group'}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      <section className={styles.groupsSection}>
-        {isLoading ? (
+      <section className={styles.groupsSection} aria-busy={groups.refreshing || undefined}>
+        {groups.status === 'loading' ? (
+          <LoadingState title="Loading groups..." message="Getting your SplitChat groups." />
+        ) : groups.status === 'error' ? (
+          <ErrorState
+            title="Groups unavailable"
+            message={groups.error.message}
+            actions={[{ label: 'Try again', onClick: groups.reload }]}
+          />
+        ) : groups.data.length === 0 ? (
           <div className={styles.stateCard}>
-            <div className={styles.stateIcon}>◎</div>
-            <h3>Loading groups...</h3>
-            <p>Getting your SplitChat groups.</p>
-          </div>
-        ) : groups.length === 0 ? (
-          <div className={styles.stateCard}>
-            <div className={styles.stateIcon}>◎</div>
-
+            <div className={styles.stateIcon} aria-hidden="true">
+              ◎
+            </div>
             <h3>No groups yet</h3>
-
-            <p>
-              Create your first group to start organising shared expenses.
-            </p>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                setErrorMessage('')
-                setSuccessMessage('')
-                setShowCreateForm(true)
-              }}
-            >
-              Create your first group
-            </button>
+            <p>Create your first group to start organising shared expenses.</p>
+            {!showCreate && (
+              <button type="button" className="secondary-button" onClick={openCreate}>
+                Create your first group
+              </button>
+            )}
           </div>
         ) : (
           <div className={styles.groupGrid}>
-            {groups.map((group) => (
-              <Link
-                key={group.id}
-                to={`/groups/${group.id}`}
-                className={styles.groupCardLink}
-              >
-                <article className={styles.groupCard}>
-                  <div className={styles.groupCardTop}>
-                    <div className={styles.groupIcon}>◎</div>
-
-                    <span className={styles.ownerBadge}>
-                      {ownedGroupIds.has(group.id)
-                        ? 'Owner'
-                        : 'Member'}
-                    </span>
-                  </div>
-
-                  <h3>{group.name}</h3>
-
-                  <p>
-                    {group.description ||
-                      'No description has been added yet.'}
-                  </p>
-
-                  <div className={styles.groupMeta}>
-                    Created{' '}
-                    {new Intl.DateTimeFormat('en-AU', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    }).format(new Date(group.created_at))}
-                  </div>
-                </article>
-              </Link>
+            {groups.data.map((group) => (
+              <GroupCard key={group.id} group={group} />
             ))}
           </div>
         )}

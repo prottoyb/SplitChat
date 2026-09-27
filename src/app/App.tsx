@@ -1,65 +1,50 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import './App.css'
-import { AuthProvider } from '../features/auth/AuthContext'
-import ProtectedRoute from '../features/auth/ProtectedRoute'
+import { LoadingState } from '../shared/ui'
+import { AuthProvider, ProtectedRoute } from '../features/auth'
 import AppLayout from './AppLayout'
-import ActivityPage from '../features/activity/ActivityPage'
-import AddExpensePage from '../features/expenses/pages/AddExpensePage'
-import AuthPage from '../features/auth/AuthPage'
-import DashboardPage from '../features/dashboard/DashboardPage'
-import ExpensesPage from '../features/expenses/pages/ExpensesPage'
-import GroupDetailsPage from '../features/groups/pages/GroupDetailsPage'
-import GroupsPage from '../features/groups/pages/GroupsPage'
-import ExpenseDetailsPage from '../features/expenses/pages/ExpenseDetailsPage'
+import './App.css'
+
+// Route pages load on demand, so the first paint only ships the shell.
+const AuthPage = lazy(() => import('../features/auth/AuthPage'))
+const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'))
+const GroupsPage = lazy(() => import('../features/groups/pages/GroupsPage'))
+const GroupDetailsPage = lazy(() => import('../features/groups/pages/GroupDetailsPage'))
+const NewExpensePage = lazy(() => import('../features/expenses/pages/NewExpensePage'))
+const EditExpensePage = lazy(() => import('../features/expenses/pages/EditExpensePage'))
+const ExpensesPage = lazy(() => import('../features/expenses/pages/ExpensesPage'))
+const ExpenseDetailsPage = lazy(() => import('../features/expenses/pages/ExpenseDetailsPage'))
+const ActivityPage = lazy(() => import('../features/activity/ActivityPage'))
+
+const pageFallback = <LoadingState title="Loading..." />
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<AuthPage />} />
-
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<DashboardPage />} />
+        <Suspense fallback={pageFallback}>
+          <Routes>
+            <Route path="/login" element={<AuthPage />} />
 
             <Route
-              path="groups"
-              element={<GroupsPage />}
-            />
-
-            <Route
-              path="groups/:groupId"
-              element={<GroupDetailsPage />}
-            />
-
-            <Route
-              path="groups/:groupId/expenses/new"
-              element={<AddExpensePage />}
-            />
-
-            <Route
-              path="expenses"
-              element={<ExpensesPage />}
-            />
-
-            <Route
-              path="expenses/:expenseId"
-              element={<ExpenseDetailsPage />}
-            />
-
-            <Route
-              path="activity"
-              element={<ActivityPage />}
-            />
-          </Route>
-        </Routes>
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<DashboardPage />} />
+              <Route path="groups" element={<GroupsPage />} />
+              <Route path="groups/:groupId" element={<GroupDetailsPage />} />
+              <Route path="groups/:groupId/expenses/new" element={<NewExpensePage />} />
+              <Route path="expenses" element={<ExpensesPage />} />
+              <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
+              <Route path="expenses/:expenseId/edit" element={<EditExpensePage />} />
+              <Route path="activity" element={<ActivityPage />} />
+            </Route>
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   )

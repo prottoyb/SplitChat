@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSupabaseMock } from '../../../test/supabaseMock'
-import AddExpensePage from './AddExpensePage'
+import NewExpensePage from './NewExpensePage'
 
 const mock = vi.hoisted(() => ({ current: null as unknown }))
 
@@ -42,7 +42,7 @@ function renderPage(path = '/groups/g1/expenses/new') {
       <Routes>
         <Route
           path="groups/:groupId/expenses/new"
-          element={<AddExpensePage />}
+          element={<NewExpensePage />}
         />
       </Routes>
     </MemoryRouter>,
@@ -66,7 +66,7 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
-describe('AddExpensePage', () => {
+describe('NewExpensePage', () => {
   it('shows a loading state, then the form with everyone selected', async () => {
     seedGroup()
     renderPage()

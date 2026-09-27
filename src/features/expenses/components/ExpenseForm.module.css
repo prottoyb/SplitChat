@@ -536,3 +536,64 @@
     gap: 0.6rem;
   }
 }
+/* Phase 2: inline field errors, former-member labels, read-only state. */
+.fieldError {
+  margin: 0;
+  color: #a13f3f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
+  border-color: #d38b8b;
+}
+
+.formerTag {
+  display: inline-block;
+  margin-left: 6px;
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: #6b707c;
+  background: #eef0f3;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.participantList.hasError {
+  border-radius: 12px;
+  outline: 1px solid #e3b3b3;
+  outline-offset: 4px;
+}
+
+.fieldLabel {
+  color: #383b46;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.participantFieldset {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.participantFieldset > legend {
+  width: 100%;
+  padding: 0;
+}
+
+.participantFieldset > legend > span {
+  display: grid;
+  gap: 2px;
+}
+
+.legendTitle {
+  color: #1f2430;
+  font-size: 17px;
+  font-weight: 750;
+}

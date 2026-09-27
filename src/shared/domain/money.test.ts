@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  centsToDecimalText,
   formatCents,
   parseAmountToCents,
   readCents,
@@ -120,4 +121,27 @@ describe('readCents', () => {
       expect(readCents(value)).toBeNull()
     },
   )
+})
+
+describe('centsToDecimalText', () => {
+  it.each([
+    [1050, '10.50'],
+    [1, '0.01'],
+    [100, '1.00'],
+    [0, '0.00'],
+    [999_999_999_999, '9999999999.99'],
+  ])('%i -> %s', (cents, text) => {
+    expect(centsToDecimalText(cents)).toBe(text)
+  })
+
+  it('round-trips through parseAmountToCents', () => {
+    for (const cents of [1, 99, 1050, 123456789, 999_999_999_999]) {
+      expect(parseAmountToCents(centsToDecimalText(cents))).toEqual({ ok: true, cents })
+    }
+  })
+
+  it('refuses non-integer or negative input', () => {
+    expect(() => centsToDecimalText(10.5)).toThrow(RangeError)
+    expect(() => centsToDecimalText(-1)).toThrow(RangeError)
+  })
 })
