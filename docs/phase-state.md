@@ -21,10 +21,10 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 
 | Field | Value |
 |---|---|
-| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). **Current: Phase 3 — Dashboard and activity** (implemented and rehearsed on SplitChat-Dev, in review; `docs/phase3/plan.md`; ADR-0009 event log operator-approved 2026-09-27) |
+| Roadmap phase | **Autonomous programme Phases 2–7** (operator approval 2026-09-27; stop before Phase 8, production writes or deploys). Phase 2 **COMPLETE** (`docs/phase2/plan.md`). Phase 3 **COMPLETE** (`docs/phase3/plan.md`; ADR-0009). **Current: Phase 4 — Balances, debt simplification and settlements** (ADR-0010 accepted after architect review; `docs/phase4/plan.md`) |
 | Production | Complete Phase 1 state: M0–M15 + `20260927135000` (17 versions). Phases 2–7 make **no production writes or deploys**; production-required changes accumulate into reviewed release batches |
-| Branch | `feature/phase3-dashboard-activity` (from the Phase 2 head; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
-| Last verified checkpoint | the Phase 1 completion commit at the branch head (`git log -1`) |
+| Branch | `feature/phase4-balances-settlements` (from the Phase 3 head; Phase 3 on `feature/phase3-dashboard-activity`; Phase 2 on `feature/phase2-frontend-domain`, from `main` @ `02d6d64`). Backup pushes of the current development branch allowed; no force push; `main` pushes are the operator's (git-guard) |
+| Last verified checkpoint | Phase 3 completion commit (`docs: Phase 3 complete`) on `feature/phase3-dashboard-activity` |
 | Next human gate | End of Phase 7 (programme report), or any listed exception: material scope/architecture change, new major dependency/service, billing, production DB write, production Auth/security config, production deploy, destructive Git, irreversible external operation, product-behaviour ambiguity |
 
 ## Operating model (operator, 2026-09-26)
@@ -55,7 +55,7 @@ the operator's shell (`DB_URL`), and client config is in `.env.local`
 - G4: SplitChat-Dev ref `opviwtyfssxoheigflxw` (free tier). Production ref `jhftlnsccurhfgneltgi`, never targeted by rehearsal tooling. Dev secrets only in git-ignored `.env.splitchat-dev.local`. Deleting SplitChat-Dev needs human approval (an in-place reset was approved once, 2026-09-27: `scripts/rehearsal/reset-dev-to-empty.sql`).
 - G5: hosting undecided; **no live frontend** (operator attestation `no-live-frontend` for batches 2, 3a, 3b). Any future deployment must be built from a commit containing `a5ed4e8` (the v2 / integer-cents frontend).
 - Production operations are run by the operator in their own PowerShell (`DB_URL` never enters Claude's shell) with `scripts/ops/prod.mjs --batch <id>`; the team prepares the reviewed evidence, commands and reports.
-- M16 (index cleanup) is deferred to Phase 8.
+- The Phase 1 index cleanup (then numbered M16) is deferred to Phase 8; M16 is now the activity event log.
 - Tests: Tier 1 local PG17 + shim (`npm run test:db`, DS-8 guard); Tier 2 SplitChat-Dev; production is never used for tests.
 
 ## Completed (Phase 1)
@@ -72,7 +72,7 @@ Batch 3 was rehearsed twice on SplitChat-Dev, the second time from a clean reset
 
 ## Next steps
 
-1. Phase 3: QA/Security + Senior Review, resolve findings, checkpoint, push; then Phase 4 (balances, debt simplification, settlements — its own ADR).
+1. Phase 4 per `docs/phase4/plan.md`: M17 settlements migration + harness case, balances/settlements frontend, dev rehearsal, reviews, checkpoint; then Phases 5–7.
 2. Production backlog for the next release batch: M16 `20260928100000_activity_event_log` (rehearsed on SplitChat-Dev). No production write without its own approval.
 3. SplitChat-Dev is at 18 versions (batch 3 + M16).
 4. `main` holds the local Phase 1 merge `02d6d64`; pushing it is the operator's (`! git push origin main`).
@@ -92,13 +92,12 @@ lint ✅ · build ✅ (known >500 kB chunk warning) · Vitest ✅ **214/214** (1
 - **M11 is fix-forward only** in production (account deletions tombstone profiles; `profiles_id_fkey` cannot return). Its `auth.users` trigger cannot be dropped with `DROP TRIGGER` by `postgres`, but is removed as a dependent object by `DROP FUNCTION private.handle_auth_user_deleting() CASCADE` — an emergency path only, never a reviewed rollback.
 - GoTrue soft delete would bypass the deletion trigger; hard delete is the supported path.
 - Orphaned groups (sole owner deleted their account) have zero active members and no cleanup/export path (DS-3).
-- Expense and solo-group deletions are permanent; activity history is Phase 3.
-- No expense edit UI (the update RPC is tested and deployed).
-- No CI (checks are run locally); hosting undecided (G5).
+- Expense and solo-group deletions are permanent; they are recorded in the activity log once M16 is live.
+- CI workflow exists (`.github/workflows/ci.yml`) but has not run on a PR yet; hosting undecided (G5).
 - Accepted by design: add-by-email reveals an account only when it is added; membership RPC timing side channels (DS-10); `supabase_admin` default privileges not changeable by `postgres`.
 - Three-way concurrency (deletion + transfer + add) reasoned, not tested.
 - Frontend follow-ups from Phase 0 (Phase 2 scope): component tests, >500 kB chunk, stale data on route change, date validation, error wording; `api.mjs`/`api-batch2.mjs` still call the dropped legacy RPC (historical tools).
-- M16 index cleanup deferred to Phase 8.
+- The Phase 1 index-cleanup migration (originally numbered M16; that number is now the activity event log) is deferred to Phase 8.
 
 ## Working-tree notes
 

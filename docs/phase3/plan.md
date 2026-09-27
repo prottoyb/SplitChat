@@ -1,6 +1,6 @@
 # Phase 3 — Dashboard and activity
 
-**Status:** implemented, in review. Branch `feature/phase3-dashboard-activity`
+**Status:** ✅ complete 2026-09-28 (QA/Security PASS, Senior APPROVE). Branch `feature/phase3-dashboard-activity`
 (from the Phase 2 head). Architecture: ADR-0009 (append-only event log,
 **operator-approved 2026-09-27**, no description snapshot on deletion).
 
@@ -24,7 +24,7 @@
 | Names | `get_ledger_identities` also covers people referenced by edits and events |
 | Harness | case 210 (36 assertions): one event per path, none for refused/rolled-back calls, readers, immutability, cascade, names, backfill; test:db 24/24 (476) |
 | Frontend | `features/activity` (API, `describeEvent`, `ActivityFeed`, `ActivityPage` with group filter), `features/dashboard` (summary, attention, groups by last activity); `/groups?create=1` |
-| Tests | Vitest 320 (25 files) |
+| Tests | Vitest 331 (25 files) |
 
 ## SplitChat-Dev rehearsal (2026-09-28)
 
@@ -43,6 +43,17 @@
   read nothing, client insert/delete refused (42501), removed member still
   named, real account deletion records `member_account_deleted` with no
   actor.
+
+## Reviews
+
+- **Software Architect** (ADR-0009): FIT WITH CONDITIONS; conditions 1–13
+  implemented.
+- **QA/Security:** PASS. One MEDIUM (the keyset cursor was interpolated
+  into the PostgREST `or()` filter) fixed in `9340f89`: the cursor is
+  validated as a strict server timestamp and a positive safe integer before
+  any query is built; re-verified RESOLVED.
+- **Senior Review:** APPROVE after two passes; two LOWs (cursor invariant,
+  inconsistent defensive payload reads) fixed in `1e32a9c`.
 
 ## Production
 
