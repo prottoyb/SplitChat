@@ -69,6 +69,34 @@ describe('DashboardPage', () => {
     expect(within(groups).getByText(/2 members · Member/)).toBeInTheDocument()
   })
 
+  it('shows my server position in each listed group; one failed balance degrades only its row', async () => {
+    supabaseMock.setTable('groups', [
+      { id: 'g1', name: 'Flat', description: null, created_at: '2026-09-02T00:00:00Z' },
+      { id: 'g2', name: 'Trip', description: null, created_at: '2026-09-01T00:00:00Z' },
+      { id: 'g3', name: 'Club', description: null, created_at: '2026-08-01T00:00:00Z' },
+    ])
+    supabaseMock.setTable('group_members', [])
+    supabaseMock.setTable('group_events', [])
+    supabaseMock.setTable('expenses', [])
+    const row = (user_id: string, net: number) => ({
+      user_id, paid_cents: Math.max(net, 0), owed_cents: Math.max(-net, 0), settled_out_cents: 0, settled_in_cents: 0, net_cents: net,
+    })
+    supabaseMock.rpc.mockImplementation((name, args) => {
+      if (name !== 'get_group_balances') return Promise.resolve({ data: [], error: null })
+      if (args.p_group_id === 'g1') return Promise.resolve({ data: [row('u1', -4333), row('u2', 4333)], error: null })
+      if (args.p_group_id === 'g2') return Promise.resolve({ data: null, error: { message: 'boom' } })
+      return Promise.resolve({ data: [], error: null })
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderPage()
+
+    const groups = (await screen.findByRole('heading', { name: 'Your groups' })).closest('article') as HTMLElement
+    const link = (name: string) => within(groups).getByText(name).closest('a') as HTMLElement
+    expect(await within(link('Flat')).findByText('You owe $43.33')).toBeInTheDocument()
+    expect(within(link('Trip')).getByText('Balance unavailable')).toBeInTheDocument()
+    expect(within(link('Club')).getByText('You are settled up')).toBeInTheDocument()
+  })
+
   it('shows honest empty states and no invented balances', async () => {
     supabaseMock.setTable('groups', [])
     supabaseMock.setTable('group_events', [])

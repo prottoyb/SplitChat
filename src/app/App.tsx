@@ -9,13 +9,12 @@ import './App.css'
 const AuthPage = lazy(() => import('../features/auth/AuthPage'))
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'))
 const GroupsPage = lazy(() => import('../features/groups/pages/GroupsPage'))
-const GroupDetailsPage = lazy(() => import('../features/groups/pages/GroupDetailsPage'))
+const GroupWorkspace = lazy(() => import('./workspace/GroupWorkspace'))
 const NewExpensePage = lazy(() => import('../features/expenses/pages/NewExpensePage'))
 const EditExpensePage = lazy(() => import('../features/expenses/pages/EditExpensePage'))
 const ExpensesPage = lazy(() => import('../features/expenses/pages/ExpensesPage'))
 const ExpenseDetailsPage = lazy(() => import('../features/expenses/pages/ExpenseDetailsPage'))
 const ActivityPage = lazy(() => import('../features/activity/ActivityPage'))
-const GroupBalancesPage = lazy(() => import('../features/settlements/pages/GroupBalancesPage'))
 
 const pageFallback = <LoadingState title="Loading..." />
 
@@ -37,9 +36,9 @@ function App() {
             >
               <Route index element={<DashboardPage />} />
               <Route path="groups" element={<GroupsPage />} />
-              <Route path="groups/:groupId" element={<GroupDetailsPage />} />
+              {/* The workspace owns its sections (overview, expenses, balances, activity, members). */}
+              <Route path="groups/:groupId/*" element={<GroupWorkspace />} />
               <Route path="groups/:groupId/expenses/new" element={<NewExpensePage />} />
-              <Route path="groups/:groupId/balances" element={<GroupBalancesPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
               <Route path="expenses/:expenseId/edit" element={<EditExpensePage />} />

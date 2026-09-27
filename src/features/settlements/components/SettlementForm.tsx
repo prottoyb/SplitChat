@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from 'react'
 import type { Failure } from '../../../shared/api/result'
 import { formatCents } from '../../../shared/domain/money'
+import { balanceText } from '../../balances'
 import {
   MAX_NOTE_LENGTH,
   maxPayableCents,
@@ -85,7 +86,8 @@ export function SettlementForm({ people, currentUserId, isOwner, initial, onSubm
         {errors[field]}
       </p>
     ) : null
-  const label = (p: Party) => (p.userId === currentUserId ? `You (${p.name})` : p.name)
+  // Short enough to read in a half-width select; "You" needs no name.
+  const label = (p: Party) => `${p.userId === currentUserId ? 'You' : p.name} — ${balanceText(p.netCents, p.userId === currentUserId)}`
 
   return (
     <form className={styles.form} onSubmit={submit} noValidate aria-label="Record a payment">
@@ -102,7 +104,7 @@ export function SettlementForm({ people, currentUserId, isOwner, initial, onSubm
             <option value="">Choose…</option>
             {debtors.map((p) => (
               <option key={p.userId} value={p.userId}>
-                {label(p)} — owes {formatCents(-p.netCents)}
+                {label(p)}
               </option>
             ))}
           </select>
@@ -119,7 +121,7 @@ export function SettlementForm({ people, currentUserId, isOwner, initial, onSubm
             <option value="">Choose…</option>
             {creditors.map((p) => (
               <option key={p.userId} value={p.userId}>
-                {label(p)} — is owed {formatCents(p.netCents)}
+                {label(p)}
               </option>
             ))}
           </select>

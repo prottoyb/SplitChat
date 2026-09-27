@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { formatDateShort } from '../../../shared/domain/dates'
 import { Avatar } from '../../../shared/ui'
 import type { Member } from '../api/groups'
-import styles from '../pages/GroupDetailsPage.module.css'
+import styles from '../pages/GroupMembers.module.css'
 
 type Pending = { userId: string; action: 'remove' | 'transfer' } | null
 

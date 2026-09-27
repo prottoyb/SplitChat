@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { normaliseEmail } from '../domain/groupForm'
-import styles from '../pages/GroupDetailsPage.module.css'
+import styles from '../pages/GroupMembers.module.css'
 
 /** Owner-only add-by-email form; reports the outcome through `onAdd`. */
 export function AddMemberForm({ onAdd }: { onAdd: (email: string) => Promise<boolean> }) {

@@ -1,5 +1,5 @@
 import { InlineConfirm } from '../../../shared/ui'
-import styles from '../pages/GroupDetailsPage.module.css'
+import styles from '../pages/GroupMembers.module.css'
 import { AddMemberForm } from './AddMemberForm'
 
 /**
@@ -26,7 +26,7 @@ export function MembershipPanel({
         <div className={styles.panelHeader}>
           <div>
             <p className="eyebrow">ADD MEMBER</p>
-            <h3>Add someone</h3>
+            <h4 className={styles.panelTitle}>Add someone</h4>
           </div>
         </div>
         <p className={styles.panelDescription}>
@@ -62,11 +62,11 @@ export function MembershipPanel({
       <div className={styles.panelHeader}>
         <div>
           <p className="eyebrow">MEMBERSHIP</p>
-          <h3>Group access</h3>
+          <h4 className={styles.panelTitle}>Group access</h4>
         </div>
       </div>
       <div className={styles.memberNotice}>
-        <h4>You are a member of this group</h4>
+        <p className={styles.noticeTitle}>You are a member of this group</p>
         <p>You can view this group and participate in its shared activity.</p>
       </div>
       <div className={styles.leaveSection}>

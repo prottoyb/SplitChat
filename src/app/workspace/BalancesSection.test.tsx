@@ -2,18 +2,18 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSupabaseMock } from '../../../test/supabaseMock'
-import GroupBalancesPage from './GroupBalancesPage'
+import { createSupabaseMock } from '../../test/supabaseMock'
+import GroupWorkspace from './GroupWorkspace'
 
 const mock = vi.hoisted(() => ({ current: null as unknown, userId: 'u2' }))
 
-vi.mock('../../../shared/api/supabase', () => ({
+vi.mock('../../shared/api/supabase', () => ({
   get supabase() {
     return (mock.current as ReturnType<typeof createSupabaseMock>).client
   },
 }))
 
-vi.mock('../../auth/useAuth', () => ({
+vi.mock('../../features/auth/useAuth', () => ({
   useAuth: () => ({ session: { user: { id: mock.userId } } }),
 }))
 
@@ -47,7 +47,7 @@ function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/groups/g1/balances']}>
       <Routes>
-        <Route path="groups/:groupId/balances" element={<GroupBalancesPage />} />
+        <Route path="groups/:groupId/*" element={<GroupWorkspace />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -62,12 +62,13 @@ beforeEach(() => {
   seed()
 })
 
-describe('GroupBalancesPage', () => {
+describe('Balances section', () => {
   it('shows my position, everyone’s balance and the fewest payments to settle up', async () => {
     renderPage()
 
-    expect(await screen.findByText('You owe $43.33')).toBeInTheDocument()
-    const balances = screen.getByRole('list', { name: 'Balances' })
+    const balances = await screen.findByRole('list', { name: 'Balances' })
+    // The workspace header shows my position (server figures).
+    expect(screen.getByText('You owe $43.33')).toBeInTheDocument()
     expect(within(balances).getByText('is owed $46.66')).toBeInTheDocument()
     expect(within(balances).getByText('Former member')).toBeInTheDocument()
     const plan = screen.getByRole('list', { name: 'Suggested payments' })
@@ -92,7 +93,8 @@ describe('GroupBalancesPage', () => {
     const [, args] = recordCalls()[0]
     expect(args).toMatchObject({ p_group_id: 'g1', p_from_user: 'u2', p_to_user: 'u1', p_amount_cents: 1050, p_note: 'transfer' })
     expect(args.p_client_request_id).toMatch(/^[0-9a-f-]{36}$/)
-    await waitFor(() => expect(supabaseMock.rpc.mock.calls.filter(([n]) => n === 'get_group_balances')).toHaveLength(2))
+    // Section and header position each load once, then both reload.
+    await waitFor(() => expect(supabaseMock.rpc.mock.calls.filter(([n]) => n === 'get_group_balances')).toHaveLength(4))
   })
 
   it('refuses more than is owed before calling the server', async () => {
@@ -173,15 +175,19 @@ describe('GroupBalancesPage', () => {
   it('tells a settled member there is nothing of theirs to record', async () => {
     supabaseMock.setRpc('get_group_balances', [balance('u1', 333, 0), balance('u5', 0, 333)])
     renderPage()
-    expect(await screen.findByText('You are settled up')).toBeInTheDocument()
-    expect(screen.getByText('You are settled up, so there is no payment of yours to record.')).toBeInTheDocument()
+    expect(await screen.findByText('You are settled up, so there is no payment of yours to record.')).toBeInTheDocument()
+    expect(screen.getByText('You are settled up')).toBeInTheDocument()
   })
 
-  it('shows an actionable error when balances cannot be loaded', async () => {
+  it('shows an actionable error when balances cannot be loaded, keeping the workspace around it', async () => {
     supabaseMock.setRpc('get_group_balances', [balance('u1', 100, 0)]) // does not net to zero
     renderPage()
     expect(await screen.findByText('Balances unavailable')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '← Back to group' })).toHaveAttribute('href', '/groups/g1')
+    // The header and section navigation stay; the position degrades on its own.
+    expect(screen.getByRole('heading', { name: 'Flat' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Balances' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Unavailable')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
   })
 })

@@ -1,0 +1,119 @@
+.expenseList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.expenseRow {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 15px;
+  padding: 20px 0;
+  border-top: 1px solid #eff0f3;
+}
+
+.expenseRow:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.expenseIcon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  color: #654bea;
+  background: #efecff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.expenseMain {
+  min-width: 0;
+}
+
+.expenseTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.expenseTitleRow h4 {
+  margin: 0 0 6px;
+  color: #252731;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.expenseMeta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  color: #6b7080;
+  font-size: 12px;
+}
+
+.groupLink {
+  color: #684edf;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.groupLink:hover {
+  text-decoration: underline;
+}
+
+.expenseAmount {
+  color: #1f2129;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.expenseDetails {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  color: #6b7080;
+  font-size: 12px;
+}
+
+.expenseDetails strong {
+  color: #50535d;
+}
+
+.detailsLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.detailsLink:hover,
+.detailsLink:focus-visible {
+  color: #5b41e0;
+  text-decoration: underline;
+}
+
+.expenseNotes {
+  margin: 12px 0 0;
+  border-left: 2px solid #e4e0ff;
+  padding-left: 10px;
+  color: #5f6470;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 700px) {
+  .expenseTitleRow {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .expenseDetails {
+    gap: 6px 14px;
+  }
+}

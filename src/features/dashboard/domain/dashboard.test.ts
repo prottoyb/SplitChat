@@ -31,7 +31,7 @@ describe('attentionItems', () => {
 
     expect(items.map((i) => [i.kind, i.to])).toEqual([
       ['expense_changed', '/expenses/x1'],
-      ['expense_changed', '/activity?group=g1'],
+      ['expense_changed', '/groups/g1/activity'],
     ])
   })
 

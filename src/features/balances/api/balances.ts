@@ -30,6 +30,23 @@ type BalanceRow = {
 
 const UNEXPECTED = 'Balances could not be read. Please try again.'
 
+/** Reads and checks the RPC rows (safe integer cents, consistent parts, nets to zero). */
+async function fetchBalances(groupId: string): Promise<Result<PersonBalance[]>> {
+  const { data, error } = await supabase.rpc('get_group_balances', { p_group_id: groupId })
+  if (error) return failureFrom(error, 'Unable to load balances.')
+
+  const people: PersonBalance[] = []
+  for (const row of (Array.isArray(data) ? data : []) as BalanceRow[]) {
+    const values = [row.paid_cents, row.owed_cents, row.settled_out_cents, row.settled_in_cents, row.net_cents].map(readCents)
+    if (typeof row.user_id !== 'string' || values.some((v) => v === null)) return fail('unknown', UNEXPECTED)
+    const [paidCents, owedCents, settledOutCents, settledInCents, netCents] = values as number[]
+    if (paidCents - owedCents + settledOutCents - settledInCents !== netCents) return fail('unknown', UNEXPECTED)
+    people.push({ userId: row.user_id, paidCents, owedCents, settledOutCents, settledInCents, netCents })
+  }
+  if (people.reduce((sum, p) => sum + p.netCents, 0) !== 0) return fail('unknown', UNEXPECTED)
+  return ok(people)
+}
+
 /**
  * Server-computed balances for one group (ADR-0010; active members only,
  * enforced by the RPC). Every amount is checked to be safe integer cents and
@@ -38,21 +55,23 @@ const UNEXPECTED = 'Balances could not be read. Please try again.'
  */
 export function loadGroupBalances(groupId: string): Promise<Result<GroupBalances>> {
   return guard(async () => {
-    const { data, error } = await supabase.rpc('get_group_balances', { p_group_id: groupId })
-    if (error) return failureFrom(error, 'Unable to load balances.')
-
-    const people: PersonBalance[] = []
-    for (const row of (Array.isArray(data) ? data : []) as BalanceRow[]) {
-      const values = [row.paid_cents, row.owed_cents, row.settled_out_cents, row.settled_in_cents, row.net_cents].map(readCents)
-      if (typeof row.user_id !== 'string' || values.some((v) => v === null)) return fail('unknown', UNEXPECTED)
-      const [paidCents, owedCents, settledOutCents, settledInCents, netCents] = values as number[]
-      if (paidCents - owedCents + settledOutCents - settledInCents !== netCents) return fail('unknown', UNEXPECTED)
-      people.push({ userId: row.user_id, paidCents, owedCents, settledOutCents, settledInCents, netCents })
-    }
-    if (people.reduce((sum, p) => sum + p.netCents, 0) !== 0) return fail('unknown', UNEXPECTED)
-
-    const names = await resolveDisplayNames([{ groupId, userIds: people.map((p) => p.userId) }])
+    const people = await fetchBalances(groupId)
+    if (!people.ok) return people
+    const names = await resolveDisplayNames([{ groupId, userIds: people.value.map((p) => p.userId) }])
     if (!names.ok) return names
-    return ok({ people, names: names.value })
+    return ok({ people: people.value, names: names.value })
   }, 'Unable to load balances.')
+}
+
+/**
+ * The caller's net position in one group, in cents (positive: is owed), from
+ * the same server figures and checks as `loadGroupBalances`, without name
+ * lookups. Someone with no ledger entries is settled up (0).
+ */
+export function loadMyBalance(groupId: string, userId: string): Promise<Result<number>> {
+  return guard(async () => {
+    const people = await fetchBalances(groupId)
+    if (!people.ok) return people
+    return ok(people.value.find((p) => p.userId === userId)?.netCents ?? 0)
+  }, 'Unable to load your balance.')
 }

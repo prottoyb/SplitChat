@@ -11,13 +11,44 @@ export function Avatar({ name }: { name: string }) {
   )
 }
 
-export function LoadingState({ title, message }: { title: string; message?: string }) {
+/** The id a workspace focuses after section navigation. */
+export const SECTION_HEADING_ID = 'section-heading'
+
+/**
+ * A section's heading row. The heading is programmatically focusable so that
+ * navigating between sections moves focus (and screen readers) to it.
+ */
+export function SectionHeader({
+  title,
+  description,
+  actions,
+}: {
+  title: string
+  description?: ReactNode
+  actions?: ReactNode
+}) {
   return (
-    <section className={styles.stateCard} aria-busy="true">
+    <div className={styles.sectionHeader}>
+      <div>
+        <h3 id={SECTION_HEADING_ID} tabIndex={-1}>
+          {title}
+        </h3>
+        {description && <p>{description}</p>}
+      </div>
+      {actions && <div className={styles.sectionActions}>{actions}</div>}
+    </div>
+  )
+}
+
+/** `compact` fits a state inside a panel (smaller, and the title is not a heading). */
+export function LoadingState({ title, message, compact = false }: { title: string; message?: string; compact?: boolean }) {
+  const Title = compact ? 'p' : 'h2'
+  return (
+    <section className={`${styles.stateCard}${compact ? ` ${styles.stateCompact}` : ''}`} aria-busy="true">
       <div className={styles.stateIcon}>
         <span className={styles.spinner} />
       </div>
-      <h2 role="status">{title}</h2>
+      <Title className={styles.stateTitle} role="status">{title}</Title>
       {message && <p>{message}</p>}
     </section>
   )
@@ -29,17 +60,20 @@ export function ErrorState({
   title,
   message,
   actions = [],
+  compact = false,
 }: {
   title: string
   message: string
   actions?: StateAction[]
+  compact?: boolean
 }) {
+  const Title = compact ? 'p' : 'h2'
   return (
-    <section className={styles.stateCard}>
+    <section className={`${styles.stateCard}${compact ? ` ${styles.stateCompact}` : ''}`}>
       <div className={`${styles.stateIcon} ${styles.stateIconError}`} aria-hidden="true">
         !
       </div>
-      <h2>{title}</h2>
+      <Title className={styles.stateTitle}>{title}</Title>
       <p role="alert">{message}</p>
       {actions.length > 0 && (
         <div className={styles.stateActions}>

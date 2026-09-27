@@ -46,7 +46,7 @@ export function attentionItems(
         kind: 'expense_changed',
         subject: name(e.actorId),
         groupName: groupName(e.groupId),
-        to: exists ? `/expenses/${e.subjectId}` : `/activity?group=${e.groupId}`,
+        to: exists ? `/expenses/${e.subjectId}` : `/groups/${e.groupId}/activity`,
         createdAt: e.createdAt,
       })
     }

@@ -2,18 +2,18 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSupabaseMock } from '../../../test/supabaseMock'
-import GroupDetailsPage from './GroupDetailsPage'
+import { createSupabaseMock } from '../../test/supabaseMock'
+import GroupWorkspace from './GroupWorkspace'
 
 const mock = vi.hoisted(() => ({ current: null as unknown, userId: 'u1' }))
 
-vi.mock('../../../shared/api/supabase', () => ({
+vi.mock('../../shared/api/supabase', () => ({
   get supabase() {
     return (mock.current as ReturnType<typeof createSupabaseMock>).client
   },
 }))
 
-vi.mock('../../auth/useAuth', () => ({
+vi.mock('../../features/auth/useAuth', () => ({
   useAuth: () => ({ session: { user: { id: mock.userId } } }),
 }))
 
@@ -37,9 +37,9 @@ function seedGroup(ownerId = 'u1') {
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/groups/g1']}>
+    <MemoryRouter initialEntries={['/groups/g1/members']}>
       <Routes>
-        <Route path="groups/:groupId" element={<GroupDetailsPage />} />
+        <Route path="groups/:groupId/*" element={<GroupWorkspace />} />
         <Route path="groups" element={<p>Groups list</p>} />
       </Routes>
     </MemoryRouter>,
@@ -52,7 +52,7 @@ beforeEach(() => {
   mock.userId = 'u1'
 })
 
-describe('GroupDetailsPage ownership', () => {
+describe('Members section ownership', () => {
   it('treats the member whose role is owner as the owner', async () => {
     seedGroup('u1')
     renderPage()
@@ -71,7 +71,7 @@ describe('GroupDetailsPage ownership', () => {
   })
 })
 
-describe('GroupDetailsPage membership actions use RPCs', () => {
+describe('Members section membership actions use RPCs', () => {
   it('adds a member and shows their name', async () => {
     seedGroup()
     supabaseMock.setRpc('add_group_member_by_email', [
@@ -186,7 +186,7 @@ describe('GroupDetailsPage membership actions use RPCs', () => {
   })
 })
 
-describe('GroupDetailsPage group deletion (M15)', () => {
+describe('Members section group deletion (M15)', () => {
   function seedSoloGroup() {
     supabaseMock.setTable('groups', [
       { id: 'g1', name: 'Solo', description: null, created_by: 'u1', created_at: '2026-09-01', updated_at: '2026-09-01' },
@@ -203,7 +203,7 @@ describe('GroupDetailsPage group deletion (M15)', () => {
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Delete group' }))
-    expect(supabaseMock.rpc).not.toHaveBeenCalled()
+    expect(supabaseMock.rpc.mock.calls.map(([name]) => name)).not.toContain('delete_group')
     await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
 
     expect(await screen.findByText('Groups list')).toBeInTheDocument()

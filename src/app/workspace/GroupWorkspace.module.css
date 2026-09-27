@@ -1,0 +1,399 @@
+/* Group workspace shell (Phase 5) and its app-level sections. */
+
+.workspace {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.header {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.breadcrumb {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #5f6470;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.breadcrumb li:first-child {
+  flex-shrink: 0;
+}
+
+.breadcrumb li {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumb li + li::before {
+  content: '/';
+  margin-right: 6px;
+  color: #a3a8b3;
+}
+
+.breadcrumb a {
+  color: #5f6470;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover,
+.breadcrumb a:focus-visible {
+  color: #5b41e0;
+  text-decoration: underline;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 28px;
+}
+
+.identity {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.titleLine h2 {
+  margin: 0;
+  min-width: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.roleBadge {
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: #5b41e0;
+  background: #efecff;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.meta {
+  margin: 8px 0 0;
+  color: #5f6470;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  color: #6b707c;
+}
+
+.aside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.position {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  border: 1px solid #e4e6eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #ffffff;
+}
+
+.positionLabel {
+  color: #5f6470;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.position strong {
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.owes {
+  color: #a13f3f;
+}
+
+.owed {
+  color: #237044;
+}
+
+.settled {
+  color: #1c1e26;
+}
+
+.positionMuted {
+  color: #5f6470;
+}
+
+.positionError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retry {
+  border: 1px solid #d9d2ff;
+  border-radius: 7px;
+  padding: 3px 9px;
+  color: #5b41e0;
+  background: #f5f3ff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addButton {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 16px;
+  border-bottom: 1px solid #e4e6eb;
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  color: #5f6470;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: #1c1e26;
+}
+
+.tab:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: -2px;
+  border-radius: 6px 6px 0 0;
+}
+
+.tabActive {
+  border-bottom-color: #5b41e0;
+  color: #1c1e26;
+}
+
+.body {
+  min-width: 0;
+}
+
+/* Overview */
+
+.nextStep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  margin-bottom: 18px;
+  border: 1px solid #e0dbff;
+  border-radius: 13px;
+  padding: 14px 18px;
+  background: #faf9ff;
+}
+
+.nextStep p {
+  margin: 0;
+  color: #2b2f38;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nextStep a {
+  text-decoration: none;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.column {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.compactPanel {
+  min-height: 0;
+}
+
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panelHead h4 {
+  margin: 0;
+  color: #1c1e26;
+  font-size: 16px;
+}
+
+.panelHead a {
+  color: #5b41e0;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.panelHead a:hover,
+.panelHead a:focus-visible {
+  text-decoration: underline;
+}
+
+.muted {
+  margin: 0;
+  color: #5f6470;
+  font-size: 13px;
+}
+
+.memberList {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.memberList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.memberName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.you {
+  color: #5f6470;
+}
+
+.ownerTag {
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #5b41e0;
+  background: #f0edff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.emptyPanel {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  border: 1px dashed #d6d9e0;
+  border-radius: 13px;
+  padding: 40px 20px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.emptyPanel p {
+  margin: 0;
+  color: #5f6470;
+  font-size: 14px;
+}
+
+.emptyPanel .emptyTitle {
+  color: #1c1e26;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.emptyPanel a {
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+@media (max-width: 1000px) {
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    gap: 18px;
+  }
+
+  .titleLine h2 {
+    font-size: 24px;
+  }
+
+  .aside {
+    width: 100%;
+  }
+
+  .position {
+    flex: 1 1 auto;
+  }
+
+  .position strong {
+    white-space: normal;
+  }
+
+  .addButton {
+    text-align: center;
+  }
+
+  .tab {
+    padding: 10px 10px;
+    font-size: 13px;
+  }
+
+  /* Fade the right edge so a clipped tab reads as "more to scroll". */
+  .tabs {
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    padding-right: 28px;
+  }
+}

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSupabaseMock } from '../../../test/supabaseMock'
-import { loadGroupBalances } from './balances'
+import { loadGroupBalances, loadMyBalance } from './balances'
 
 const mock = vi.hoisted(() => ({ current: null as unknown }))
 
@@ -58,5 +58,24 @@ describe('loadGroupBalances', () => {
     const result = await loadGroupBalances('g1')
     expect(result.ok).toBe(false)
     expect(!result.ok && result.code).toBe('not_found')
+  })
+})
+
+describe('loadMyBalance', () => {
+  it('returns only the caller’s server net, without name lookups', async () => {
+    supabaseMock.setRpc('get_group_balances', [row('u1', 10000, 5334, 0, 0), row('u2', 1000, 5333, 0, 0), row('u5', 0, 333, 0, 0)])
+
+    await expect(loadMyBalance('g1', 'u2')).resolves.toEqual({ ok: true, value: -4333 })
+    expect(supabaseMock.rpc.mock.calls.map(([name]) => name)).toEqual(['get_group_balances'])
+  })
+
+  it('treats someone with no ledger entries as settled up', async () => {
+    supabaseMock.setRpc('get_group_balances', [row('u1', 100, 0, 0, 0), row('u2', 0, 100, 0, 0)])
+    await expect(loadMyBalance('g1', 'u3')).resolves.toEqual({ ok: true, value: 0 })
+  })
+
+  it('applies the same checks as the full load', async () => {
+    supabaseMock.setRpc('get_group_balances', [row('u1', 100, 0, 0, 0), row('u2', 0, 90, 0, 0)])
+    await expect(loadMyBalance('g1', 'u1')).resolves.toEqual({ ok: false, code: 'unknown', message: 'Balances could not be read. Please try again.' })
   })
 })

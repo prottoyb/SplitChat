@@ -5,6 +5,7 @@ import { useResource } from '../../shared/hooks/useResource'
 import { ErrorState, LoadingState } from '../../shared/ui'
 import { ActivityFeed, listActivity, type ActivityPage } from '../activity'
 import { useAuth } from '../auth'
+import { balanceTone, loadMyBalance, positionText } from '../balances'
 import { listMyExpenses, type ExpenseListItem } from '../expenses'
 import { listMyGroups, type GroupSummary } from '../groups'
 import { ok, type Result } from '../../shared/api/result'
@@ -13,6 +14,7 @@ import { lastActivityByGroup, monthSummary, recentChangeCount } from './domain/s
 import styles from './DashboardPage.module.css'
 
 const RECENT_LIMIT = 8
+const GROUPS_SHOWN = 6
 
 type DashboardData = {
   groups: GroupSummary[]
@@ -30,6 +32,25 @@ async function loadDashboard(userId: string): Promise<Result<DashboardData>> {
   if (!activity.ok) return activity
   if (!expenses.ok) return expenses
   return ok({ groups: groups.value, activity: activity.value, expenses: expenses.value })
+}
+
+/** Groups with the most recent activity first (the ones the dashboard lists). */
+function visibleGroups(groups: GroupSummary[], lastActivity: ReadonlyMap<string, string>): GroupSummary[] {
+  return [...groups]
+    .sort((a, b) => (lastActivity.get(b.id) ?? b.createdAt).localeCompare(lastActivity.get(a.id) ?? a.createdAt))
+    .slice(0, GROUPS_SHOWN)
+}
+
+/** The caller's position in each listed group; one failed group never fails the others. */
+async function loadPositions(groupIds: string[], userId: string): Promise<Result<Map<string, Result<number>>>> {
+  const results = await Promise.all(groupIds.map((id) => loadMyBalance(id, userId)))
+  return ok(new Map(groupIds.map((id, i) => [id, results[i]])))
+}
+
+function GroupPosition({ position }: { position: Result<number> | undefined }) {
+  if (!position) return <span className={styles.positionMuted}>Checking balance…</span>
+  if (!position.ok) return <span className={styles.positionMuted}>Balance unavailable</span>
+  return <span className={styles[balanceTone(position.value)]}>{positionText(position.value)}</span>
 }
 
 function attentionText(item: AttentionItem) {
@@ -59,6 +80,11 @@ function DashboardPage() {
   const { session, profile } = useAuth()
   const userId = session?.user.id ?? ''
   const data = useResource(userId ? `dashboard:${userId}` : null, () => loadDashboard(userId))
+  const shownIds =
+    data.status === 'ready' ? visibleGroups(data.data.groups, lastActivityByGroup(data.data.activity.events)).map((g) => g.id) : []
+  const positions = useResource(shownIds.length ? `positions:${userId}:${shownIds.join(',')}` : null, () =>
+    loadPositions(shownIds, userId),
+  )
   const firstName = profile?.full_name?.trim().split(/\s+/)[0]
 
   const header = (
@@ -97,9 +123,7 @@ function DashboardPage() {
   const attention = attentionItems(activity, groups, userId).slice(0, 5)
   const lastActivity = lastActivityByGroup(activity.events)
   const recent: ActivityPage = { ...activity, events: activity.events.slice(0, RECENT_LIMIT), next: null }
-  const sortedGroups = [...groups]
-    .sort((a, b) => (lastActivity.get(b.id) ?? b.createdAt).localeCompare(lastActivity.get(a.id) ?? a.createdAt))
-    .slice(0, 6)
+  const sortedGroups = visibleGroups(groups, lastActivity)
 
   return (
     <>
@@ -195,13 +219,14 @@ function DashboardPage() {
                 {sortedGroups.map((g) => (
                   <li key={g.id}>
                     <Link to={`/groups/${g.id}`} className={styles.groupItem}>
-                      <div>
+                      <div className={styles.groupMain}>
                         <strong>{g.name}</strong>
                         <small>
                           {g.memberCount} {g.memberCount === 1 ? 'member' : 'members'} · {g.myRole === 'owner' ? 'Owner' : 'Member'}
+                          {lastActivity.get(g.id) && <> · Active {formatTimestamp(lastActivity.get(g.id) as string)}</>}
                         </small>
                       </div>
-                      {lastActivity.get(g.id) && <span>Active {formatTimestamp(lastActivity.get(g.id) as string)}</span>}
+                      <GroupPosition position={positions.status === 'ready' ? positions.data.get(g.id) : undefined} />
                     </Link>
                   </li>
                 ))}

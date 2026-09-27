@@ -9,10 +9,26 @@
   text-align: center;
 }
 
-.stateCard h2 {
+.stateTitle {
   margin: 0 0 8px;
   color: #22242c;
   font-size: 20px;
+  font-weight: 700;
+}
+
+.stateCompact {
+  min-height: 140px;
+  padding: 16px 8px;
+}
+
+.stateCompact .stateIcon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 10px;
+}
+
+.stateCompact .stateTitle {
+  font-size: 15px;
 }
 
 .stateCard p {
@@ -239,4 +255,43 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* Section header inside a workspace (focus target on navigation). */
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 18px;
+}
+
+.sectionHeader h3 {
+  margin: 0;
+  color: #1c1e26;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.sectionHeader h3:focus {
+  outline: none;
+}
+
+.sectionHeader h3:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.sectionHeader p {
+  margin: 4px 0 0;
+  color: #5f6470;
+  font-size: 13px;
+}
+
+.sectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

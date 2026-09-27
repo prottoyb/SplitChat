@@ -1,11 +1,10 @@
-import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useResource } from '../../shared/hooks/useResource'
 import { ErrorState, LoadingState, Notice } from '../../shared/ui'
 import { useAuth } from '../auth'
 import { listMyGroups } from '../groups'
-import { appendPage, listActivity } from './api/events'
 import { ActivityFeed } from './components/ActivityFeed'
+import { useActivityFeed } from './useActivityFeed'
 import styles from './components/activity.module.css'
 
 function ActivityPage() {
@@ -15,21 +14,7 @@ function ActivityPage() {
   const groupId = params.get('group') ?? ''
 
   const groups = useResource(userId ? `groups:${userId}` : null, () => listMyGroups(userId))
-  const feed = useResource(userId ? `activity:${userId}:${groupId}` : null, () =>
-    listActivity({ groupId: groupId || undefined, limit: 25 }),
-  )
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [moreError, setMoreError] = useState('')
-
-  const loadMore = async () => {
-    if (feed.status !== 'ready' || !feed.data.next) return
-    setLoadingMore(true)
-    setMoreError('')
-    const result = await listActivity({ groupId: groupId || undefined, before: feed.data.next, limit: 25 })
-    setLoadingMore(false)
-    if (!result.ok) return setMoreError(result.message)
-    feed.setData((current) => appendPage(current, result.value))
-  }
+  const { feed, loadMore, loadingMore, moreError } = useActivityFeed(userId, groupId)
 
   return (
     <>

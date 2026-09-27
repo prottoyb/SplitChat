@@ -5,8 +5,14 @@
   margin-top: 18px;
 }
 
+.grid > *,
+.side > * {
+  min-width: 0;
+}
+
 .side {
   display: grid;
+  min-width: 0;
   align-content: start;
   gap: 18px;
 }
@@ -46,19 +52,51 @@ a.groupItem:focus-visible {
 
 .attentionItem span,
 .groupItem span {
-  color: #8c909b;
+  color: #6b707c;
   font-size: 11px;
+}
+
+.attentionItem > span {
+  flex-shrink: 0;
   white-space: nowrap;
+}
+
+.groupMain {
+  min-width: 0;
 }
 
 .groupItem strong {
   display: block;
-  font-size: 13px;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupItem > span {
+  flex-shrink: 0;
+  max-width: 45%;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.owes {
+  color: #a13f3f !important;
+}
+
+.owed {
+  color: #237044 !important;
+}
+
+.settled,
+.positionMuted {
+  color: #5f6470 !important;
 }
 
 .groupItem small {
-  color: #8c909b;
-  font-size: 11px;
+  color: #6b707c;
+  font-size: 12px;
 }
 
 .panelFooter {
