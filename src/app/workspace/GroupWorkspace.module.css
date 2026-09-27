@@ -397,3 +397,42 @@
     padding-right: 28px;
   }
 }
+
+/* Chat tab on narrow screens: one compact header row, no description,
+   smaller position box, so the chat can fill the viewport. */
+@media (max-width: 720px) {
+  .chatMode {
+    gap: 12px;
+  }
+
+  .chatMode .header {
+    gap: 8px;
+  }
+
+  .chatMode .meta {
+    display: none;
+  }
+
+  .chatMode .titleLine h2 {
+    font-size: 20px;
+  }
+
+  .chatMode .aside {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .chatMode .position {
+    padding: 6px 10px;
+  }
+
+  .chatMode .position strong {
+    font-size: 14px;
+  }
+
+  .chatMode .addButton {
+    width: auto;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+}

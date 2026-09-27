@@ -100,7 +100,7 @@ describe('GroupChat', () => {
 
     expect(await screen.findByText(/Not sent\. You are sending messages too quickly/)).toBeInTheDocument()
     supabaseMock.setRpc('send_group_message', row(3, ME, 'Hello', at(0), sendCalls()[0][1].p_client_request_id as string))
-    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    await user.click(screen.getByRole('button', { name: 'Retry sending “Hello”' }))
 
     await waitFor(() => expect(screen.queryByText(/Not sent/)).not.toBeInTheDocument())
     expect(sendCalls()).toHaveLength(2)

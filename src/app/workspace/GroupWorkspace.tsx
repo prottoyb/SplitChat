@@ -47,6 +47,7 @@ function useSectionFocus(nav: RefObject<HTMLElement | null>, ready: boolean) {
  */
 function GroupWorkspace() {
   const { groupId = '' } = useParams<{ groupId: string }>()
+  const { pathname } = useLocation()
   const { session } = useAuth()
   const userId = session?.user.id ?? ''
   const ready = groupId && userId
@@ -80,7 +81,9 @@ function GroupWorkspace() {
   const myNet = position.status === 'ready' ? position.data : null
 
   return (
-    <div className={styles.workspace}>
+    // The Chat tab is a full-height surface: on narrow screens the header
+    // compacts so the composer stays reachable (UI review, Phase 6).
+    <div className={`${styles.workspace}${pathname.startsWith(`${base}/chat`) ? ` ${styles.chatMode}` : ''}`}>
       <header className={styles.header}>
         <nav aria-label="Breadcrumb">
           <ol className={styles.breadcrumb}>

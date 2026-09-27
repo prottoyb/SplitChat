@@ -10,8 +10,9 @@
 //
 //   node scripts/rehearsal/render-review.mjs <out-dir> [--routes <file.json>]
 //
-// A routes file is a JSON array of { name, path } where path may use
-// {flat}, {trip}, {solo} and {missing}. Without one, the Phase 5 set is used.
+// A routes file is a JSON array of { name, path, expectVisible? } where path
+// may use {flat}, {trip}, {solo} and {missing}, and expectVisible is a CSS
+// selector reported as visible or not within the first viewport. Without one, the Phase 5 set is used.
 
 import { spawn } from 'node:child_process'
 import crypto from 'node:crypto'
@@ -226,6 +227,17 @@ try {
         if (i > 3 && !busy.result.value) break
       }
       await sleep(300)
+      // Optional: is this element fully inside the viewport as the user
+      // first sees it (before the full-page capture below)?
+      let visibility = ''
+      if (route.expectVisible) {
+        const v = await send('Runtime.evaluate', {
+          expression: `(() => { const el = document.querySelector(${JSON.stringify(route.expectVisible)}); if (!el) return 'missing';
+            const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight ? 'visible' : 'NOT VISIBLE (top ' + Math.round(r.top) + ', bottom ' + Math.round(r.bottom) + ', viewport ' + window.innerHeight + ')' })()`,
+          returnByValue: true,
+        })
+        visibility = `  [${route.expectVisible}: ${v.result.value}]`
+      }
       const { result } = await send('Runtime.evaluate', { expression: 'document.documentElement.scrollHeight', returnByValue: true })
       const { data } = await send('Page.captureScreenshot', {
         format: 'png',
@@ -238,7 +250,7 @@ try {
         expression: 'document.documentElement.scrollWidth > window.innerWidth',
         returnByValue: true,
       })
-      console.log(`${file}${overflow.result.value ? '  (HORIZONTAL OVERFLOW)' : ''}`)
+      console.log(`${file}${overflow.result.value ? '  (HORIZONTAL OVERFLOW)' : ''}${visibility}`)
     }
   }
   ws.close()

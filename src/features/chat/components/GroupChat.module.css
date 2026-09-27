@@ -120,7 +120,7 @@
 }
 
 .meta time {
-  color: #6b707c;
+  color: #5b606c;
 }
 
 .bubble {
@@ -146,7 +146,8 @@
 }
 
 .failedBubble {
-  outline: 1px solid #e7b4b4;
+  outline: 2px solid #d98a8a;
+  outline-offset: 1px;
 }
 
 .pendingStatus {
@@ -292,8 +293,11 @@
 
 @media (max-width: 720px) {
   .chat {
-    height: calc(100dvh - 190px);
-    min-height: 420px;
+    /* The section scrolls to the top of the chat on open, so it can use
+       almost the whole viewport and keep the composer on screen. */
+    height: calc(100dvh - 24px);
+    min-height: 380px;
+    scroll-margin-top: 12px;
     border-radius: 11px;
   }
 

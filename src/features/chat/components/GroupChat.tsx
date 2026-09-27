@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { addDays, formatDateLong, localIsoDate } from '../../../shared/domain/dates'
 import { ErrorState, LoadingState, Notice } from '../../../shared/ui'
 import { nameOf } from '../../people'
@@ -40,6 +40,8 @@ function MessageItem({ message, mine, sender, showSender }: { message: ChatMessa
   )
 }
 
+const preview = (body: string) => (body.length > 40 ? `${body.slice(0, 40)}…` : body)
+
 function PendingItem({ pending, onRetry, onDiscard }: { pending: PendingMessage; onRetry: () => void; onDiscard: () => void }) {
   return (
     <li className={`${styles.message} ${styles.mine} ${styles.runStart}`}>
@@ -48,11 +50,13 @@ function PendingItem({ pending, onRetry, onDiscard }: { pending: PendingMessage;
         <p className={styles.pendingStatus}>Sending…</p>
       ) : (
         <div className={styles.failed} role="alert">
-          <span>Not sent. {pending.error}</span>
-          <button type="button" onClick={onRetry}>
+          <span>
+            <span aria-hidden="true">⚠ </span>Not sent. {pending.error}
+          </span>
+          <button type="button" onClick={onRetry} aria-label={`Retry sending “${preview(pending.body)}”`}>
             Retry
           </button>
-          <button type="button" onClick={onDiscard}>
+          <button type="button" onClick={onDiscard} aria-label={`Discard “${preview(pending.body)}”`}>
             Discard
           </button>
         </div>
@@ -80,6 +84,14 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
   const lastCount = useRef(0)
 
   const itemCount = timeline.messages.length + timeline.pending.length
+  const section = useRef<HTMLElement>(null)
+  const ready = chat.load.status === 'ready'
+
+  // On narrow screens bring the whole chat (list + composer) into view once.
+  useEffect(() => {
+    if (!ready || typeof window.matchMedia !== 'function' || !window.matchMedia('(max-width: 720px)').matches) return
+    section.current?.scrollIntoView?.({ block: 'start' })
+  }, [ready])
 
   // Keep the reading position: after older messages are prepended, hold the
   // same content in view; after new ones, follow only if at the bottom.
@@ -177,7 +189,7 @@ export function GroupChat({ groupId, userId }: { groupId: string; userId: string
   }
 
   return (
-    <section className={styles.chat} aria-label="Group chat">
+    <section className={styles.chat} aria-label="Group chat" ref={section}>
       {timeline.live === 'paused' && (
         <p className={styles.liveNotice} role="status">
           Live updates paused — reconnecting. You can still send messages.
