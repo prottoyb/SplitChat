@@ -1,9 +1,9 @@
 # ADR-0009: Activity model for the dashboard and activity feed
 
-**Status:** Proposed 2026-09-27 (Phase 3). If the decision is a persisted
-event model (option C), implementation waits for operator approval
-(programme rule: a persisted event model that materially changes the
-database architecture is a human gate).
+**Status:** Accepted 2026-09-27 — **operator approval (in conversation,
+2026-09-27): option C approved; `expense_deleted` keeps no description
+snapshot.** Implementation local + SplitChat-Dev in Phase 3; production only
+via a later reviewed release batch with its own execution approval.
 
 ## Context
 Phase 3 must answer on the dashboard: which groups am I active in, what
@@ -51,7 +51,7 @@ deletions and transfers, and becomes the audit substrate for Phase 4
 settlements and Phase 7 Smart Expense.
 
 ## Decision
-**C — an append-only `group_events` log — subject to operator approval**
+**C — an append-only `group_events` log (operator-approved 2026-09-27)**
 (Software Architect review 2026-09-27: recommends C; confirms it is a
 material database architecture change requiring explicit operator approval
 before any implementation, including local or SplitChat-Dev runs). Until
@@ -77,8 +77,8 @@ approved, Phase 3 builds only on existing data (see "Interim scope").
    only; updates store before/after of changed fields and a
    `description_changed` flag (never the text); never names, emails,
    avatars or notes — names are resolved at read time, so tombstones apply.
-   **Open operator decision:** whether `expense_deleted` keeps a truncated
-   description snapshot (default: no).
+   **Operator decision:** `expense_deleted` keeps **no** description
+   snapshot (amount, date and people only).
 5. **Identity resolution:** extend `get_ledger_identities` (or add a
    companion) so ex-member ids referenced by events resolve to names.
 6. **Readers:** RLS SELECT for active members of the group only (as every
