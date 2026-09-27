@@ -81,6 +81,13 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
     complete && c.amountCents !== null && c.participantIds ? allocateEqualSplit(c.amountCents, c.participantIds) : null
   const old = c.status === 'proposed' && openedAt - new Date(c.createdAt).getTime() > OLD_DAYS * 86_400_000
 
+  const ASK: Record<Issue['field'], string> = {
+    amount: 'add the amount',
+    description: 'add what it was for',
+    date: 'add the date',
+    payer: 'add who paid',
+    participants: 'add who shares it',
+  }
   const field = (label: string, value: string | null, issueField: Issue['field']) => (
     <div className={styles.field}>
       <dt>{label}</dt>
@@ -88,7 +95,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
         {value ?? (
           <span className={styles.missing}>
             <span aria-hidden="true">⚠ </span>Not set
-            {hint(issueFor(issueField), nameOf) && <span className={styles.hint}> — {hint(issueFor(issueField), nameOf)}</span>}
+            <span className={styles.hint}> — {hint(issueFor(issueField), nameOf) ?? ASK[issueField]}</span>
           </span>
         )}
       </dd>
@@ -111,7 +118,10 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
   const people: FormPerson[] = members.map((m) => ({ userId: m.id, name: m.name, current: true }))
 
   return (
-    <article className={`${styles.card} ${styles[c.status]}`} aria-label={`Expense proposal: ${status}`}>
+    <article
+      className={`${styles.card} ${styles[c.status]} ${c.status === 'proposed' && !complete ? styles.incomplete : ''}`}
+      aria-label={`Expense proposal: ${status}`}
+    >
       <header className={styles.header}>
         <span className={styles.icon} aria-hidden="true">
           $
@@ -172,12 +182,20 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
 
       {canManage && mode === 'view' && (
         <div className={styles.actions}>
-          <button type="button" className="primary-button" disabled={!complete || busy} onClick={() => setMode('confirm')}>
-            Review and add
-          </button>
-          <button type="button" className={styles.secondary} disabled={busy} onClick={() => setMode('edit')}>
-            {complete ? 'Edit' : 'Add details'}
-          </button>
+          {complete ? (
+            <>
+              <button type="button" className="primary-button" disabled={busy} onClick={() => setMode('confirm')}>
+                Review and add
+              </button>
+              <button type="button" className={styles.secondary} disabled={busy} onClick={() => setMode('edit')}>
+                Edit
+              </button>
+            </>
+          ) : (
+            <button type="button" className="primary-button" disabled={busy} onClick={() => setMode('edit')}>
+              Add details
+            </button>
+          )}
           <span className={styles.rejectSlot}>
             <InlineConfirm
               triggerLabel="Reject"
@@ -194,9 +212,9 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
 
       {canManage && mode === 'confirm' && split?.ok && c.amountCents !== null && (
         <div className={styles.confirm} role="group" aria-label="Confirm the expense">
-          <p className={styles.confirmTitle}>
-            Add {formatCents(c.amountCents)} for “{c.description}” on {formatDateLong(c.expenseDate ?? '')}, paid by{' '}
-            {who(c.paidBy ?? '')}?
+          <p className={styles.confirmTitle}>Add this {formatCents(c.amountCents)} expense?</p>
+          <p className={styles.note}>
+            “{c.description}” on {formatDateLong(c.expenseDate ?? '')}, paid by {who(c.paidBy ?? '')}. Each person’s share:
           </p>
           <ul className={styles.shares} aria-label="Each person’s share">
             {split.shares.map((s) => (
@@ -208,7 +226,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
           </ul>
           <div className={styles.actions}>
             <button type="button" className="primary-button" disabled={busy} onClick={() => void run(() => onApprove(c))}>
-              {busy ? 'Adding…' : `Add ${formatCents(c.amountCents)} expense`}
+              {busy ? 'Adding…' : 'Add expense'}
             </button>
             <button type="button" ref={cancelRef} className={styles.secondary} disabled={busy} onClick={() => setMode('view')}>
               Cancel

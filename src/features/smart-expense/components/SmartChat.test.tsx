@@ -126,7 +126,10 @@ describe('Smart Expense in chat', () => {
     renderChat()
     const card = await screen.findByRole('article', { name: 'Expense proposal: Needs details' })
     expect(within(card).getAllByText('Not set')).toHaveLength(2)
-    expect(within(card).getByRole('button', { name: 'Review and add' })).toBeDisabled()
+    expect(within(card).getByText('— add who paid')).toBeInTheDocument()
+    // Only the usable action leads; the approval path appears once complete.
+    expect(within(card).queryByRole('button', { name: 'Review and add' })).not.toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Add details' })).toBeEnabled()
     expect(within(card).getByText('To add it, fill in: what it was for, who paid.')).toBeInTheDocument()
   })
 
@@ -155,13 +158,14 @@ describe('Smart Expense in chat', () => {
     await user.click(within(card).getByRole('button', { name: 'Review and add' }))
 
     const confirm = within(card).getByRole('group', { name: 'Confirm the expense' })
-    expect(within(confirm).getByText(/Add \$30\.00 for “lunch”/)).toBeInTheDocument()
+    expect(within(confirm).getByText('Add this $30.00 expense?')).toBeInTheDocument()
+    expect(within(confirm).getByText(/“lunch” on .*, paid by You/)).toBeInTheDocument()
     const shares = within(confirm).getByRole('list', { name: 'Each person’s share' })
     expect(within(shares).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['You$10.00', 'Sam Lee$10.00', 'Jo Nguyen$10.00'])
     expect(within(confirm).getByRole('button', { name: 'Cancel' })).toHaveFocus()
     expect(rpcCalls('approve_expense_candidate')).toHaveLength(0)
 
-    await user.click(within(confirm).getByRole('button', { name: 'Add $30.00 expense' }))
+    await user.click(within(confirm).getByRole('button', { name: 'Add expense' }))
     expect(within(confirm).getByRole('button', { name: 'Adding…' })).toBeDisabled()
     expect(rpcCalls('approve_expense_candidate')[0][1]).toEqual({ p_id: 'c1', p_expected_version: 1 })
 
