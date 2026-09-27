@@ -51,10 +51,70 @@ deletions and transfers, and becomes the audit substrate for Phase 4
 settlements and Phase 7 Smart Expense.
 
 ## Decision
-Pending Software Architect review. Engineering-lead leaning: **C**, since
-deletions, transfers and settlement/Smart-Expense audit are core to "trust
-the numbers" — but C is a material database architecture change and needs
-operator approval before implementation.
+**C — an append-only `group_events` log — subject to operator approval**
+(Software Architect review 2026-09-27: recommends C; confirms it is a
+material database architecture change requiring explicit operator approval
+before any implementation, including local or SplitChat-Dev runs). Until
+approved, Phase 3 builds only on existing data (see "Interim scope").
+
+### Conditions (Software Architect)
+1. **Not a source of truth.** Balances, settlements and Smart Expense
+   candidates are never derived from events; events are feed and audit
+   only. Settlements (Phase 4) and candidates (Phase 7) keep their own
+   tables of record; events point to them.
+2. **Table** `public.group_events`: `id bigint identity`, `group_id` →
+   groups ON DELETE CASCADE, `actor_id` → profiles ON DELETE SET NULL (null
+   = system / account deletion), `kind text` with a CHECK list,
+   `subject_id uuid` (no FK — subjects can be hard-deleted),
+   `subject_user_id uuid`, `payload jsonb` with `"v": 1`, `backfilled
+   boolean`, `created_at`.
+3. **Kinds (Phase 3):** `group_created`, `member_added`,
+   `member_rejoined`, `member_left`, `member_removed`,
+   `member_account_deleted`, `ownership_transferred`, `expense_created`,
+   `expense_updated`, `expense_deleted`. Later phases add their own kinds
+   by their own migrations and ADRs.
+4. **Payload privacy:** ids, integer cents, dates, payer/participant ids
+   only; updates store before/after of changed fields and a
+   `description_changed` flag (never the text); never names, emails,
+   avatars or notes — names are resolved at read time, so tombstones apply.
+   **Open operator decision:** whether `expense_deleted` keeps a truncated
+   description snapshot (default: no).
+5. **Identity resolution:** extend `get_ledger_identities` (or add a
+   companion) so ex-member ids referenced by events resolve to names.
+6. **Readers:** RLS SELECT for active members of the group only (as every
+   other table); former members see nothing; no client write privileges.
+7. **Immutability:** guard trigger rejects UPDATE, and DELETE unless it is
+   the `delete_group` cascade (tested both ways).
+8. **Writers:** one private helper `record_group_event(...)` called inside
+   the existing SECURITY DEFINER functions in the same transaction
+   (functions know the intent and the "before" values); also
+   `handle_new_group`, `add_group_member_by_email`,
+   `handle_auth_user_deleting`, `admin_release_ownership`;
+   `delete_expense` captures the expense and splits before deleting. A
+   harness test asserts exactly one event per mutating path and none on
+   rollback.
+9. **`delete_group`** (solo groups only) records nothing; the group's
+   events cascade away with it.
+10. **Backfill:** one-off, insert-only, idempotent, in the release batch:
+    `expense_created`, `member_added`, `member_left/removed/account_deleted`
+    from existing columns, all `backfilled = true`; the UI states that
+    history before go-live may be incomplete (pre-go-live deletions, edits
+    and transfers cannot be recovered).
+11. **Pagination:** keyset on `(created_at desc, id desc)`; index
+    `(group_id, created_at desc, id desc)`; bounded page size.
+12. **Retention:** lives as long as the group (like the ledger); no TTL.
+13. **Rollout:** operator approval → migration in the repo → local
+    harness tests (7–10) → SplitChat-Dev rehearsal → a reviewed production
+    release batch with its own gate.
+
+### Interim scope (no approval needed, no database change)
+Dashboard from data visible today: my groups (member counts, role, last
+activity), **"Recent expenses"** (not "Activity") across my groups from
+`created_at` / `updated_at` / `updated_by`, and honest empty/loading
+states. The feed sits behind an `ActivitySource` interface (keyset
+`before`/`limit`) with a client-side adapter, so the event-log adapter can
+replace it without UI changes. No balances or owed amounts until Phase 4
+owns the balance calculation.
 
 ## Consequences / risks (C)
 Every write RPC gains an insert (small cost); a new table in production
