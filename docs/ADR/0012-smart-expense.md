@@ -6,12 +6,15 @@ pipeline with the interpreter behind an interface). Built and tested locally
 and on SplitChat-Dev in Phase 7; production only in a later reviewed release
 batch with its own execution approval. **Supersedes** ADR-0011's sentence
 "Phase 7 candidate decisions do [write group_events]" (see Options).
-**Product choices recorded for operator confirmation before production**
-(not blocking local/Dev work): the approver becomes the expense creator;
-candidates are visible to all active members; natural-language detections
-propose automatically; "with" includes the sender; the payer is never
-defaulted; candidates never expire; candidate text is permanent after a
-decision.
+**Operator-approved product decisions (2026-09-29):** the person who
+approves a proposal becomes the creator of the resulting expense; proposals
+are visible to the whole group; a source message creates at most one
+proposal; in wording such as "with Sam" the sender is a participant; the
+payer is never guessed or defaulted; proposals do not expire; once a
+proposal reaches a terminal decision its proposal text is immutable. None of
+these weakens the rule that the interpreter never writes financial state:
+message → deterministic interpretation → proposal → human review/edit →
+explicit approval → canonical expense RPC → ledger.
 
 ## Context
 The operator fixed the trust chain: message → deterministic interpretation →

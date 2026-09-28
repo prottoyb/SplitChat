@@ -5,9 +5,9 @@ under the operator's 2026-09-28 instruction to build chat on the existing
 Supabase stack including Realtime, "a clear architecture first, then
 execute it"). Built and tested locally and on SplitChat-Dev in Phase 6;
 production only in a later reviewed release batch with its own execution
-approval. **Recorded for operator confirmation before that batch:** chat
-messages are permanent (no edit or delete) and survive account deletion
-under the tombstone name "Deleted user" (see Risks).
+approval. **Operator-approved product decisions (2026-09-29):** chat
+messages are permanent; they cannot be edited or deleted; after account
+deletion historical messages remain and show the sender as "Deleted user".
 
 ## Context
 Phase 6 adds group chat: group-scoped, persistent, realtime, deterministic
