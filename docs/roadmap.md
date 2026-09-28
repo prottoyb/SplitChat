@@ -109,9 +109,8 @@ current phase is in `docs/phase-state.md`.
   production write, and completion. No deployment.
 - **Status:** started 2026-09-29 on `feature/phase9-product-ux`.
 
-## Phase 10 (proposed) — Portfolio/release readiness
-_Was Phase 9 before the operator approved Phase 9 as product experience
-(2026-09-29). Numbering and scope to be confirmed by the operator._
+## Phase 10 — Release Readiness, Deployment & Portfolio Presentation
+_Was Phase 9; renumbered by the operator on 2026-09-29 (D6)._
 - **Outcome:**
   - Choice of deployment platform and deployment.
   - README.
@@ -119,7 +118,7 @@ _Was Phase 9 before the operator approved Phase 9 as product experience
   - Demo and screenshots.
   - Repository cleanup.
   - Release validation.
-- **Dependencies:** Phase 8.
+- **Dependencies:** Phase 9.
 - **Gate:** start, production release, and completion.
 
 Exact and percentage split modes remain post-MVP unless explicitly approved.

@@ -1,6 +1,6 @@
 # Phase 9 plan — Product Experience, UX & Functional Refinement
 
-Status: **proposal, awaiting operator decisions D1–D6** (2026-09-29).
+Status: **approved with operator decisions D1–D6** (2026-09-29, see "Operator decisions" below, which take precedence over the proposal text).
 Scope and decision boundary: `docs/phase9/scope.md`. Evidence:
 `docs/phase9/ux-review.md`. Branch `feature/phase9-product-ux` from `main`
 @ `dfec625`. Production is at M23 and is not touched. No deployment.
@@ -12,7 +12,37 @@ should tell you what needs you, show where you stand in one glance, and
 work comfortably on a phone. The financial and security model does not
 change.
 
-## Operator decisions needed before implementation
+## Operator decisions (2026-09-29) — take precedence
+
+- **D1 APPROVED:** mobile bottom tab bar with a compact top bar.
+- **D2 APPROVED:** primary group navigation is **Overview · Expenses ·
+  Balances · Chat**. Members is not a primary tab: it lives in a group
+  menu/settings area reached from the (group) top bar. Activity is
+  secondary: surfaced inside Overview and/or through a dedicated
+  secondary action.
+- **D3 APPROVED IN PART:** profile page, profile/account editing as
+  appropriate, and password reset/change flow are in Phase 9.
+  **Self-service account deletion is deferred** (ownership/history/
+  security implications). Production Auth configuration for password
+  reset is a later explicit production gate; build and test against
+  SplitChat-Dev first.
+- **D4 APPROVED:** owners may rename a group through a new owner-only
+  server-side database function and a new migration. It goes through
+  security review and Senior Review and is rehearsed on SplitChat-Dev.
+  Not applied to production without later approval.
+- **D5 DEFERRED:** no trip start/end dates in Phase 9.
+- **D6 APPROVED:** the old release-readiness work becomes **Phase 10 —
+  Release Readiness, Deployment & Portfolio Presentation**.
+- **Order of work:** Increment 0 (overflow bug fix + design-token/system
+  pass) now; then wireframes and IA for the approved decisions; then a
+  representative implementation slice; the full redesign only after that
+  slice is reviewed. The designer leads product-experience direction.
+  Continue autonomously; stop only for a new major product, architecture,
+  security, database-semantics, production or deployment decision.
+  Checkpoint commits, and push the feature branch at meaningful
+  milestones.
+
+## Operator decisions as proposed (historical)
 
 Each decision has a recommendation. Everything else in this plan is inside
 the autonomous boundary.
