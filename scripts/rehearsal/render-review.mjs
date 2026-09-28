@@ -178,7 +178,13 @@ try {
       const file = path.join(outDir, `${route.name}-${size.label}.png`)
       await page.screenshot(file)
       const overflow = await page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
-      console.log(`${file}${overflow ? '  (HORIZONTAL OVERFLOW)' : ''}${visibility}`)
+      // Content sticking out of its card (the page itself may not overflow):
+      // any visible element whose box ends past its nearest .panel's edge.
+      const spill = await page.evaluate(`(() => { let n = 0; for (const el of document.querySelectorAll('.panel *')) {
+          const p = el.closest('.panel'); const r = el.getBoundingClientRect(); const pr = p.getBoundingClientRect();
+          if (r.width && r.height && getComputedStyle(el).position !== 'fixed' && (r.right > pr.right + 1 || r.left < pr.left - 1)) n++ } return n })()`)
+
+      console.log(`${file}${overflow ? '  (HORIZONTAL OVERFLOW)' : ''}${spill ? `  (${spill} ELEMENT(S) OUTSIDE THEIR PANEL)` : ''}${visibility}`)
     }
   }
 } catch (error) {

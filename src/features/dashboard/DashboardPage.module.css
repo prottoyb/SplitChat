@@ -20,6 +20,9 @@
 .attentionList,
 .groupList {
   display: grid;
+  /* An implicit auto column grows to the rows' min-content width, and the
+     group names never wrap, so a long name pushed rows out of the panel. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 0;
   padding: 0;
