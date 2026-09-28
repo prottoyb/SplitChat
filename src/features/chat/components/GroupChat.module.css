@@ -8,18 +8,18 @@
   height: clamp(440px, calc(100vh - 330px), 760px);
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #e4e6eb;
-  border-radius: 13px;
-  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
 }
 
 .liveNotice {
   grid-row: 1;
   margin: 0;
-  border-bottom: 1px solid #f1e3bd;
+  border-bottom: 1px solid var(--warning-border);
   padding: 8px 16px;
-  color: #7a5a12;
-  background: #fff8e6;
+  color: var(--warning-fg);
+  background: var(--warning-subtle-bg);
   font-size: 12px;
   font-weight: 600;
 }
@@ -40,11 +40,11 @@
 }
 
 .older button {
-  border: 1px solid #d9d2ff;
-  border-radius: 999px;
+  border: 1px solid var(--brand-subtle-border);
+  border-radius: var(--radius-pill);
   padding: 6px 14px;
-  color: #5b41e0;
-  background: #f5f3ff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -58,7 +58,7 @@
 
 .older p {
   margin: 0;
-  color: #a13f3f;
+  color: var(--danger-fg);
   font-size: 12px;
 }
 
@@ -77,10 +77,10 @@
 }
 
 .day span {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 10px;
-  color: #5f6470;
-  background: #f2f3f6;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -122,22 +122,22 @@
 .sender {
   max-width: 260px;
   overflow: hidden;
-  color: #2b2f38;
+  color: var(--text-primary);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .meta time {
-  color: #5b606c;
+  color: var(--text-secondary);
 }
 
 .bubble {
   margin: 0;
   border-radius: 14px 14px 14px 4px;
   padding: 8px 12px;
-  color: #1c1e26;
-  background: #f2f3f6;
+  color: var(--text-primary);
+  background: var(--surface-subtle);
   font-size: 14px;
   line-height: 1.45;
   white-space: pre-wrap;
@@ -146,8 +146,8 @@
 
 .mine .bubble {
   border-radius: 14px 14px 4px 14px;
-  color: #1c1e26;
-  background: #ece8ff;
+  color: var(--text-primary);
+  background: var(--brand-subtle-bg);
 }
 
 .sendingBubble {
@@ -155,13 +155,13 @@
 }
 
 .failedBubble {
-  outline: 2px solid #d98a8a;
+  outline: 2px solid var(--danger-fg);
   outline-offset: 1px;
 }
 
 .pendingStatus {
   margin: 3px 4px 0;
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -172,16 +172,16 @@
   justify-content: flex-end;
   gap: 6px 10px;
   margin: 4px 2px 0;
-  color: #a13f3f;
+  color: var(--danger-fg);
   font-size: 12px;
 }
 
 .failed button {
-  border: 1px solid #e4e6eb;
-  border-radius: 7px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   padding: 3px 9px;
-  color: #2b2f38;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -193,7 +193,7 @@
   place-content: center;
   height: 100%;
   padding: 24px;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 14px;
   text-align: center;
 }
@@ -204,7 +204,7 @@
 }
 
 .emptyTitle {
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 700;
 }
@@ -215,10 +215,10 @@
   bottom: 96px;
   transform: translateX(50%);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 7px 14px;
-  color: #ffffff;
-  background: #111827;
+  color: var(--text-on-brand);
+  background: var(--action-bg);
   box-shadow: 0 4px 14px rgba(17, 24, 39, 0.2);
   font: inherit;
   font-size: 13px;
@@ -233,7 +233,7 @@
 
 .removedNotice {
   margin: 0;
-  border-top: 1px solid #e4e6eb;
+  border-top: 1px solid var(--border-default);
   padding: 12px 14px;
 }
 
@@ -242,9 +242,9 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 6px 10px;
-  border-top: 1px solid #e4e6eb;
+  border-top: 1px solid var(--border-default);
   padding: 12px 14px;
-  background: #fbfbfc;
+  background: var(--surface-subtle);
 }
 
 .composer textarea {
@@ -252,24 +252,24 @@
   min-height: 44px;
   max-height: 160px;
   resize: vertical;
-  border: 1px solid #dfe1e7;
-  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 10px 12px;
-  color: #20222a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font: inherit;
   font-size: 14px;
   line-height: 1.4;
 }
 
 .composer textarea:focus {
-  outline: none;
-  border-color: #7357ff;
-  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.15);
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
 }
 
 .composer textarea[aria-invalid='true'] {
-  border-color: #c95b5b;
+  border-color: var(--danger-fg);
 }
 
 .composer button {
@@ -284,11 +284,11 @@
 }
 
 .counter {
-  color: #5f6470;
+  color: var(--text-secondary);
 }
 
 .error {
-  color: #a13f3f;
+  color: var(--danger-fg);
 }
 
 .visuallyHidden {
@@ -307,7 +307,7 @@
     height: calc(100dvh - 24px);
     min-height: 380px;
     scroll-margin-top: 12px;
-    border-radius: 11px;
+    border-radius: var(--radius-md);
   }
 
   .scroller {

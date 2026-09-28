@@ -1,14 +1,14 @@
 .breadcrumb {
   display: inline-flex;
   margin-bottom: 0.75rem;
-  color: var(--text-muted, #56657a);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
 }
 
 .breadcrumb:hover {
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary);
 }
 
 .splitBadge {
@@ -16,10 +16,10 @@
   align-items: center;
   justify-content: center;
   padding: 0.55rem 0.85rem;
-  border: 1px solid #dbeafe;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #2563eb;
+  border: 1px solid var(--brand-subtle-border);
+  border-radius: var(--radius-pill);
+  background: var(--brand-subtle-bg);
+  color: var(--brand-600);
   font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
@@ -29,21 +29,21 @@
 .errorMessage {
   margin-bottom: 1rem;
   padding: 0.9rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-size: 0.92rem;
   font-weight: 600;
 }
 
 .successMessage {
-  border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  border: 1px solid var(--success-border);
+  background: var(--success-subtle-bg);
+  color: var(--success-fg);
 }
 
 .errorMessage {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-subtle-bg);
+  color: var(--danger-fg);
 }
 
 .formGrid {
@@ -61,9 +61,9 @@
 
 .panel,
 .summaryCard {
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.02),
     0 8px 24px rgba(15, 23, 42, 0.035);
@@ -83,7 +83,7 @@
 
 .panelHeader h3 {
   margin: 0.15rem 0 0;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 1.08rem;
 }
 
@@ -103,13 +103,13 @@
 }
 
 .field > span {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 0.86rem;
   font-weight: 700;
 }
 
 .field > span small {
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.76rem;
   font-weight: 500;
 }
@@ -119,11 +119,11 @@
 .field textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dbe3ee;
-  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   outline: none;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--surface-card);
+  color: var(--text-primary);
   font: inherit;
   transition:
     border-color 150ms ease,
@@ -146,15 +146,16 @@
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.14);
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
 }
 
 .field input:disabled,
 .field select:disabled,
 .field textarea:disabled {
   cursor: not-allowed;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   opacity: 0.75;
 }
 
@@ -163,19 +164,20 @@
   align-items: center;
   min-height: 45px;
   overflow: hidden;
-  border: 1px solid #dbe3ee;
-  border-radius: 11px;
-  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
 }
 
 .amountInput:focus-within {
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.14);
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
 }
 
 .amountInput > span {
   padding-left: 0.85rem;
-  color: #617187;
+  color: var(--text-secondary);
   font-weight: 700;
 }
 
@@ -187,11 +189,13 @@
 
 .amountInput input:focus {
   box-shadow: none;
+  /* The wrapper's :focus-within ring is the indicator. */
+  outline: none;
 }
 
 .characterCount {
   justify-self: end;
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.73rem;
 }
 
@@ -201,9 +205,9 @@
   height: 2rem;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -218,7 +222,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #475569;
+  color: var(--text-primary);
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
@@ -226,7 +230,7 @@
 }
 
 .participantActions button:hover {
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .participantActions button:disabled {
@@ -245,8 +249,8 @@
   gap: 0.8rem;
   align-items: center;
   padding: 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 13px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     border-color 150ms ease,
@@ -255,13 +259,13 @@
 }
 
 .participantRow:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
 }
 
 .participantSelected {
-  border-color: #bfdbfe;
-  background: #f8fbff;
+  border-color: var(--brand-subtle-border);
+  background: var(--brand-subtle-bg-hover);
 }
 
 .participantRow > input {
@@ -278,9 +282,9 @@
   width: 38px;
   height: 38px;
   place-items: center;
-  border-radius: 11px;
-  background: #eef2ff;
-  color: #4338ca;
+  border-radius: var(--radius-md);
+  background: var(--brand-subtle-bg);
+  color: var(--brand-700);
   font-size: 0.76rem;
   font-weight: 800;
 }
@@ -293,14 +297,14 @@
 
 .memberInfo strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 0.88rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .memberInfo span {
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.74rem;
 }
 
@@ -310,19 +314,19 @@
   width: 25px;
   height: 25px;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.75rem;
   font-weight: 800;
 }
 
 .selectedIndicator {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--brand-600);
+  color: var(--text-on-brand);
 }
 
 .unselectedIndicator {
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-card);
 }
 
 .previewPanel {
@@ -333,26 +337,26 @@
 .totalSummary {
   padding: 1rem;
   border-radius: 14px;
-  background: #f8fafc;
+  background: var(--surface-subtle);
 }
 
 .totalSummary span {
   display: block;
   margin-bottom: 0.3rem;
-  color: #617187;
+  color: var(--text-secondary);
   font-size: 0.77rem;
   font-weight: 700;
 }
 
 .totalSummary strong {
   display: block;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 1.65rem;
 }
 
 .totalSummary p {
   margin: 0.3rem 0 0;
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.76rem;
 }
 
@@ -366,7 +370,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .splitRow:last-child {
@@ -380,7 +384,7 @@
 }
 
 .splitRow strong {
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 0.84rem;
 }
 
@@ -391,7 +395,7 @@
 }
 
 .splitRow span {
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.7rem;
 }
 
@@ -406,22 +410,22 @@
   height: 42px;
   margin: 0 auto 0.85rem;
   place-items: center;
-  border-radius: 13px;
-  background: #f1f5f9;
-  color: #617187;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
   font-size: 1.25rem;
   font-weight: 800;
 }
 
 .emptyPreview h4 {
   margin: 0 0 0.4rem;
-  color: #334155;
+  color: var(--text-primary);
   font-size: 0.9rem;
 }
 
 .emptyPreview p {
   margin: 0;
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.78rem;
   line-height: 1.5;
 }
@@ -437,7 +441,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .summaryCard > div:last-child {
@@ -445,14 +449,14 @@
 }
 
 .summaryCard span {
-  color: #617187;
+  color: var(--text-secondary);
   font-size: 0.78rem;
 }
 
 .summaryCard strong {
   max-width: 55%;
   overflow: hidden;
-  color: #0f172a;
+  color: var(--text-primary);
   font-size: 0.79rem;
   text-align: right;
   text-overflow: ellipsis;
@@ -461,7 +465,7 @@
 
 .submitHint {
   margin: -0.65rem 0 0;
-  color: #677180;
+  color: var(--text-secondary);
   font-size: 0.72rem;
   line-height: 1.45;
   text-align: center;
@@ -471,20 +475,20 @@
   max-width: 560px;
   margin: 5rem auto;
   padding: 2.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
   text-align: center;
 }
 
 .stateCard h2 {
   margin: 0 0 0.55rem;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .stateCard p {
   margin: 0 0 1rem;
-  color: #617187;
+  color: var(--text-secondary);
   line-height: 1.55;
 }
 
@@ -495,14 +499,14 @@
   margin: 0 auto 1rem;
   place-items: center;
   border-radius: 14px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 800;
 }
 
 .backLink {
-  color: #334155;
+  color: var(--text-primary);
   font-size: 0.86rem;
   font-weight: 700;
   text-decoration: none;
@@ -539,7 +543,7 @@
 /* Phase 2: inline field errors, former-member labels, read-only state. */
 .fieldError {
   margin: 0;
-  color: #a13f3f;
+  color: var(--danger-fg);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -548,29 +552,29 @@
 .field input[aria-invalid='true'],
 .field select[aria-invalid='true'],
 .field textarea[aria-invalid='true'] {
-  border-color: #d38b8b;
+  border-color: var(--danger-fg);
 }
 
 .formerTag {
   display: inline-block;
   margin-left: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 1px 7px;
-  color: #6b707c;
-  background: #eef0f3;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-size: 12px;
   font-weight: 700;
   vertical-align: middle;
 }
 
 .participantList.hasError {
-  border-radius: 12px;
-  outline: 1px solid #e3b3b3;
+  border-radius: var(--radius-md);
+  outline: 1px solid var(--danger-fg);
   outline-offset: 4px;
 }
 
 .fieldLabel {
-  color: #383b46;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
@@ -593,7 +597,7 @@
 }
 
 .legendTitle {
-  color: #1f2430;
+  color: var(--text-primary);
   font-size: 17px;
   font-weight: 750;
 }

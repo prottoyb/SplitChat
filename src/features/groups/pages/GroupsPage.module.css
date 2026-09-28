@@ -1,30 +1,30 @@
 .successMessage,
 .errorMessage {
   margin-bottom: 22px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 13px 15px;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .successMessage {
-  border: 1px solid #cde7d7;
-  color: #297149;
-  background: #f1faf5;
+  border: 1px solid var(--success-border);
+  color: var(--success-fg);
+  background: var(--success-subtle-bg);
 }
 
 .errorMessage {
-  border: 1px solid #efd0d0;
-  color: #a13f3f;
-  background: #fff4f4;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
 }
 
 .createPanel {
   margin-bottom: 28px;
-  border: 1px solid #e4e6eb;
-  border-radius: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 26px;
-  background: #ffffff;
+  background: var(--surface-card);
   box-shadow: 0 8px 28px rgba(21, 25, 38, 0.05);
 }
 
@@ -38,13 +38,13 @@
 
 .createHeader h3 {
   margin: 2px 0 7px;
-  color: #171922;
+  color: var(--text-primary);
   font-size: 21px;
 }
 
 .createHeader > div > p:last-child {
   margin: 0;
-  color: #6a6e7b;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -53,9 +53,9 @@
   height: 34px;
   flex: 0 0 auto;
   border: 0;
-  border-radius: 9px;
-  color: #696e7a;
-  background: #f4f5f7;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-family: inherit;
   font-size: 22px;
   line-height: 1;
@@ -63,7 +63,7 @@
 }
 
 .closeButton:hover:not(:disabled) {
-  background: #ebedf1;
+  background: var(--surface-subtle);
 }
 
 .closeButton:disabled {
@@ -82,7 +82,7 @@
 }
 
 .field span {
-  color: #383b46;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
@@ -91,12 +91,12 @@
 .field textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dfe1e7;
-  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   outline: none;
   padding: 13px 14px;
-  color: #20222a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font-family: inherit;
   font-size: 14px;
   transition:
@@ -116,13 +116,14 @@
 
 .field input:focus,
 .field textarea:focus {
-  border-color: #7357ff;
-  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.11);
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
 }
 
 .field small {
   justify-self: end;
-  color: #6c6e75;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -141,10 +142,10 @@
   min-height: 340px;
   place-items: center;
   align-content: center;
-  border: 1px solid #e6e7eb;
-  border-radius: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 40px 24px;
-  background: #ffffff;
+  background: var(--surface-card);
   text-align: center;
 }
 
@@ -155,21 +156,21 @@
   place-items: center;
   margin-bottom: 16px;
   border-radius: 14px;
-  color: #6d51ef;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 21px;
 }
 
 .stateCard h3 {
   margin: 0 0 8px;
-  color: #20222a;
+  color: var(--text-primary);
   font-size: 18px;
 }
 
 .stateCard p {
   max-width: 430px;
   margin: 0 0 20px;
-  color: #6a6f7a;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -187,10 +188,10 @@
 
 .groupCard {
   min-height: 210px;
-  border: 1px solid #e4e6eb;
+  border: 1px solid var(--border-default);
   border-radius: 17px;
   padding: 22px;
-  background: #ffffff;
+  background: var(--surface-card);
   transition:
     transform 160ms ease,
     border-color 160ms ease,
@@ -199,7 +200,7 @@
 
 .groupCard:hover {
   transform: translateY(-2px);
-  border-color: #d7d3f7;
+  border-color: var(--brand-subtle-border);
   box-shadow: 0 12px 32px rgba(29, 33, 48, 0.07);
 }
 
@@ -215,17 +216,17 @@
   width: 39px;
   height: 39px;
   place-items: center;
-  border-radius: 11px;
-  color: #6d51ef;
-  background: #f0edff;
+  border-radius: var(--radius-md);
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 17px;
 }
 
 .ownerBadge {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px 9px;
-  color: #6750d8;
-  background: #f2efff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -234,22 +235,22 @@
 
 .groupCard h3 {
   margin: 0 0 9px;
-  color: #1d1f27;
+  color: var(--text-primary);
   font-size: 18px;
 }
 
 .groupCard > p {
   min-height: 42px;
   margin: 0 0 24px;
-  color: #6a6e79;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
 
 .groupMeta {
   padding-top: 15px;
-  border-top: 1px solid #eff0f3;
-  color: #6b6e76;
+  border-top: 1px solid var(--border-default);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

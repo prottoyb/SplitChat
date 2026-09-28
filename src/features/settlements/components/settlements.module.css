@@ -16,7 +16,7 @@
 
 .field label,
 .voidBox label {
-  color: #3b3f4a;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 700;
 }
@@ -26,11 +26,11 @@
 .voidBox input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dfe2e8;
-  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
   padding: 10px 12px;
-  color: #1c1e26;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font: inherit;
   font-size: 14px;
 }
@@ -38,7 +38,7 @@
 .field input:focus-visible,
 .field select:focus-visible,
 .voidBox input:focus-visible {
-  outline: 2px solid #6549ed;
+  outline: 2px solid var(--brand-600);
   outline-offset: 1px;
 }
 
@@ -49,26 +49,26 @@
 }
 
 .amountInput span {
-  color: #5f6470;
+  color: var(--text-secondary);
   font-weight: 700;
 }
 
 .hint {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .fieldError {
   margin: 0;
-  color: #a13f3f;
+  color: var(--danger-fg);
   font-size: 12px;
   font-weight: 600;
 }
 
 .muted {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -84,10 +84,10 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  border: 1px solid #eceef2;
-  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .entryMain {
@@ -97,12 +97,12 @@
 
 .entryText {
   margin: 0 0 4px;
-  color: #3b3f4a;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .entryAmount {
-  color: #1c1e26;
+  color: var(--text-primary);
   font-weight: 750;
 }
 
@@ -113,17 +113,17 @@
 
 .voidTag {
   margin-left: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 2px 8px;
-  color: #a13f3f;
-  background: #fff4f4;
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
   font-size: 12px;
   font-weight: 700;
 }
 
 .entryMeta {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -131,7 +131,7 @@
 .linkButton {
   border: 0;
   padding: 4px 6px;
-  color: #5b41e0;
+  color: var(--brand-600);
   background: none;
   font: inherit;
   font-size: 13px;
@@ -141,7 +141,7 @@
 
 .linkButton:focus-visible,
 .dangerButton:focus-visible {
-  outline: 2px solid #6549ed;
+  outline: 2px solid var(--brand-600);
   outline-offset: 2px;
 }
 
@@ -158,10 +158,10 @@
 
 .dangerButton {
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 12px;
-  color: #ffffff;
-  background: #b03a3a;
+  color: var(--text-on-brand);
+  background: var(--danger-bg);
   font: inherit;
   font-size: 13px;
   font-weight: 700;

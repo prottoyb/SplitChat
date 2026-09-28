@@ -35,11 +35,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid #eceef2;
-  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 11px 13px;
-  color: #2b2f38;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font-size: 13px;
   text-decoration: none;
   transition: border-color 150ms ease, background 150ms ease;
@@ -49,13 +49,13 @@ a.attentionItem:hover,
 a.groupItem:hover,
 a.attentionItem:focus-visible,
 a.groupItem:focus-visible {
-  border-color: #cfc6ff;
-  background: #faf9ff;
+  border-color: var(--brand-subtle-border);
+  background: var(--brand-subtle-bg-hover);
 }
 
 .attentionItem span,
 .groupItem span {
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -85,20 +85,20 @@ a.groupItem:focus-visible {
 }
 
 .owes {
-  color: #a13f3f !important;
+  color: var(--danger-fg) !important;
 }
 
 .owed {
-  color: #237044 !important;
+  color: var(--success-fg) !important;
 }
 
 .settled,
 .positionMuted {
-  color: #5f6470 !important;
+  color: var(--text-secondary) !important;
 }
 
 .groupItem small {
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -108,7 +108,7 @@ a.groupItem:focus-visible {
 }
 
 .panelFooter a {
-  color: #5b41e0;
+  color: var(--brand-600);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
@@ -116,7 +116,7 @@ a.groupItem:focus-visible {
 
 .allClear {
   margin: 0;
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 

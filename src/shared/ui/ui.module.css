@@ -11,7 +11,7 @@
 
 .stateTitle {
   margin: 0 0 8px;
-  color: #22242c;
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: 700;
 }
@@ -34,7 +34,7 @@
 .stateCard p {
   max-width: 430px;
   margin: 0 0 18px;
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -46,15 +46,15 @@
   place-items: center;
   margin: 0 auto 16px;
   border-radius: 14px;
-  color: #6d51ef;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 19px;
   font-weight: 750;
 }
 
 .stateIconError {
-  color: #a13f3f;
-  background: #fff1f1;
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
 }
 
 .stateActions {
@@ -67,9 +67,9 @@
 .spinner {
   width: 22px;
   height: 22px;
-  border: 3px solid #dcd6ff;
-  border-top-color: #7054f6;
-  border-radius: 50%;
+  border: 3px solid var(--brand-subtle-border);
+  border-top-color: var(--brand-500);
+  border-radius: var(--radius-circle);
   animation: spin 0.8s linear infinite;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .link {
-  color: #6549ed;
+  color: var(--brand-600);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -99,28 +99,28 @@
 
 .notice {
   margin: 0 0 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .noticeSuccess {
-  border: 1px solid #cde7d7;
-  color: #297149;
-  background: #f1faf5;
+  border: 1px solid var(--success-border);
+  color: var(--success-fg);
+  background: var(--success-subtle-bg);
 }
 
 .noticeError {
-  border: 1px solid #efd0d0;
-  color: #a13f3f;
-  background: #fff4f4;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
 }
 
 .noticeInfo {
-  border: 1px solid #dcd6ff;
-  color: #4f3bb8;
-  background: #f6f4ff;
+  border: 1px solid var(--brand-subtle-border);
+  color: var(--brand-700);
+  background: var(--brand-subtle-bg-hover);
 }
 
 .noticeRow {
@@ -136,7 +136,7 @@
 .confirmButton,
 .cancelButton {
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-family: inherit;
   font-size: 12px;
   font-weight: 750;
@@ -147,45 +147,45 @@
 }
 
 .button {
-  border: 1px solid #dcd6ff;
+  border: 1px solid var(--brand-subtle-border);
   padding: 9px 12px;
-  color: #5b41e0;
-  background: #ffffff;
+  color: var(--brand-600);
+  background: var(--surface-card);
 }
 
 .button:hover:not(:disabled) {
-  background: #f6f4ff;
+  background: var(--brand-subtle-bg-hover);
 }
 
 .dangerButton {
   width: 100%;
-  border: 1px solid #e7caca;
+  border: 1px solid var(--danger-border);
   padding: 11px 14px;
-  color: #a33d3d;
-  background: #ffffff;
+  color: var(--danger-fg);
+  background: var(--surface-card);
 }
 
 .dangerButton:hover:not(:disabled) {
-  background: #fff5f5;
+  background: var(--danger-subtle-bg);
 }
 
 .confirmBox {
-  border: 1px solid #edd0d0;
-  border-radius: 12px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
   padding: 15px;
-  background: #fff8f8;
+  background: var(--danger-subtle-bg);
 }
 
 .confirmBox strong {
   display: block;
   margin-bottom: 6px;
-  color: #8d3434;
+  color: var(--danger-fg);
   font-size: 12px;
 }
 
 .confirmBox p {
   margin: 0 0 14px;
-  color: #836a6a;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -198,24 +198,24 @@
 .confirmButton {
   flex: 1;
   padding: 9px 10px;
-  color: #ffffff;
-  background: #aa3d3d;
+  color: var(--text-on-brand);
+  background: var(--danger-bg);
 }
 
 .confirmButton:hover:not(:disabled) {
-  background: #913232;
+  background: var(--danger-bg-hover);
 }
 
 .cancelButton {
   flex: 1;
-  border: 1px solid #e0e2e7;
+  border: 1px solid var(--border-default);
   padding: 9px 10px;
-  color: #595e6a;
-  background: #ffffff;
+  color: var(--text-secondary);
+  background: var(--surface-card);
 }
 
 .cancelButton:hover:not(:disabled) {
-  background: #f5f6f8;
+  background: var(--surface-subtle);
 }
 
 .button:disabled,
@@ -231,7 +231,7 @@
 .confirmButton:focus-visible,
 .cancelButton:focus-visible,
 .link:focus-visible {
-  outline: 2px solid #7054f6;
+  outline: 2px solid var(--brand-500);
   outline-offset: 2px;
 }
 
@@ -241,9 +241,9 @@
   width: 38px;
   height: 38px;
   place-items: center;
-  border-radius: 12px;
-  color: #5b41e0;
-  background: #f0edff;
+  border-radius: var(--radius-md);
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 13px;
   font-weight: 750;
 }
@@ -269,7 +269,7 @@
 
 .sectionHeader h3 {
   margin: 0;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 20px;
   letter-spacing: -0.02em;
 }
@@ -279,14 +279,14 @@
 }
 
 .sectionHeader h3:focus-visible {
-  outline: 2px solid #6549ed;
+  outline: 2px solid var(--brand-600);
   outline-offset: 4px;
   border-radius: 4px;
 }
 
 .sectionHeader p {
   margin: 4px 0 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 

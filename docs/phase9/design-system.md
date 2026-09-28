@@ -58,6 +58,11 @@ Mapping: `#6549ed`, `#6d51ef`, `#654bea`, `#6750d8` become `--brand-600`;
 `#7357ff` becomes `--brand-500`. Visible change: a hair on some links and
 buttons.
 
+### Action
+
+`--action-bg: #111827` is the primary-button fill (white text 17.7:1). It
+has the same value as the shell but a different meaning.
+
 ### Focus
 
 `--focus-ring: 2px solid var(--brand-500)`, `outline-offset: 2px`
@@ -160,3 +165,33 @@ One documented exception: the tinted auth CTA shadow
 
 Reuse the existing `LoadingState`, `ErrorState`, `Notice`,
 `InlineConfirm`, `SectionHeader` and `Avatar` (`src/shared/ui`).
+
+## 7. Increment 0 outcome (2026-09-29)
+
+- **Tokens are on `:root`** (`src/index.css`). 584 values in 19
+  stylesheets were migrated by a one-off script:
+  - It used the exact mappings above.
+  - For the long tail of near-duplicates, it classified each value by the
+    property it sits in (text, background or border), its hue family and
+    its contrast.
+  - `App.css` was migrated by hand, because the shell and action use the
+    same value with different meanings.
+- **Documented exceptions**, enforced by `scripts/design-tokens.test.mjs`:
+  - `#000` as a mask-gradient alpha stop;
+  - the auth hero's dark surface;
+  - activity icon chips, which use categorical colours, not status.
+- **Visible changes:**
+  - ExpenseForm's off-brand blue (Tailwind leftovers) is now brand
+    purple;
+  - error field borders are now `--danger-fg`, which meets 3:1 (was
+    about 2:1);
+  - one focus treatment everywhere (outline);
+  - dark greys used for body text are unified to `--text-primary`;
+  - button corners are slightly rounder, and the 18 px cards slightly
+    tighter.
+- **Not yet migrated:** font sizes, spacing and shadows. These move to
+  tokens as files are touched in later increments, and the shared
+  components (§6) are built with them.
+- **Verified on SplitChat-Dev:** rendered review of 17 routes × 3 widths
+  with no page overflow and no content outside its panel; a11y audit with
+  24 page views and 0 findings.

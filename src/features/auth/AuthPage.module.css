@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.1fr);
-  background: #f7f8fa;
+  background: var(--surface-subtle);
 }
 
 .brandPanel {
@@ -13,7 +13,7 @@
   justify-content: space-between;
   overflow: hidden;
   padding: 56px;
-  color: #ffffff;
+  color: var(--text-on-brand);
   background:
     radial-gradient(
       circle at 15% 15%,
@@ -36,7 +36,7 @@
   right: -190px;
   top: 35%;
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
 }
 
 .brandContent {
@@ -53,7 +53,7 @@
   margin-bottom: 70px;
   border-radius: 14px;
   background: #7357ff;
-  color: #ffffff;
+  color: var(--text-on-brand);
   font-size: 22px;
   font-weight: 800;
   box-shadow: 0 12px 28px rgba(115, 87, 255, 0.3);
@@ -61,7 +61,7 @@
 
 .eyebrow {
   margin: 0 0 12px;
-  color: #6d56e2;
+  color: var(--brand-600);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -152,7 +152,7 @@
 
 .heading h2 {
   margin: 0 0 10px;
-  color: #161820;
+  color: var(--text-primary);
   font-size: 32px;
   line-height: 1.2;
   letter-spacing: -0.035em;
@@ -160,7 +160,7 @@
 
 .heading > p:last-child {
   margin: 0;
-  color: #4b5261;
+  color: var(--text-primary);
   font-size: 14px;
   line-height: 1.65;
 }
@@ -171,16 +171,16 @@
   gap: 4px;
   margin-bottom: 28px;
   padding: 4px;
-  border: 1px solid #e8e9ee;
-  border-radius: 12px;
-  background: #f0f1f4;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
 }
 
 .modeSelector button {
   min-height: 44px;
   border: 0;
-  border-radius: 9px;
-  color: #4b5261;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
   background: transparent;
   font-family: inherit;
   font-size: 13px;
@@ -193,8 +193,8 @@
 }
 
 .modeSelector .activeMode {
-  color: #1d1f27;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   box-shadow: 0 1px 4px rgba(18, 22, 33, 0.08);
 }
 
@@ -209,7 +209,7 @@
 }
 
 .field span {
-  color: #383b46;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
@@ -218,12 +218,12 @@
   width: 100%;
   height: 48px;
   box-sizing: border-box;
-  border: 1px solid #dfe1e7;
-  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   outline: none;
   padding: 0 14px;
-  color: #20222a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font-family: inherit;
   font-size: 14px;
   transition:
@@ -232,12 +232,13 @@
 }
 
 .field input::placeholder {
-  color: #6d7076;
+  color: var(--text-secondary);
 }
 
 .field input:focus {
-  border-color: #7357ff;
-  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.11);
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
 }
 
 .field input:disabled {
@@ -250,8 +251,8 @@
   min-height: 49px;
   margin-top: 4px;
   border: 0;
-  border-radius: 11px;
-  color: #ffffff;
+  border-radius: var(--radius-md);
+  color: var(--text-on-brand);
   background: #191b23;
   font-family: inherit;
   font-size: 14px;
@@ -274,27 +275,27 @@
 
 .errorMessage,
 .successMessage {
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 11px 13px;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .errorMessage {
-  border: 1px solid #f1cece;
-  color: #a33d3d;
-  background: #fff3f3;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
 }
 
 .successMessage {
-  border: 1px solid #c8e6d5;
-  color: #287247;
-  background: #f0faf4;
+  border: 1px solid var(--success-border);
+  color: var(--success-fg);
+  background: var(--success-subtle-bg);
 }
 
 .switchText {
   margin: 25px 0 0;
-  color: #696e79;
+  color: var(--text-secondary);
   font-size: 13px;
   text-align: center;
 }
@@ -303,7 +304,7 @@
   margin-left: 5px;
   border: 0;
   padding: 0;
-  color: #6648f5;
+  color: var(--brand-600);
   background: transparent;
   font-family: inherit;
   font-size: inherit;
@@ -318,7 +319,7 @@
 
 .authFooter {
   margin: 60px 0 0;
-  color: #6c6f76;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -341,7 +342,7 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 50px;
-    color: #191b23;
+    color: var(--text-primary);
     font-size: 18px;
     font-weight: 750;
   }
@@ -350,7 +351,7 @@
     width: 38px;
     height: 38px;
     margin: 0;
-    border-radius: 11px;
+    border-radius: var(--radius-md);
     font-size: 18px;
   }
 

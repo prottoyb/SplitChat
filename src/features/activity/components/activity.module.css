@@ -5,7 +5,7 @@
 
 .day h4 {
   margin: 0 0 8px;
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -25,12 +25,12 @@
   grid-template-columns: 32px 1fr auto;
   align-items: start;
   gap: 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
 }
 
 .item:hover {
-  background: #f8f7ff;
+  background: var(--brand-subtle-bg);
 }
 
 .icon {
@@ -38,18 +38,18 @@
   width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 750;
 }
 
 .expense {
-  color: #5b41e0;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
 }
 
 .member {
-  color: #297149;
+  color: var(--success-fg);
   background: #eaf7ef;
 }
 
@@ -65,7 +65,7 @@
 
 .sentence {
   margin: 0;
-  color: #2b2f38;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -75,7 +75,7 @@
 }
 
 .sentence a {
-  color: #5b41e0;
+  color: var(--brand-600);
   font-weight: 700;
   text-decoration: none;
 }
@@ -87,16 +87,16 @@
 
 .meta {
   margin: 2px 0 0;
-  color: #6a6d76;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .detail {
-  color: #5b606c;
+  color: var(--text-secondary);
 }
 
 .time {
-  color: #6a6d76;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -109,14 +109,14 @@
 
 .note {
   margin: 0;
-  color: #6a6d76;
+  color: var(--text-secondary);
   font-size: 12px;
   text-align: center;
 }
 
 .empty {
   padding: 28px 12px;
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 13px;
   text-align: center;
 }
@@ -130,17 +130,17 @@
 }
 
 .filters label {
-  color: #383b46;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
 
 .filters select {
   min-height: 40px;
-  border: 1px solid #dfe1e7;
-  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 0 12px;
-  background: #ffffff;
+  background: var(--surface-card);
   font: inherit;
   font-size: 13px;
 }
