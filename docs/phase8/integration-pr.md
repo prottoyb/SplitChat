@@ -2,7 +2,7 @@
 
 Opening and merging the PR are operator actions. `main` is at `02d6d64`
 (Phase 1); `feature/phase8-hardening` carries Phases 2–8 as one linear
-chain (47 commits, 239 files).
+chain (`git log --oneline 02d6d64..HEAD` for the current count).
 
 ## Integration path
 

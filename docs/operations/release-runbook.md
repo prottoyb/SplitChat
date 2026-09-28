@@ -58,7 +58,7 @@ Must list exactly the eight files, in order:
 $env:SPLITCHAT_PROD_APPROVAL = 'batch4'
 $env:SPLITCHAT_FRONTEND_ATTESTATION = 'no-live-frontend'   # or the live frontend commit
 node scripts/ops/prod.mjs push --batch batch4
-Remove-Item Env:SPLITCHAT_PROD_APPROVAL
+Remove-Item Env:SPLITCHAT_PROD_APPROVAL, Env:SPLITCHAT_FRONTEND_ATTESTATION
 ```
 
 The tool stages hash-verified copies, requires the remote history to be
