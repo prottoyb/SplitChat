@@ -54,7 +54,7 @@ async function listen(client, label, groupId) {
   return { channel, received, status }
 }
 
-async function waitFor(predicate, ms = 8000) {
+async function waitFor(predicate, ms = 15000) { // free-tier Realtime can take several seconds
   for (let waited = 0; waited < ms; waited += 200) {
     if (predicate()) return true
     await sleep(200)
