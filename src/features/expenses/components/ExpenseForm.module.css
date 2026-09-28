@@ -11,20 +11,6 @@
   color: var(--text-primary);
 }
 
-.splitBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--brand-subtle-border);
-  border-radius: var(--radius-pill);
-  background: var(--brand-subtle-bg);
-  color: var(--brand-600);
-  font-size: 0.82rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .successMessage,
 .errorMessage {
   margin-bottom: 1rem;
@@ -600,4 +586,18 @@
   color: var(--text-primary);
   font-size: 17px;
   font-weight: 750;
+}
+
+/* Phones: until there is something to show, the preview is one line so the
+   Create button stays close to the form (P11). */
+@media (max-width: 720px) {
+  .emptyPreview {
+    padding: var(--space-2) 0 0;
+    text-align: left;
+  }
+
+  .emptyPreview > div,
+  .emptyPreview h4 {
+    display: none;
+  }
 }

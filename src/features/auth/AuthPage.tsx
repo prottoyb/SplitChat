@@ -149,6 +149,8 @@ function AuthPage() {
           <div className={styles.logoMark}>S</div>
           <span>SplitChat</span>
         </div>
+        {/* Phones do not show the brand panel: one line on what SplitChat is for. */}
+        <p className={styles.mobilePitch}>Split shared costs with your flatmates, trips and friends, and see who owes whom.</p>
 
         <div className={styles.authCard}>
           <div className={styles.heading}>

@@ -200,46 +200,36 @@ export function GroupBalancesSection({
         </p>
       )}
 
+      {/* DOM order is the phone reading order (suggestions, then the form they
+          fill, then everyone's balance); wide screens place the form beside. */}
       <section className={styles.grid}>
-        <div className={styles.column}>
-          <article className={styles.panel}>
-            <p className="eyebrow">SETTLE UP</p>
-            <h4>Suggested payments</h4>
-            {plan.length === 0 ? (
-              <p className={styles.muted}>Everyone is settled up. Nothing needs to be paid.</p>
-            ) : (
-              <>
-                <p className={styles.muted}>
-                  The fewest payments that settle everyone. Paying part of an amount is fine.
-                </p>
-                <RepaymentPlan
-                  plan={plan}
-                  names={names}
-                  currentUserId={userId}
-                  action={(t) =>
-                    canRecord(t) ? (
-                      <button type="button" className={styles.inlineButton} onClick={() => startFromPlan(t)}>
-                        Record
-                      </button>
-                    ) : null
-                  }
-                />
-              </>
-            )}
-          </article>
+        <article className={`${styles.panel} ${styles.suggestPanel}`}>
+          <p className="eyebrow">SETTLE UP</p>
+          <h4>Suggested payments</h4>
+          {plan.length === 0 ? (
+            <p className={styles.muted}>Everyone is settled up. Nothing needs to be paid.</p>
+          ) : (
+            <>
+              <p className={styles.muted}>
+                The fewest payments that settle everyone. Paying part of an amount is fine.
+              </p>
+              <RepaymentPlan
+                plan={plan}
+                names={names}
+                currentUserId={userId}
+                action={(t) =>
+                  canRecord(t) ? (
+                    <button type="button" className={styles.inlineButton} onClick={() => startFromPlan(t)}>
+                      Record
+                    </button>
+                  ) : null
+                }
+              />
+            </>
+          )}
+        </article>
 
-          <article className={styles.panel}>
-            <p className="eyebrow">BALANCES</p>
-            <h4>Everyone&apos;s balance</h4>
-            {balances.people.length === 0 ? (
-              <p className={styles.muted}>No expenses yet, so nobody owes anything.</p>
-            ) : (
-              <BalanceList people={balances.people} names={names} currentUserId={userId} activeMemberIds={activeMemberIds} />
-            )}
-          </article>
-        </div>
-
-        <article className={styles.panel} ref={formRef} tabIndex={-1} aria-label="Record a payment">
+        <article className={`${styles.panel} ${styles.formPanel}`} ref={formRef} tabIndex={-1} aria-label="Record a payment">
           <p className="eyebrow">RECORD A PAYMENT</p>
           <h4>Someone paid someone back?</h4>
           <SettlementForm
@@ -250,6 +240,16 @@ export function GroupBalancesSection({
             initial={initial}
             onSubmit={handleRecord}
           />
+        </article>
+
+        <article className={`${styles.panel} ${styles.balancePanel}`}>
+          <p className="eyebrow">BALANCES</p>
+          <h4>Everyone&apos;s balance</h4>
+          {balances.people.length === 0 ? (
+            <p className={styles.muted}>No expenses yet, so nobody owes anything.</p>
+          ) : (
+            <BalanceList people={balances.people} names={names} currentUserId={userId} activeMemberIds={activeMemberIds} />
+          )}
         </article>
       </section>
 

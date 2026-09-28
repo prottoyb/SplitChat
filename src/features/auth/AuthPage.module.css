@@ -142,7 +142,8 @@
   width: min(100%, 450px);
 }
 
-.mobileBrand {
+.mobileBrand,
+.mobilePitch {
   display: none;
 }
 
@@ -330,6 +331,15 @@
 
   .brandPanel {
     display: none;
+  }
+
+  .mobilePitch {
+    display: block;
+    max-width: 520px;
+    margin: 0 auto var(--space-6);
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    line-height: 1.55;
   }
 
   .authPanel {

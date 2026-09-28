@@ -190,3 +190,20 @@ commit.
 
 **Outcome:** the representative slice is accepted. The rollout continues
 with increments 1–4.
+
+## Increment decisions during rollout (2026-09-29)
+
+- **P10, delivered differently:** the Record buttons already scrolled to
+  the form and focused it; the review flagged this from static
+  screenshots. On phones the real problem was distance. Balances DOM
+  order is now suggestions, then the form, then everyone's balance, and
+  wide screens place the form beside them with grid areas, so the visual
+  order and focus order always match. A bottom Sheet component was
+  **not** built: it is new complexity for the same outcome.
+- **P17 deferred:** "vs last month" needs two months of expenses and
+  their splits, doubling the dashboard's heaviest query (the architect's
+  URL-length caveat) for a nice-to-have. It is not built in Phase 9.
+- **P20 deferred:** activity noise on new groups is minor. Revisit with
+  real usage.
+- **P18 covered:** the overall figure carries a sign, colour and words;
+  per-group positions already use words.

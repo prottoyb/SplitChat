@@ -7,14 +7,24 @@
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-areas:
+    'suggest form'
+    'balances form';
+  align-items: start;
   gap: 18px;
   margin-bottom: 18px;
 }
 
-.column {
-  display: grid;
-  align-content: start;
-  gap: 18px;
+.suggestPanel {
+  grid-area: suggest;
+}
+
+.formPanel {
+  grid-area: form;
+}
+
+.balancePanel {
+  grid-area: balances;
 }
 
 .panel {
@@ -65,5 +75,9 @@
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'suggest'
+      'form'
+      'balances';
   }
 }

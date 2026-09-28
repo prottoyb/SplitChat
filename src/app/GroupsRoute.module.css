@@ -1,0 +1,18 @@
+.position {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.owes {
+  color: var(--danger-fg);
+}
+
+.owed {
+  color: var(--success-fg);
+}
+
+.settled,
+.muted {
+  color: var(--text-secondary);
+}

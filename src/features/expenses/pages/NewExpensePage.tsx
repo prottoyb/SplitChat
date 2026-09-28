@@ -56,9 +56,8 @@ function NewExpensePage() {
           </Link>
           <p className="eyebrow">NEW EXPENSE</p>
           <h2>Add an expense</h2>
-          <p className="subtitle">Record a shared cost and choose exactly who should be included in the split.</p>
+          <p className="subtitle">Record a shared cost. It is split equally between the people you choose.</p>
         </div>
-        <div className={styles.splitBadge}>Equal split</div>
       </header>
 
       {created && (

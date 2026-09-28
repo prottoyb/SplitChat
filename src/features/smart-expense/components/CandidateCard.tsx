@@ -156,7 +156,12 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
           {status}
         </span>
       </header>
-      {old && <p className={styles.note}>Proposed more than {OLD_DAYS} days ago.</p>}
+      {old && (
+        <p className={styles.note}>
+          Proposed more than {OLD_DAYS} days ago.{' '}
+          {canManage ? 'Check the details are still right before adding it, or reject it if it was already sorted out.' : 'The proposer or the group owner can add or reject it.'}
+        </p>
+      )}
 
       <dl className={styles.fields}>
         {field('Amount', c.amountCents === null ? null : formatCents(c.amountCents), 'amount')}
