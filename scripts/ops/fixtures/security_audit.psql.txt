@@ -1,0 +1,70 @@
+BEGIN
+[guard] transaction_read_only = on
+A1 public/private tables without RLS
+ nspname | relname 
+---------+---------
+(0 rows)
+
+A2 table privileges held by anon or PUBLIC in public (expected only: anon SELECT on the two published tables, M23)
+ table_name | grantee | privilege_type 
+------------+---------+----------------
+(0 rows)
+
+A3 client write privileges on public tables (only the column-level INSERT on groups is expected; see A3b)
+ table_name | privilege_type 
+------------+----------------
+(0 rows)
+
+A3b column-level client writes other than: INSERT (name, description, created_by) on groups; UPDATE (full_name, avatar_url) on profiles (own row, A10)
+ table_name | column_name | grantee | privilege_type 
+------------+-------------+---------+----------------
+(0 rows)
+
+A4 functions executable by anon or PUBLIC in public/private
+ nspname | oid 
+---------+-----
+(0 rows)
+
+A5 SECURITY DEFINER functions without an empty search_path
+ oid | proconfig 
+-----+-----------
+(0 rows)
+
+A6 private functions executable by authenticated (expected: exactly the RLS helpers my_active_group_ids, my_group_peer_ids)
+ oid 
+-----
+(0 rows)
+
+A7 private schema exposed to anon
+ ?column? 
+----------
+(0 rows)
+
+A8 Realtime publication: tables other than group_messages and expense_candidates, or FOR ALL TABLES
+ pubname | ?column? 
+---------+----------
+(0 rows)
+
+A9 policies granting anything other than SELECT to client roles on the Phase 3-7 tables
+ tablename | policyname | cmd | roles 
+-----------+------------+-----+-------
+(0 rows)
+
+A10 profile UPDATE not limited to the caller's own row (expected: USING and WITH CHECK both auth.uid() = id)
+ policyname | qual | with_check 
+------------+------+------------
+(0 rows)
+
+A11 published tables without a RESTRICTIVE always-false SELECT policy for anon (M23)
+ tablename 
+-----------
+(0 rows)
+
+I1 (information) Realtime publication contents
+ schemaname |     tablename      
+------------+--------------------
+ public     | expense_candidates
+ public     | group_messages
+(2 rows)
+
+ROLLBACK

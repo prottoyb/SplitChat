@@ -207,6 +207,21 @@ describe('Smart Expense in chat', () => {
     await waitFor(() => expect(rpcCalls('reject_expense_candidate')[0][1]).toEqual({ p_id: 'c1', p_expected_version: 1 }))
   })
 
+  it('offers no way to leave for the editor while a decision is in flight', async () => {
+    const user = userEvent.setup()
+    let finish: (value: { data: null; error: null }) => void = () => {}
+    renderChat()
+    const card = await screen.findByRole('article', { name: /Expense proposal/ })
+    expect(within(card).getByRole('link', { name: 'Edit' })).toBeInTheDocument()
+    await user.click(within(card).getByRole('button', { name: 'Reject' }))
+    supabaseMock.rpc.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+    await user.click(within(card).getByRole('button', { name: 'Reject proposal' }))
+    expect(await within(card).findByRole('button', { name: 'Edit' })).toBeDisabled()
+    expect(within(card).queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+    await act(async () => finish({ data: null, error: null }))
+    expect(await within(card).findByRole('link', { name: 'Edit' })).toBeInTheDocument()
+  })
+
   it('shows a decision made elsewhere as it arrives', async () => {
     renderChat('member', J)
     await screen.findByRole('article', { name: 'Expense proposal: Ready to review' })

@@ -25,9 +25,9 @@ const candidate = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
-function renderPage() {
+function renderPage(groupId = G) {
   return render(
-    <MemoryRouter initialEntries={[`/groups/${G}/proposals/c1/edit`]}>
+    <MemoryRouter initialEntries={[`/groups/${groupId}/proposals/c1/edit`]}>
       <Routes>
         <Route path="groups/:groupId/proposals/:candidateId/edit" element={<EditProposalPage />} />
         <Route path="groups/:groupId/chat" element={<p>Chat page</p>} />
@@ -68,6 +68,12 @@ describe('EditProposalPage', () => {
     expect(args).toMatchObject({ p_id: 'c1', p_expected_version: 3, p_description: 'Parking', p_amount_cents: 1850, p_paid_by: 'u2' })
     expect([...(args.p_participant_ids as string[])].sort()).toEqual(['u1', 'u2'])
     expect(supabaseMock.rpc.mock.calls.some(([n]) => n === 'approve_expense_candidate')).toBe(false)
+  })
+
+  it('treats a proposal opened under another group’s URL as not found', async () => {
+    renderPage('10000000-0000-4000-8000-000000000002')
+    expect(await screen.findByText('This proposal does not exist or you do not have access to it.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Edit expense proposal' })).not.toBeInTheDocument()
   })
 
   it('is read-only for a member who is neither the proposer nor the owner', async () => {

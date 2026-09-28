@@ -12,12 +12,16 @@ import styles from './EditProposalPage.module.css'
 
 type Context = { candidate: Candidate; group: GroupDetail }
 
-async function loadContext(candidateId: string, userId: string): Promise<Result<Context>> {
+const NOT_FOUND = 'This proposal does not exist or you do not have access to it.'
+
+async function loadContext(groupId: string, candidateId: string, userId: string): Promise<Result<Context>> {
   const candidate = await loadCandidate(candidateId)
   if (!candidate.ok) return candidate
+  // The URL's group must be the proposal's own, so the way back leads to it.
+  if (candidate.value.groupId !== groupId) return fail('not_found', NOT_FOUND)
   const group = await loadGroupDetail(candidate.value.groupId, userId)
   if (!group.ok) return group
-  if (group.value.myRole === null) return fail('not_found', 'This proposal does not exist or you do not have access to it.')
+  if (group.value.myRole === null) return fail('not_found', NOT_FOUND)
   return ok({ candidate: candidate.value, group: group.value })
 }
 
@@ -33,7 +37,10 @@ function EditProposalPage() {
   const { groupId = '', candidateId = '' } = useParams<{ groupId: string; candidateId: string }>()
   const { session } = useAuth()
   const userId = session?.user.id ?? ''
-  const context = useResource(candidateId && userId ? `${candidateId}:${userId}` : null, () => loadContext(candidateId, userId))
+  const context = useResource(
+    groupId && candidateId && userId ? `${groupId}:${candidateId}:${userId}` : null,
+    () => loadContext(groupId, candidateId, userId),
+  )
   const [failure, setFailure] = useState<Failure | null>(null)
   const chatPath = `/groups/${groupId}/chat`
 

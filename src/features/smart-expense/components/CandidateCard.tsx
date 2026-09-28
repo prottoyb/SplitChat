@@ -131,6 +131,18 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
     c.status === 'approved' ? 'Expense added' : c.status === 'rejected' ? 'Rejected' : complete ? 'Ready to review' : 'Needs details'
 
   const editPath = `/groups/${c.groupId}/proposals/${c.id}/edit`
+  // A link cannot be disabled: while a decision is in flight the edit action
+  // is a disabled button instead, so nobody leaves mid-request.
+  const editAction = (label: string, className: string) =>
+    busy ? (
+      <button type="button" className={className} disabled>
+        {label}
+      </button>
+    ) : (
+      <Link to={editPath} className={className}>
+        {label}
+      </Link>
+    )
 
   return (
     <article
@@ -182,14 +194,10 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
               <button type="button" ref={reviewRef} className="primary-button" disabled={busy} onClick={() => setMode('confirm')}>
                 Review and add
               </button>
-              <Link to={editPath} className={styles.secondary}>
-                Edit
-              </Link>
+              {editAction('Edit', styles.secondary)}
             </>
           ) : (
-            <Link to={editPath} className="primary-button">
-              Add details
-            </Link>
+            editAction('Add details', 'primary-button')
           )}
           <span className={styles.rejectSlot}>
             <InlineConfirm

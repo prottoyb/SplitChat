@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, SECURITY_AUDIT_CHECKS, evaluateSecurityAudit, parseMigrationList } from './cliOutput.mjs'
 
@@ -101,6 +103,25 @@ describe('evaluateSecurityAudit', () => {
     const r = evaluateSecurityAudit(allClean() + section('A4', 0) + section('A12', 0))
     expect(r.passed).toBe(false)
     expect(r.unexpected).toEqual(['A4', 'A12'])
+  })
+
+  // Captured verbatim from `prod.mjs audit --rehearse-on-dev` (real psql 17
+  // output after batch 4), so the parser is proven on the real format.
+  const captured = fs.readFileSync(path.resolve('scripts/ops/fixtures/security_audit.psql.txt'), 'utf8')
+
+  it('passes the real psql output of a clean schema', () => {
+    const r = evaluateSecurityAudit(captured)
+    expect(r.passed).toBe(true)
+    expect(r.sections.map(([n]) => n)).toEqual(SECURITY_AUDIT_CHECKS)
+  })
+
+  it('fails the real format when a check finds a row', () => {
+    const bad = captured.replace(
+      /(^A5 .*\r?\n.*\r?\n.*\r?\n)\(0 rows\)/m,
+      '$1 12345 | {role=admin}\n(1 row)',
+    )
+    expect(bad).not.toBe(captured)
+    expect(evaluateSecurityAudit(bad).offending).toEqual([['A5', 1]])
   })
 
   it('fails on empty or unreadable output', () => {
