@@ -7,12 +7,14 @@ if (!supabaseUrl || !supabasePublishableKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-// Whether this page load came from a password-reset email link. Captured
-// before the client consumes the link from the URL, and from the
-// PASSWORD_RECOVERY event, which fires only during the client's start-up:
-// a listener added later (e.g. by a lazily loaded page) would miss both.
-let passwordRecovery =
-  typeof window !== 'undefined' && /(^|[#&?])type=recovery(&|$)/.test(`${window.location.hash}&${window.location.search}`)
+// Whether this page load is a genuine password recovery: supabase-js emits
+// PASSWORD_RECOVERY only after the Auth server has validated the full token
+// set carried by the emailed link (auth-js _getSessionFromURL). Never derived
+// from the URL text itself: anyone can type "#type=recovery" into the address
+// bar of a signed-in browser (QA/Security CRITICAL, Phase 9). The listener is
+// registered as the client is created because the event fires only during
+// the client's start-up; a listener added later would miss it.
+let passwordRecovery = false
 
 export const supabase = createClient(
   supabaseUrl,

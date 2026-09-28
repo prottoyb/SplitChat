@@ -243,3 +243,54 @@ with increments 1–4.
     is the operator's production Auth gate.
   - Before M25's constraint can ever be validated, a read-only count of
     live profiles that break it is needed.
+
+## Review record: increments 1–4 (2026-09-29)
+
+**QA/Security: FAIL → fixed, awaiting re-verification.**
+
+- **CRITICAL (fixed):** `/reset-password` offered a password form without
+  the current password to any signed-in session whose URL contained
+  `type=recovery`. The recovery flag was matched against the URL text,
+  which anyone can type.
+  - **Fix:** the flag is set only by supabase-js's `PASSWORD_RECOVERY`
+    event. auth-js 2.112.3 emits it only after the Auth server validates
+    the full token set in the link (`_getSessionFromURL` → `_getUser`);
+    verified in the installed source.
+  - **Regression test:** `src/shared/api/supabase.test.ts` exercises the
+    real module. It fails on the old code and passes on the fix.
+  - **E2E on Dev:** a forged URL on a signed-in session offers no form; a
+    genuine admin-generated recovery link sets a new password, and sign-in
+    with it works. E2E **24/24**.
+  - **Residual, server side:** someone already holding a valid access
+    token could call Auth's `updateUser` directly, whatever the UI does.
+    The server-side control is Supabase Auth's **"Secure password
+    change"** setting (recent sign-in or reauthentication). **Production
+    prerequisite**, part of the operator's production Auth gate: confirm
+    it is enabled, together with the reset redirect URL and email
+    delivery.
+- **Everything else passed:**
+  - M24: authorization first, lock and re-check, concurrency, payload
+    privacy, grants, allowlists updated deliberately.
+  - M25: `NOT VALID`, tombstone exemption, `handle_new_user` safe.
+  - `updateDisplayName`: RLS plus column grant.
+  - `changePassword` re-authentication.
+  - Reset request: anti-enumeration; `redirectTo` is not controllable by
+    an attacker.
+  - `listActionableProposals`: `SAFE_ID` guard plus client re-filter over
+    RLS.
+  - `?settle=`: UX only; the server authorizes.
+
+**Senior Reviewer: APPROVE WITH CHANGES.** No CRITICAL or HIGH.
+
+- **MEDIUM (accepted, tracked):** the dashboard loads the position of
+  every group (one `get_group_balances` each) to compute Overall.
+  Accepted: people belong to a handful of groups, each failure degrades
+  only its group, and the same per-group call already served the
+  dashboard list. **Follow-up:** add a single read (`get_my_positions`)
+  if group counts grow or dashboard latency is measured above target.
+- **LOW:** the Chat badge refetches on each section change (intentional,
+  documented).
+- **LOW:** change password signs in again, firing a second auth event.
+  AuthContext refetches the profile only when the user id changes, so
+  there is no extra fetch or flicker. The change-password path is covered
+  by unit tests (`auth.test.ts`, `AccountPages.test.tsx`), not by E2E.
