@@ -5,6 +5,7 @@ import { ErrorState, LoadingState, Menu, SECTION_HEADING_ID } from '../../shared
 import { useAuth } from '../../features/auth'
 import { balanceTone, loadMyBalance, positionText } from '../../features/balances'
 import { GroupMembersSection, loadGroupDetail } from '../../features/groups'
+import { listActionableProposals } from '../../features/smart-expense'
 import { GroupBalancesSection } from '../../features/settlements'
 import { ActivitySection } from './sections/ActivitySection'
 import { ChatSection } from './sections/ChatSection'
@@ -61,6 +62,13 @@ function GroupWorkspace() {
   const group = useResource(ready ? `group:${groupId}:${userId}` : null, () => loadGroupDetail(groupId, userId))
   // A failed position degrades only the position, never the workspace.
   const position = useResource(ready ? `position:${groupId}:${userId}` : null, () => loadMyBalance(groupId, userId))
+  // Open proposals I can act on in this group, for the Chat tab badge (P4).
+  // Re-read on every section change, so it catches up after leaving the chat.
+  const myRole = group.status === 'ready' ? group.data.myRole : null
+  const openProposals = useResource(
+    group.status === 'ready' ? `open-proposals:${groupId}:${userId}:${myRole}:${pathname}` : null,
+    () => listActionableProposals(userId, myRole === 'owner' ? [groupId] : [], { groupId }),
+  )
   const sectionNav = useRef<HTMLElement>(null)
   useSectionFocus(sectionNav, group.status === 'ready')
 
@@ -87,6 +95,7 @@ function GroupWorkspace() {
   const memberCount = detail.members.length
   const myNet = position.status === 'ready' ? position.data : null
   const inChat = pathname.startsWith(`${base}/chat`)
+  const openCount = openProposals.status === 'ready' ? openProposals.data.length : 0
   const secondary = SECONDARY[pathname.slice(base.length + 1).split('/')[0]]
 
   const groupMenu = (
@@ -176,6 +185,12 @@ function GroupWorkspace() {
               className={({ isActive }) => `${styles.tab}${isActive ? ` ${styles.tabActive}` : ''}`}
             >
               {s.label}
+              {s.path === 'chat' && openCount > 0 && (
+                <span className={styles.tabBadge}>
+                  <span aria-hidden="true">{openCount}</span>
+                  <span className={styles.visuallyHidden}>, {openCount} {openCount === 1 ? 'proposal needs' : 'proposals need'} you</span>
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

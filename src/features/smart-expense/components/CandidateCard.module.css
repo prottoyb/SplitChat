@@ -207,3 +207,74 @@
 .rejectSlot > [role='group'] {
   flex-basis: 100%;
 }
+
+/* Open proposals strip above the chat (P5) */
+
+.openStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--warning-border);
+  padding: var(--space-2) var(--space-4);
+  background: var(--warning-subtle-bg);
+}
+
+.openCount {
+  color: var(--warning-fg);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.openStrip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.openStrip button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.openStrip button:hover {
+  border-color: var(--warning-fg);
+}
+
+.openStrip button:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.openState {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.openMore {
+  align-self: center;
+  color: var(--warning-fg);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+@media (pointer: coarse) {
+  .openStrip button {
+    min-height: 44px;
+  }
+}

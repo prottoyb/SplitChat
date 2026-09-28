@@ -158,6 +158,27 @@ describe('GroupWorkspace sections', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
+  it('badges the Chat tab with the open proposals I can act on', async () => {
+    supabaseMock.setTable('expense_candidates', [{
+      id: 'c1', group_id: 'g1', message_id: 3, proposed_by: 'u2', status: 'proposed', source: 'natural',
+      interpreter_version: 'deterministic-1', description: 'pizza', amount_cents: 4200, expense_date: '2026-09-29',
+      paid_by: 'u2', participant_ids: ['u1', 'u2'], notes: null, version: 1, expense_id: null, decided_by: null,
+      created_at: '2026-09-29T00:00:00Z',
+    }])
+    renderAt('/groups/g1')
+    const sections = await screen.findByRole('navigation', { name: 'Group sections' })
+    expect(await within(sections).findByRole('link', { name: /^Chat\s*, 1 proposal needs you$/ })).toHaveAttribute('href', '/groups/g1/chat')
+    const calls = queriesOf('expense_candidates')[0].calls
+    expect(calls).toContainEqual({ method: 'eq', args: ['group_id', 'g1'] })
+  })
+
+  it('shows no badge when nothing needs me', async () => {
+    supabaseMock.setTable('expense_candidates', [])
+    renderAt('/groups/g1')
+    const sections = await screen.findByRole('navigation', { name: 'Group sections' })
+    expect(within(sections).getByRole('link', { name: 'Chat' })).toBeInTheDocument()
+  })
+
   it('offers a way back to the overview from chat', async () => {
     renderAt('/groups/g1/chat')
     expect(await screen.findByRole('link', { name: 'Back to Flat 4B overview' })).toHaveAttribute('href', '/groups/g1')

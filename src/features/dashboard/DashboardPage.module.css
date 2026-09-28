@@ -130,3 +130,19 @@ a.groupItem:focus-visible {
   margin: 0;
   line-height: 1.45;
 }
+
+.attentionItem .actionLabel {
+  color: var(--brand-600);
+  font-weight: 700;
+}
+
+.inlineRetry {
+  border: 0;
+  padding: 0;
+  color: var(--brand-600);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}

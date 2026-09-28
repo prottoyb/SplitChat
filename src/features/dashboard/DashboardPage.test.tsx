@@ -97,6 +97,51 @@ describe('DashboardPage', () => {
     expect(within(link('Club')).getByText('You are settled up')).toBeInTheDocument()
   })
 
+  it('lists what needs me (proposals I can act on, money I owe) and my overall position', async () => {
+    supabaseMock.setTable('groups', [
+      { id: '33333333-3333-4333-8333-333333333333', name: 'Flat', description: null, created_at: '2026-09-02T00:00:00Z' },
+    ])
+    supabaseMock.setTable('group_members', [
+      { group_id: '33333333-3333-4333-8333-333333333333', user_id: 'u1', role: 'owner', joined_at: '2026-09-01' },
+      { group_id: '33333333-3333-4333-8333-333333333333', user_id: 'u2', role: 'member', joined_at: '2026-09-01' },
+    ])
+    supabaseMock.setTable('group_events', [])
+    supabaseMock.setTable('expenses', [])
+    supabaseMock.setTable('expense_candidates', [{
+      id: 'c1', group_id: '33333333-3333-4333-8333-333333333333', message_id: 7, proposed_by: 'u2', status: 'proposed',
+      source: 'command', interpreter_version: 'deterministic-1', description: 'Parking', amount_cents: 1850,
+      expense_date: '2026-09-29', paid_by: 'u2', participant_ids: null, notes: null, version: 1, expense_id: null,
+      decided_by: null, created_at: '2026-09-29T00:00:00Z',
+    }])
+    const row = (user_id: string, net: number) => ({
+      user_id, paid_cents: Math.max(net, 0), owed_cents: Math.max(-net, 0), settled_out_cents: 0, settled_in_cents: 0, net_cents: net,
+    })
+    supabaseMock.setRpc('get_group_balances', [row('u1', -4333), row('u2', 4333)])
+    renderPage()
+
+    const panel = (await screen.findByRole('heading', { name: 'For you' })).closest('article') as HTMLElement
+    const proposal = await within(panel).findByRole('link', { name: /“Parking” \$18\.50 needs who shares it in Flat/ })
+    expect(proposal).toHaveAttribute('href', '/groups/33333333-3333-4333-8333-333333333333/chat')
+    expect(within(proposal).getByText('Add details →')).toBeInTheDocument()
+    const owe = await within(panel).findByRole('link', { name: /You owe \$43\.33 in Flat/ })
+    expect(owe).toHaveAttribute('href', '/groups/33333333-3333-4333-8333-333333333333/balances')
+
+    const summary = screen.getByRole('region', { name: 'Summary' })
+    expect(await within(summary).findByText('−$43.33')).toBeInTheDocument()
+    expect(within(summary).getByText(/You owe, across 1 group/)).toBeInTheDocument()
+  })
+
+  it('keeps the dashboard when proposals cannot be checked, and says so', async () => {
+    supabaseMock.setTable('groups', [])
+    supabaseMock.setTable('group_events', [])
+    supabaseMock.setTable('expenses', [])
+    supabaseMock.setTable('expense_candidates', null, { message: 'boom' })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderPage()
+    expect(await screen.findByText(/Expense proposals could not be checked/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Your groups' })).toBeInTheDocument()
+  })
+
   it("loads only this month's expenses for the monthly summary", async () => {
     supabaseMock.setTable('groups', [])
     supabaseMock.setTable('group_events', [])
@@ -116,7 +161,7 @@ describe('DashboardPage', () => {
     renderPage()
 
     expect(await screen.findByText(/Nothing has happened yet/)).toBeInTheDocument()
-    expect(screen.getByText("You're all caught up.")).toBeInTheDocument()
+    expect(screen.getByText('Nothing needs you right now.')).toBeInTheDocument()
     expect(screen.queryByText(/You owe|You are owed/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '+ Create group' })).toHaveAttribute('href', '/groups?create=1')
   })

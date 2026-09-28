@@ -3,7 +3,9 @@ import { GroupChat, type ChatMessage } from '../../chat'
 import type { GroupDetail } from '../../groups'
 import type { Member } from '../domain/interpreter'
 import { useSmartExpense } from '../useSmartExpense'
+import { canActOnProposal } from '../domain/proposalState'
 import { CandidateCard } from './CandidateCard'
+import { OpenProposals } from './OpenProposals'
 import styles from './CandidateCard.module.css'
 
 function RecordAsExpense({ onRecord }: { onRecord: () => Promise<unknown> }) {
@@ -33,6 +35,10 @@ export function SmartChat({ group, userId }: { group: GroupDetail; userId: strin
   const members: Member[] = useMemo(() => group.members.map((m) => ({ id: m.userId, name: m.fullName })), [group.members])
   const smart = useSmartExpense(group.id, members)
   const isOwner = group.myRole === 'owner'
+  const open = useMemo(
+    () => [...smart.byMessage.values()].filter((c) => canActOnProposal(c, userId, isOwner)).sort((a, b) => a.messageId - b.messageId),
+    [smart.byMessage, userId, isOwner],
+  )
 
   const renderAfterMessage = (message: ChatMessage) => {
     const candidate = smart.byMessage.get(message.id)
@@ -64,6 +70,7 @@ export function SmartChat({ group, userId }: { group: GroupDetail; userId: strin
         onOwnMessageConfirmed: (m) => void smart.onOwnMessageConfirmed(m),
         onMessagesShown: smart.onMessagesShown,
         renderAfterMessage,
+        renderBanner: () => <OpenProposals proposals={open} />,
       }}
     />
   )

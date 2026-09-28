@@ -10,6 +10,7 @@ import type { Candidate } from '../api/candidates'
 import { interpretMessage, type Issue, type Member } from '../domain/interpreter'
 import { contextFor } from '../useSmartExpense'
 import styles from './CandidateCard.module.css'
+import { canActOnProposal, missingFields, proposalElementId } from '../domain/proposalState'
 
 type Props = {
   candidate: Candidate
@@ -75,7 +76,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
 
   const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'Former member'
   const who = (id: string) => (id === userId ? 'You' : nameOf(id))
-  const canManage = c.status === 'proposed' && (c.proposedBy === userId || isOwner)
+  const canManage = canActOnProposal(c, userId, isOwner)
   // Display-only hints: the message re-read against today's members.
   const interpretation = useMemo(
     () => (c.source === 'manual' ? null : interpretMessage(message.body, contextFor(message, members))),
@@ -84,13 +85,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
   const issues = interpretation?.kind === 'candidate' ? interpretation.issues : []
   const issueFor = (field: Issue['field']) => issues.find((i) => i.field === field)
 
-  const missing = [
-    c.amountCents === null && 'amount',
-    c.description === null && 'what it was for',
-    c.expenseDate === null && 'date',
-    c.paidBy === null && 'who paid',
-    c.participantIds === null && 'who shares it',
-  ].filter(Boolean) as string[]
+  const missing = missingFields(c)
   const complete = missing.length === 0
   const split =
     complete && c.amountCents !== null && c.participantIds ? allocateEqualSplit(c.amountCents, c.participantIds) : null
@@ -146,6 +141,8 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
 
   return (
     <article
+      id={proposalElementId(c.id)}
+      tabIndex={-1}
       className={`${styles.card} ${styles[c.status]} ${c.status === 'proposed' && !complete ? styles.incomplete : ''}`}
       aria-label={`Expense proposal: ${status}`}
     >

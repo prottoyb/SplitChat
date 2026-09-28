@@ -555,3 +555,28 @@
   font-size: var(--text-base);
   overflow-wrap: anywhere;
 }
+
+.tabBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: var(--space-1);
+  border-radius: var(--radius-pill);
+  padding: 0 6px;
+  color: var(--warning-fg);
+  background: var(--warning-subtle-bg);
+  border: 1px solid var(--warning-border);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

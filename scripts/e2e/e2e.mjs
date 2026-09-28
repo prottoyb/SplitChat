@@ -81,7 +81,8 @@ async function tab(page, name) {
     await page.click('link', `/^${name}( |$)/`, { within: menu })
   } else {
     const nav = await page.find('navigation', 'Group sections')
-    await page.click('link', name, { within: nav })
+    // A tab may carry a badge (e.g. "Chat" with open proposals).
+    await page.click('link', `/^${name}($|[^A-Za-z])/`, { within: nav })
   }
   await page.find('heading', name)
 }
