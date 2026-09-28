@@ -246,7 +246,7 @@ with increments 1–4.
 
 ## Review record: increments 1–4 (2026-09-29)
 
-**QA/Security: FAIL → fixed, awaiting re-verification.**
+**QA/Security: FAIL → fixed → PASS** (re-verified independently on `8d68eae`: diff and auth-js source read, regression test run by the reviewer; no CRITICAL/HIGH open). Carried forward as **MEDIUM**: confirm "Secure password change" is actually enabled in the target Supabase project, as a checked item of the production Auth gate, not an assumption.
 
 - **CRITICAL (fixed):** `/reset-password` offered a password form without
   the current password to any signed-in session whose URL contained
