@@ -393,6 +393,20 @@ async function main() {
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'fixtures', 'seed.sql'), extra: ['-1'] })
 
     const results = runCases(cluster)
+    // The catalog security audit (supabase/ops/security_audit.sql, also run
+    // on production by prod.mjs audit) must find nothing on the migrated
+    // schema, so a migration that drifts from it fails here and in CI.
+    cluster.assertTarget(TEMPLATE_DB)
+    const audit = cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'supabase', 'ops', 'security_audit.sql') }).stdout
+    const sections = [...audit.matchAll(/^(A\d+\w*) .*$[\s\S]*?^\((\d+) rows?\)$/gm)].map((m) => [m[1], Number(m[2])])
+    const offending = sections.filter(([, rows]) => rows !== 0)
+    if (sections.length < 11 || offending.length) {
+      results.push({ file: 'security_audit.sql', oks: 0, failure: `audit sections ${sections.length}; offending: ${offending.map(([n, r]) => `${n}=${r}`).join(', ')}` })
+      console.log(`FAIL  security_audit.sql  (${offending.map(([n, r]) => `${n}: ${r} rows`).join('; ') || 'sections missing'})`)
+    } else {
+      results.push({ file: 'security_audit.sql', oks: sections.length })
+      console.log(`pass  security_audit.sql  (${sections.length} catalog checks, 0 offending rows)`)
+    }
     const failures = results.filter((r) => r.failure)
     const assertions = results.reduce((n, r) => n + r.oks, 0)
     console.log(`\n${results.length - failures.length}/${results.length} case files passed, ${assertions} assertions`)

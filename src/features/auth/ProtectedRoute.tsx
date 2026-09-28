@@ -13,12 +13,13 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (isLoading) {
     return (
       <main
+        role="status"
         style={{
           minHeight: '100vh',
           display: 'grid',
           placeItems: 'center',
           background: '#f7f8fa',
-          color: '#737887',
+          color: '#5f6470',
           fontSize: '14px',
         }}
       >

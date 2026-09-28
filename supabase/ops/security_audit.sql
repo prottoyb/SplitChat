@@ -51,7 +51,10 @@ SELECT pubname, schemaname || '.' || tablename FROM pg_publication_tables
 \echo 'A9 policies granting anything other than SELECT to client roles on the Phase 3-7 tables'
 SELECT tablename, policyname, cmd, roles FROM pg_policies
  WHERE schemaname = 'public' AND tablename IN ('group_events', 'settlements', 'group_messages', 'expense_candidates')
-   AND (cmd <> 'SELECT' OR NOT roles <@ ARRAY['authenticated']::name[]);
+   AND (cmd <> 'SELECT'
+        OR NOT (roles <@ ARRAY['authenticated']::name[]
+                -- M23: the RESTRICTIVE always-false anon policies deny, never grant.
+                OR (roles = ARRAY['anon']::name[] AND permissive = 'RESTRICTIVE' AND qual = 'false')));
 
 \echo 'A10 profile UPDATE not limited to the caller''s own row (expected: USING and WITH CHECK both auth.uid() = id)'
 SELECT policyname, qual, with_check FROM pg_policies
