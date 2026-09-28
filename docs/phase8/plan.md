@@ -77,3 +77,8 @@ See `docs/phase-state.md` (Validation status) for the final counts.
     in the PR text → removed.
   - Release docs: **READY**; LOWs (attestation variable not cleared,
     evidence folder) → fixed.
+- **Batch 4 dress rehearsal** (operator-approved, 2026-09-29; results in
+  `docs/phase8/release-batch4.md`): two tooling fixes (reset script covers
+  the batch 4 tables and asserts an empty publication; preflight info rows
+  cover all four M16 backfills) — QA/Security **PASS**, Senior **APPROVE**
+  (LOW catalog-driven drop → deferred register).

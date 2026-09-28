@@ -12,8 +12,9 @@
 --   any other published table would be exposed to Realtime subscribers.
 --   If this is not 0, stop and assess (someone enabled Realtime on a table
 --   in the dashboard).
--- info: rows the M16 backfill will create (groups and non-founding
---   memberships), for the evidence package.
+-- info: rows the M16 backfill will create, for the evidence package: one
+--   event per group, per non-founding membership, per ended membership and
+--   per expense (their sum is the group_events count right after the push).
 
 SELECT 'Q4 expenses whose splits do not sum to the amount' AS check, count(*) AS value
   FROM public.expenses e
@@ -37,4 +38,9 @@ SELECT 'info: groups (M16 backfills one group_created event each)', count(*) FRO
 UNION ALL
 SELECT 'info: memberships other than the founder (M16 backfills member_added)', count(*)
   FROM public.group_members gm JOIN public.groups g ON g.id = gm.group_id
- WHERE gm.user_id <> g.created_by;
+ WHERE gm.user_id <> g.created_by
+UNION ALL
+SELECT 'info: ended memberships (M16 backfills member_left/removed/account_deleted)', count(*)
+  FROM public.group_members WHERE left_at IS NOT NULL
+UNION ALL
+SELECT 'info: expenses (M16 backfills expense_created)', count(*) FROM public.expenses;

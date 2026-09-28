@@ -1,6 +1,7 @@
 # Production release batch 4 — evidence package
 
-**Status:** prepared and rehearsed; **not executed**. Execution needs the
+**Status:** prepared, rehearsed, and **dress-rehearsed end to end from a
+clean reset (2026-09-29)**; **not executed**. Execution needs the
 operator's explicit approval of batch 4 (Mandatory Gate #5) and follows
 `docs/operations/release-runbook.md`. Production is still at the Phase 1
 state (17 versions; last verified 2026-09-27).
@@ -50,18 +51,81 @@ unchanged), so it can run while any frontend containing `a5ed4e8` is live
 | Rendered accessibility audit (final, stricter rules) | 24 page views, **0 findings** |
 | Browser production-safety guard self-test (HTTP + WebSocket, with controls) | **7/7 PASS** |
 
-Not yet done (recommended before execution, needs approval): a full dress
-rehearsal of preflight → push → verify with the production tool from an
-in-place reset of SplitChat-Dev replayed to production's current state
-(the one approved reset was for 2026-09-27).
+## Dress rehearsal from a clean reset (2026-09-29, operator-approved)
+
+The exact production procedure, on SplitChat-Dev only (ref
+`opviwtyfssxoheigflxw`, sentinel verified by `dev.mjs` and `prod.mjs`
+before any write); production not contacted; synthetic data only; no
+billing or plan change. Run twice: once to find issues, then once more,
+clean, with the final reviewed tooling (the results below are that final
+run; every step had its expected exit code).
+
+**Reset.** `reset-dev-to-empty.sql` (sentinel re-checked in the database;
+one transaction; post-conditions asserted) removed the SplitChat objects
+(now including the batch 4 tables, which also empties `supabase_realtime`),
+`private`, the CLI history, both SplitChat triggers on `auth.users` and all
+synthetic users.
+
+**Replay of production's path** with `prod.mjs --rehearse-on-dev`, as in
+production: M0 applied directly → `api.mjs seed` → batch 1 (preflight,
+`repair-m0`, dry-run, push, verify **PASSED**) → batch 2 (API prepare,
+preflight, dry-run, push, verify **PASSED**, API **44/44**) → batch 3a
+(verify **PASSED**, API **36/36**) → batch 3b (verify **PASSED**, API
+**28/28**). Dev was then production's recorded state: 17 versions,
+schema == `batch3b_expected_schema.sql`.
+
+**Batch 4 (the production procedure).**
+
+| Step | Result |
+|---|---|
+| `identify` | SplitChat-Dev, 5 public tables, history present |
+| `preflight` | **PREFLIGHT PASSED**: schema exact; 17 versions; Q4 = Q5 = 0; Q20 = Q21 = Q22 = 0 (publication exists, not FOR ALL TABLES, no tables); 0 locks, 0 long transactions; backfill info 12 + 15 + 5 + 8 |
+| `dry-run` | exactly M16–M23, in order |
+| `push` without approval / with `batch3b` approval / without attestation / attesting `f32b56d` (lacks `a5ed4e8`) | all **refused**, nothing written |
+| `push` (`SPLITCHAT_PROD_APPROVAL=batch4`, `no-live-frontend`) | M16–M23 applied |
+| `push` again | **refused** (history is no longer the batch 4 start) |
+| `verify` | **VERIFY PASSED**: 25 versions; 13/13 post-checks (RLS on every table; client write privileges; M23 anon deny; publication exactly `group_messages`, `expense_candidates`; no anon/PUBLIC execute; definer search_path; private expense core; M22 index set; M16 backfill; ledger balanced); ledger unchanged; schema == `batch4_expected_schema.sql` |
+| `audit` | **AUDIT PASSED**: 12 catalog checks, 0 rows |
+| `preflight` after the push | correctly **refuses** (drift, 25 versions, Q22 = 2) |
+| M16 backfill | 40 events = the preflight's info rows (12 groups + 15 memberships + 5 departures + 8 expenses) |
+
+**The migrated state.**
+
+| Check | Result |
+|---|---|
+| Invariant sweep (read-only; unbalanced, missing or uneven splits, owners, non-member splits/payers/settlement parties, candidate/expense link, one `group_created` per group, message/candidate authors) | **11/11 = 0**, right after the push and again after all suites (25 groups, 18 expenses, 7 settlements, 16 messages, 9 proposals, 115 events) |
+| Behavioural security audit (anon / outsider / former member; tables, RPCs, private schema, Realtime) | **162/162**, first Realtime use after the push and again |
+| Activity / settlements / chat / Smart Expense APIs | **11/11**, **19/19**, **25/25**, **23/23** |
+| Real-API race (owner deletion vs add-by-email, real sessions) and CA-2 (account deletion) | **6/6**, **26/26** |
+| M20/M21 race protection | schema identical to the harness, where cases 242/243 prove it with concurrent sessions (35/35) |
+| E2E (real Chrome) / accessibility | **20/20** / 24 page views, **0 findings** |
+
+Findings, both fixed and reviewed (QA/Security PASS, Senior APPROVE):
+- the reset script predated batch 4 (it would have refused on a
+  post-batch-4 Dev: fail-safe, but unusable) → drops the batch 4 tables,
+  asserts an empty publication;
+- the preflight announced 27 backfill events where M16 writes 40 (it
+  counted groups and memberships only) → info rows for ended memberships
+  and expenses added (`batch4_prechecks.sql`; not a Q-check, no gate
+  change).
+
+Observation: in the first (exploratory) run the first behavioural audit
+after the push missed one positive Realtime control (an active member's
+live message) and passed on re-run; not reproduced in the final run. See
+Risks.
 
 ## Risks
 
 - Lock timeouts: every file sets `lock_timeout = 5s`; the preflight lock
   check must show no other locks or long transactions. On timeout, the
   file rolls back and the push stops (retry later).
-- M16's backfill inserts one event per group and per non-founding
-  membership (counts in the prechecks' info rows).
+- M16's backfill inserts one event per group, non-founding membership,
+  ended membership and expense (the four info rows; their sum is the
+  `group_events` count right after the push).
+- Realtime warm-up: once, right after the rehearsal push, the first live
+  chat delivery was missed (passed on re-run; not reproduced). Messages are
+  stored either way (a reload shows them); after the production push,
+  smoke-test a live chat message between two sessions.
 - Publication change: if the dashboard had published a table (Q22 ≠ 0),
   stop and assess.
 - Accepted residual (LOW): Realtime DELETE events are not RLS-filtered;
@@ -72,5 +136,8 @@ in-place reset of SplitChat-Dev replayed to production's current state
 - QA/Security: release package **PASS** (hashes recomputed, gates, env
   scrubbing, read-only guard, pre/post-check semantics); M21/M23 **PASS**.
 - Senior Review: release docs **READY**; M21–M23 **APPROVE**.
-- Both recommend the full dress rehearsal (above) as a precondition to
-  execution approval. Details: `docs/phase8/plan.md` (Reviews).
+- Both recommended the full dress rehearsal as a precondition to
+  execution approval: done (above). Its two tooling fixes: QA/Security
+  **PASS**, Senior **APPROVE** (LOW: a catalog-driven table drop in the
+  reset script would avoid missing future tables; deferred register).
+  Details: `docs/phase8/plan.md` (Reviews).

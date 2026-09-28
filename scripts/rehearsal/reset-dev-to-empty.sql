@@ -1,5 +1,6 @@
 -- SplitChat-Dev ONLY: return the rehearsal database to the empty state a new
--- Supabase project has before M0 (operator-approved dev reset, 2026-09-27),
+-- Supabase project has before M0 (operator-approved dev resets, 2026-09-27
+-- and 2026-09-29 for the batch 4 dress rehearsal),
 -- so production's path M0 -> batch 1 -> batch 2 -> batch 3 can be rehearsed
 -- from scratch. Run only as
 --   node scripts/rehearsal/dev.mjs file scripts/rehearsal/reset-dev-to-empty.sql
@@ -7,7 +8,9 @@
 -- failure changes nothing). The first statement re-checks the sentinel
 -- inside the database and aborts anywhere else.
 --
--- Removes: the SplitChat schema objects in public, the private schema, the
+-- Removes: the SplitChat schema objects in public (Phase 1 and batch 4
+-- tables; the latter also leave the supabase_realtime publication), the
+-- private schema, the
 -- CLI migration history, both SplitChat triggers on auth.users, and every
 -- auth user (all synthetic rehearsal accounts). Restores the platform's
 -- default privileges for postgres in public (M6 had revoked them), as in
@@ -29,6 +32,11 @@ $$;
 
 DROP FUNCTION IF EXISTS private.handle_auth_user_deleting() CASCADE;  -- and on_auth_user_deleting
 DROP SCHEMA IF EXISTS private CASCADE;  -- and on_auth_user_created (bound to private.handle_new_user)
+-- Batch 4 tables (M16-M19) first: dropping them also removes group_messages
+-- and expense_candidates from the supabase_realtime publication, which a new
+-- project has with no tables (production's state before batch 4, Q22).
+DROP TABLE IF EXISTS public.expense_candidates, public.group_messages,
+  public.settlements, public.group_events CASCADE;
 DROP TABLE IF EXISTS public.expense_splits, public.expenses, public.group_members,
   public.groups, public.profiles CASCADE;
 DO $$
@@ -57,7 +65,8 @@ BEGIN
      OR to_regnamespace('private') IS NOT NULL
      OR to_regnamespace('supabase_migrations') IS NOT NULL
      OR EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'auth.users'::regclass AND NOT tgisinternal)
-     OR EXISTS (SELECT 1 FROM auth.users) THEN
+     OR EXISTS (SELECT 1 FROM auth.users)
+     OR EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime') THEN
     RAISE EXCEPTION 'reset post-condition failed';
   END IF;
 END
