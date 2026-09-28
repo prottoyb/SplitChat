@@ -19,7 +19,7 @@
 .rejected {
   border-style: dashed;
   border-color: var(--border-strong);
-  background: var(--surface-subtle);
+  background: var(--surface-page);
 }
 
 .header {

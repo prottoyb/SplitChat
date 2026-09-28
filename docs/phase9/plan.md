@@ -153,3 +153,40 @@ group workspace, dashboard "Needs you" and chat with the proposals strip,
 plus the design-token/component spec (`docs/phase9/wireframes.md`,
 `docs/phase9/design-system.md`). Increment 0 can start in parallel
 because it depends on no decision.
+
+## Review record — Increment 0 and representative slice (2026-09-29)
+
+Commits `b69cf89`, `ade001d`, `53a7c0b`; correction pass in the next
+commit.
+
+- **UI/UX Product Designer: PASS WITH CHANGES.** All slice acceptance
+  checks pass, including the much taller mobile chat and four unclipped
+  tabs.
+  - **MEDIUM (fixed):** the login segmented control lost its visible
+    container. The token pass mapped the auth page background to the same
+    token as the control's fill.
+  - **Coordinator follow-up (fixed):** the same collapse was checked
+    everywhere. Three more containers (chat composer, expense total
+    summary, rejected proposal card) now use `--surface-page`, so chips
+    inside them stay distinct.
+  - **LOW (deferred to the rollout):** the top bar shows the brand, not
+    the group, when scrolled inside a workspace.
+  - **LOW (deferred to the rollout):** secondary pages (Members, Activity,
+    Settings) repeat the full group header. A lighter header for them is
+    planned with the Overview work.
+  - **OPTIONAL:** the breadcrumb replaces the literal "← Back to <group>"
+    mock. Accepted.
+- **Senior Reviewer: APPROVE.** No CRITICAL/HIGH/MEDIUM findings. Menu
+  semantics and lifecycle, shellMode routes, focus management, the
+  `--chat-height` hand-off and test quality were all checked.
+  - **Residual risk (LOW):** the reviewer diffed 2 of 19 migrated
+    stylesheets in full. The token guard test bounds that risk, and the
+    designer's finding above was the kind it missed. The coordinator's
+    collapse sweep covers the rest of that class.
+- **Verification:**
+  - lint, build and Vitest 573/573;
+  - on SplitChat-Dev: E2E 20/20, a11y audit 0 findings, and a rendered
+    review with no overflow and nothing outside its panel.
+
+**Outcome:** the representative slice is accepted. The rollout continues
+with increments 1–4.

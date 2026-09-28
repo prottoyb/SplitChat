@@ -245,7 +245,7 @@
   gap: 6px 10px;
   border-top: 1px solid var(--border-default);
   padding: 12px 14px;
-  background: var(--surface-subtle);
+  background: var(--surface-page);
 }
 
 .composer textarea {

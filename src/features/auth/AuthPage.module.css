@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.1fr);
-  background: var(--surface-subtle);
+  background: var(--surface-page);
 }
 
 .brandPanel {
