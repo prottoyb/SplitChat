@@ -1,20 +1,16 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { signOut, useAuth } from '../features/auth'
-import { LoadingState } from '../shared/ui'
+import { LoadingState, Menu } from '../shared/ui'
+import { shellMode } from './shellMode'
+
 
 function AppLayout() {
   const navigate = useNavigate()
   const { session, profile } = useAuth()
 
   const [isSigningOut, setIsSigningOut] = useState(false)
-  // On narrow screens the main navigation scrolls sideways: keep the
-  // current section's link in view.
   const { pathname } = useLocation()
-  const mainNav = useRef<HTMLElement>(null)
-  useEffect(() => {
-    mainNav.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
-  }, [pathname])
 
   const user = session?.user
 
@@ -50,7 +46,7 @@ function AppLayout() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${shellMode(pathname)}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">S</div>
@@ -59,9 +55,25 @@ function AppLayout() {
             <h1>SplitChat</h1>
             <p>Shared expenses, simplified.</p>
           </div>
+
+          <div className="mobile-account">
+            <Menu
+              label={`Account: ${displayName}`}
+              trigger={<span className="profile-avatar" aria-hidden="true">{initials}</span>}
+              triggerClassName="account-trigger"
+              items={[
+                {
+                  key: 'sign-out',
+                  label: isSigningOut ? 'Signing out...' : 'Sign out',
+                  onClick: handleSignOut,
+                  disabled: isSigningOut,
+                },
+              ]}
+            />
+          </div>
         </div>
 
-        <nav className="navigation" aria-label="Main" ref={mainNav}>
+        <nav className="navigation" aria-label="Main">
           <NavLink
             to="/"
             end

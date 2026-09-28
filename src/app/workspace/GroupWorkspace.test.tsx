@@ -104,17 +104,63 @@ describe('GroupWorkspace sections', () => {
     const user = userEvent.setup()
     renderAt('/groups/g1')
     const sections = await screen.findByRole('navigation', { name: 'Group sections' })
+    // Operator decision D2 (Phase 9): four primary sections.
     expect(within(sections).getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Overview', 'Expenses', 'Balances', 'Chat', 'Activity', 'Members',
+      'Overview', 'Expenses', 'Balances', 'Chat',
     ])
     expect(within(sections).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
 
-    await user.click(within(sections).getByRole('link', { name: 'Members' }))
+    await user.click(within(sections).getByRole('link', { name: 'Balances' }))
 
-    const heading = await screen.findByRole('heading', { name: 'Members', level: 3 })
-    expect(within(sections).getByRole('link', { name: 'Members' })).toHaveAttribute('aria-current', 'page')
+    const heading = await screen.findByRole('heading', { name: 'Balances', level: 3 })
+    expect(within(sections).getByRole('link', { name: 'Balances' })).toHaveAttribute('aria-current', 'page')
     expect(within(sections).getByRole('link', { name: 'Overview' })).not.toHaveAttribute('aria-current')
     await waitFor(() => expect(heading).toHaveFocus())
+  })
+
+  it('reaches Members, Activity and Group settings from the group menu, with a breadcrumb back', async () => {
+    const user = userEvent.setup()
+    renderAt('/groups/g1')
+    await user.click(await screen.findByRole('button', { name: 'Group options' }))
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Members 2', 'Activity', 'Group settings'])
+
+    await user.click(screen.getByRole('menuitem', { name: /Members/ }))
+
+    const heading = await screen.findByRole('heading', { name: 'Members', level: 3 })
+    await waitFor(() => expect(heading).toHaveFocus())
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'Flat 4B' })).toHaveAttribute('href', '/groups/g1')
+    expect(within(crumbs).getByText('Members')).toHaveAttribute('aria-current', 'page')
+    // No primary tab claims a secondary page.
+    const sections = screen.getByRole('navigation', { name: 'Group sections' })
+    expect(within(sections).queryByRole('link', { current: 'page' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['/groups/g1/members', 'Members'],
+    ['/groups/g1/activity', 'Activity'],
+    ['/groups/g1/settings', 'Group settings'],
+  ])('keeps the deep link %s working', async (path, title) => {
+    renderAt(path)
+    expect(await screen.findByRole('heading', { name: title, level: 3 })).toBeInTheDocument()
+  })
+
+  it('links the member count to Members', async () => {
+    renderAt('/groups/g1')
+    expect(await screen.findByRole('link', { name: '2 members' })).toHaveAttribute('href', '/groups/g1/members')
+  })
+
+  it('shows the group details read-only in settings', async () => {
+    renderAt('/groups/g1/settings')
+    await screen.findByRole('heading', { name: 'Group settings', level: 3 })
+    expect(screen.getByText('Rent and bills')).toBeInTheDocument()
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('offers a way back to the overview from chat', async () => {
+    renderAt('/groups/g1/chat')
+    expect(await screen.findByRole('link', { name: 'Back to Flat 4B overview' })).toHaveAttribute('href', '/groups/g1')
   })
 
   it('lists only this group’s expenses in the Expenses section', async () => {

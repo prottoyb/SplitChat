@@ -410,32 +410,104 @@ button {
   }
 }
 
+/* The account menu replaces the sidebar footer on phones only. */
+.mobile-account {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     display: block;
   }
 
+  /* Compact top bar (D1): brand mark and name, account menu. */
   .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     width: 100%;
     min-height: auto;
-    position: static;
-    padding: 18px;
+    padding: var(--space-2) var(--space-4);
   }
 
+  .brand {
+    gap: var(--space-2);
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-md);
+  }
+
+  .brand h1 {
+    font-size: var(--text-md);
+  }
+
+  .brand p {
+    display: none;
+  }
+
+  .mobile-account {
+    display: block;
+    margin-left: auto;
+  }
+
+  .account-trigger {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    border-radius: var(--radius-circle);
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .account-trigger .profile-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-xs);
+  }
+
+  .account-trigger:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 0;
+  }
+
+  /* Bottom tab bar (D1): four equal items, icon above label. */
   .navigation {
-    margin-top: 18px;
-    flex-direction: row;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    /* Fade the right edge so a clipped link reads as "more to scroll". */
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    padding-right: 28px;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1);
+    margin: 0;
+    border-top: 1px solid var(--shell-border-subtle);
+    padding: var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom));
+    background: var(--shell-bg);
   }
 
   .nav-item {
-    width: auto;
-    min-width: max-content;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    padding: var(--space-1);
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+
+  .nav-item span {
+    font-size: var(--text-md);
   }
 
   .sidebar-footer {
@@ -445,7 +517,24 @@ button {
   .main-content {
     width: 100%;
     margin-left: 0;
-    padding: 28px 18px;
+    padding: var(--space-5) var(--space-4) calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell--form .navigation {
+    display: none;
+  }
+
+  .app-shell--form .main-content {
+    padding-bottom: var(--space-7);
+  }
+
+  /* Group chat: the conversation gets the whole screen. */
+  .app-shell--chat .sidebar {
+    display: none;
+  }
+
+  .app-shell--chat .main-content {
+    padding: var(--space-2) var(--space-3) var(--space-3);
   }
 
   .topbar {
@@ -462,5 +551,11 @@ button {
 
   .ai-status {
     display: none;
+  }
+}
+
+@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  .nav-item {
+    transition: none;
   }
 }

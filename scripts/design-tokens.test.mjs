@@ -11,12 +11,9 @@ import { describe, expect, it } from 'vitest'
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src')
 
-// Documented exceptions (design-system.md): mask gradients use pure black
-// as an alpha stop; the auth hero is its own dark surface; activity icon
-// chips use categorical colours that are not status colours.
+// Documented exceptions (design-system.md): the auth hero is its own dark
+// surface; activity icon chips use categorical colours, not status colours.
 const ALLOWED = {
-  'app/App.css': ['#000'],
-  'app/workspace/GroupWorkspace.module.css': ['#000'],
   'features/auth/AuthPage.module.css': ['#11131a', '#191b23', '#292c36', '#7357ff', '#a8afbc', '#a999ff', '#aeb3c2', '#b8bec9'],
   'features/activity/components/activity.module.css': ['#1f5f8b', '#8a5a00', '#e6f1fa', '#eaf7ef', '#fff4dc'],
 }
@@ -45,8 +42,11 @@ describe('design tokens', () => {
   })
 
   it('defines every token that a stylesheet uses', () => {
-    const root = fs.readFileSync(path.join(SRC, 'index.css'), 'utf8')
-    const defined = new Set([...root.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]))
+    // Tokens on :root, plus the few properties one component sets for
+    // another (e.g. --chat-height).
+    const defined = new Set(
+      stylesheets(SRC).flatMap((file) => [...fs.readFileSync(file, 'utf8').matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1])),
+    )
     const missing = new Set()
     for (const file of stylesheets(SRC)) {
       for (const [, name] of fs.readFileSync(file, 'utf8').matchAll(/var\((--[a-z0-9-]+)/g)) {

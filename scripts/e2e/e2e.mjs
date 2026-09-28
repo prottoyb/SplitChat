@@ -70,10 +70,19 @@ async function signIn(key, opts = {}) {
   return page
 }
 
-/** A workspace section tab (the sidebar has same-named global links). */
+// Secondary group pages live in the group menu (operator decision D2, Phase 9).
+const MENU_PAGES = new Set(['Members', 'Activity', 'Group settings'])
+
+/** A workspace section: a tab, or a group-menu page (the sidebar has same-named global links). */
 async function tab(page, name) {
-  const nav = await page.find('navigation', 'Group sections')
-  await page.click('link', name, { within: nav })
+  if (MENU_PAGES.has(name)) {
+    await page.click('button', 'Group options')
+    const menu = await page.find('list', 'Group options')
+    await page.click('link', `/^${name}( |$)/`, { within: menu })
+  } else {
+    const nav = await page.find('navigation', 'Group sections')
+    await page.click('link', name, { within: nav })
+  }
   await page.find('heading', name)
 }
 
