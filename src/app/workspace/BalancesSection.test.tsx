@@ -43,9 +43,9 @@ function seed() {
   ])
 }
 
-function renderPage() {
+function renderPage(path = '/groups/g1/balances') {
   return render(
-    <MemoryRouter initialEntries={['/groups/g1/balances']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="groups/:groupId/*" element={<GroupWorkspace />} />
       </Routes>
@@ -139,6 +139,25 @@ describe('Balances section', () => {
     const form = screen.getByRole('form', { name: 'Record a payment' })
     expect(within(form).getByLabelText('Paid by')).toHaveValue('u5')
     expect(within(form).getByLabelText('Amount')).toHaveValue('3.33')
+  })
+
+  it('opens pre-filled from a ?settle= link and focuses the form', async () => {
+    renderPage('/groups/g1/balances?settle=u2~u1')
+    const form = await screen.findByRole('form', { name: 'Record a payment' })
+    await waitFor(() => expect(within(form).getByLabelText('Amount')).toHaveValue('43.33'))
+    expect(within(form).getByLabelText('Paid by')).toHaveValue('u2')
+    expect(within(form).getByLabelText('Paid to')).toHaveValue('u1')
+    // Focus moves to the payment panel, as with the Record buttons.
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('aria-label', 'Record a payment'))
+    expect(document.activeElement?.tagName).toBe('ARTICLE')
+  })
+
+  it('ignores a ?settle= link for a payment the caller may not record', async () => {
+    // Bob is not a party to Eve's payment and is not the owner.
+    renderPage('/groups/g1/balances?settle=u5~u1')
+    const form = await screen.findByRole('form', { name: 'Record a payment' })
+    expect(within(form).getByLabelText('Amount')).toHaveValue('')
+    expect(document.activeElement?.tagName).not.toBe('ARTICLE')
   })
 
   it('lists voided payments with who voided them and why', async () => {

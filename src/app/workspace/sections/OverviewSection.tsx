@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { formatCents } from '../../../shared/domain/money'
 import { useResource } from '../../../shared/hooks/useResource'
 import { Avatar, ErrorState, LoadingState, SectionHeader } from '../../../shared/ui'
 import { ActivityFeed, listActivity } from '../../../features/activity'
+import { loadGroupBalances, simplifyDebts } from '../../../features/balances'
+import { nextStep } from './nextStep'
 import { ExpenseList, listMyExpenses } from '../../../features/expenses'
 import type { GroupDetail } from '../../../features/groups'
 import styles from '../GroupWorkspace.module.css'
@@ -11,28 +12,11 @@ const RECENT_EXPENSES = 5
 const RECENT_EVENTS = 6
 const MEMBERS_SHOWN = 6
 
-type NextStep = { text: string; to: string; label: string }
-
-/** The one thing most worth doing next, if anything (server position only). */
-function nextStep(group: GroupDetail, myNet: number | null, expenseCount: number | null): NextStep | null {
-  const base = `/groups/${group.id}`
-  if (myNet !== null && myNet < 0) {
-    return { text: `You owe ${formatCents(-myNet)} in this group.`, to: `${base}/balances`, label: 'See who to pay' }
-  }
-  if (myNet !== null && myNet > 0) {
-    return { text: `You are owed ${formatCents(myNet)} in this group.`, to: `${base}/balances`, label: 'See balances' }
-  }
-  if (group.members.length === 1) {
-    return {
-      text: 'You are the only member. Add people to start splitting costs.',
-      to: `${base}/members`,
-      label: group.myRole === 'owner' ? 'Add members' : 'View members',
-    }
-  }
-  if (expenseCount === 0) {
-    return { text: 'No expenses yet. Record the first shared cost.', to: `${base}/expenses/new`, label: 'Add an expense' }
-  }
-  return null
+async function loadPlan(groupId: string) {
+  const balances = await loadGroupBalances(groupId)
+  if (!balances.ok) return balances
+  const transfers = simplifyDebts(balances.value.people.map((p) => ({ userId: p.userId, netCents: p.netCents })))
+  return { ok: true as const, value: { transfers, names: balances.value.names } }
 }
 
 /** A group's landing section: what to do next, recent expenses and activity, and who is in it. */
@@ -44,7 +28,9 @@ export function OverviewSection({ group, userId, myNet }: { group: GroupDetail; 
   const activity = useResource(`overview-activity:${group.id}:${userId}`, () =>
     listActivity({ groupId: group.id, limit: RECENT_EVENTS }),
   )
-  const step = nextStep(group, myNet, expenses.status === 'ready' ? expenses.data.length : null)
+  // Keyed on the header position so a payment recorded elsewhere refreshes it.
+  const plan = useResource(`overview-plan:${group.id}:${userId}:${myNet}`, () => loadPlan(group.id))
+  const step = nextStep(group, userId, plan.status === 'ready' ? plan.data : null, expenses.status === 'ready' ? expenses.data.length : null)
 
   return (
     <>

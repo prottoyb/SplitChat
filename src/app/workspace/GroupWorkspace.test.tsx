@@ -197,11 +197,12 @@ describe('GroupWorkspace sections', () => {
     expect(calls).toContainEqual({ method: 'eq', args: ['group_id', 'g1'] })
   })
 
-  it('suggests settling up on the overview when I owe money', async () => {
+  it('names the payment to make on the overview and links to it pre-filled', async () => {
     renderAt('/groups/g1')
 
-    expect(await screen.findByText('You owe $25.00 in this group.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'See who to pay' })).toHaveAttribute('href', '/groups/g1/balances')
+    // Phase 9 (P9): the header states the position; the next step names the payment.
+    expect(await screen.findByText('Pay Alice $25.00.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Record your payment' })).toHaveAttribute('href', '/groups/g1/balances?settle=u2~u1')
     expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument()
   })
 
