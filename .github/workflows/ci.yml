@@ -54,4 +54,17 @@ jobs:
           sudo apt-get install -y postgresql-17
           "$SPLITCHAT_PG_BIN/initdb" --version
       - run: npm ci
-      - run: npm run test:db
+      - name: npm run test:db
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:db 2>&1 | tee db-test.log
+      # Job logs need repository admin rights to read; the failure summary is
+      # also published as an annotation, which anyone can read.
+      - name: Publish the harness failure summary
+        if: failure()
+        shell: bash
+        run: |
+          summary=$(grep -E '^(FAIL|ERROR|      psql)' db-test.log | head -20 | tr '\n' ' ' | cut -c1-1500)
+          [ -n "$summary" ] || summary=$(tail -c 1500 db-test.log | tr '\n' ' ')
+          echo "::error title=Database harness::$summary"

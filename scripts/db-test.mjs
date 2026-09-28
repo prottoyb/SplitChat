@@ -157,7 +157,10 @@ class Cluster {
   }
 
   start() {
-    const opts = `-p ${this.port} -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off`
+    // Unix-socket directory: the packaged default (/var/run/postgresql) is not
+    // writable by an unprivileged CI user, so use the cluster's own temp dir.
+    const socketDir = process.platform === 'win32' ? '' : ` -c unix_socket_directories=${this.tmpDir}`
+    const opts = `-p ${this.port} -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off${socketDir}`
     // stdio ignored: on Windows the detached server would otherwise inherit our pipes.
     const r = run(pgBin('pg_ctl'), ['start', '-w', '-D', this.dataDir, '-l', path.join(this.tmpDir, 'server.log'), '-o', opts], { env: this.env, stdio: 'ignore' })
     if (r.status !== 0) throw new Error(`pg_ctl start failed; see ${path.join(this.tmpDir, 'server.log')}`)
