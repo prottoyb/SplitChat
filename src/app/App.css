@@ -153,7 +153,7 @@ button {
 
 .eyebrow {
   margin: 0 0 7px;
-  color: #7c8797;
+  color: #67707e;
   font-size: 10px;
   line-height: 1;
   font-weight: 700;
@@ -248,7 +248,7 @@ button {
 }
 
 .summary-card span {
-  color: #98a2b3;
+  color: #69707c;
   font-size: 11px;
 }
 
@@ -282,7 +282,7 @@ button {
 .text-button {
   border: 0;
   background: transparent;
-  color: #475467;
+  color: #cbd5e1; /* on the dark sidebar */
   font-size: 12px;
   cursor: pointer;
 }
@@ -320,7 +320,7 @@ button {
 .empty-state p {
   max-width: 380px;
   margin: 7px 0 18px;
-  color: #98a2b3;
+  color: #69707c;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -353,7 +353,7 @@ button {
 }
 
 .ai-content .eyebrow {
-  color: #9ca3af;
+  color: #696e76;
 }
 
 .ai-content h3 {
@@ -363,7 +363,7 @@ button {
 
 .ai-content p:last-child {
   margin: 0;
-  color: #aeb7c5;
+  color: #6b7079;
   font-size: 12px;
   line-height: 1.6;
 }

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { initialsOf } from './initials'
 import styles from './ui.module.css'
@@ -140,10 +140,22 @@ export function InlineConfirm({
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Keyboard users keep their place: opening focuses the safe choice
+  // (Cancel); cancelling returns focus to the trigger.
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const returnFocus = useRef(false)
+  useEffect(() => {
+    if (open) cancelRef.current?.focus()
+    else if (returnFocus.current) {
+      returnFocus.current = false
+      triggerRef.current?.focus()
+    }
+  }, [open])
 
   if (!open) {
     return (
-      <button type="button" className={styles.dangerButton} onClick={() => setOpen(true)}>
+      <button type="button" ref={triggerRef} className={styles.dangerButton} onClick={() => setOpen(true)}>
         {triggerLabel}
       </button>
     )
@@ -158,20 +170,30 @@ export function InlineConfirm({
       setOpen(false)
     }
   }
+  const cancel = () => {
+    returnFocus.current = true
+    setOpen(false)
+  }
 
   return (
-    <div className={styles.confirmBox} role="group" aria-label={title}>
+    <div
+      className={styles.confirmBox}
+      role="group"
+      aria-label={title}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !busy) cancel()
+      }}
+    >
       <strong>{title}</strong>
       <p>{description}</p>
       <div className={styles.confirmActions}>
         <button type="button" className={styles.confirmButton} onClick={() => void confirm()} disabled={busy}>
           {busy ? busyLabel : confirmLabel}
         </button>
-        <button type="button" className={styles.cancelButton} onClick={() => setOpen(false)} disabled={busy}>
+        <button type="button" ref={cancelRef} className={styles.cancelButton} onClick={cancel} disabled={busy}>
           Cancel
         </button>
       </div>
     </div>
   )
 }
-

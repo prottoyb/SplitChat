@@ -136,7 +136,7 @@
 
 .panelDescription {
   margin: -4px 0 22px;
-  color: #777d8a;
+  color: #696f7a;
   font-size: 13px;
   line-height: 1.65;
 }
@@ -197,7 +197,7 @@
 
 .infoBox p {
   margin: 0;
-  color: #82818d;
+  color: #706f79;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -214,7 +214,7 @@
   place-items: center;
   margin: 0 auto 16px;
   border-radius: 14px;
-  color: #7054f6;
+  color: #6d51ef;
   background: #f0edff;
   font-size: 19px;
   font-weight: 750;
@@ -229,7 +229,7 @@
 
 .memberNotice p {
   margin: 0;
-  color: #878c98;
+  color: #6a6e77;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -250,7 +250,7 @@
 .stateCard p {
   max-width: 430px;
   margin: 0 0 18px;
-  color: #818692;
+  color: #6b707a;
   font-size: 13px;
 }
 
@@ -379,7 +379,7 @@
 
 .leaveConfirmation p {
   margin: 0 0 14px;
-  color: #876d6d;
+  color: #836a6a;
   font-size: 11px;
   line-height: 1.55;
 }

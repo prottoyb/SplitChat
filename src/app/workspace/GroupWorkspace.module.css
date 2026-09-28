@@ -38,7 +38,7 @@
 .breadcrumb li + li::before {
   content: '/';
   margin-right: 6px;
-  color: #a3a8b3;
+  color: #6a6e75;
 }
 
 .breadcrumb a {

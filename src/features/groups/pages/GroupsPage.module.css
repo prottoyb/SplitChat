@@ -44,7 +44,7 @@
 
 .createHeader > div > p:last-child {
   margin: 0;
-  color: #7b808f;
+  color: #6a6e7b;
   font-size: 13px;
 }
 
@@ -54,7 +54,7 @@
   flex: 0 0 auto;
   border: 0;
   border-radius: 9px;
-  color: #707582;
+  color: #696e7a;
   background: #f4f5f7;
   font-family: inherit;
   font-size: 22px;
@@ -122,7 +122,7 @@
 
 .field small {
   justify-self: end;
-  color: #a0a4ae;
+  color: #6c6e75;
   font-size: 11px;
 }
 
@@ -155,7 +155,7 @@
   place-items: center;
   margin-bottom: 16px;
   border-radius: 14px;
-  color: #7054f6;
+  color: #6d51ef;
   background: #f0edff;
   font-size: 21px;
 }
@@ -169,7 +169,7 @@
 .stateCard p {
   max-width: 430px;
   margin: 0 0 20px;
-  color: #7c818e;
+  color: #6a6f7a;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -216,7 +216,7 @@
   height: 39px;
   place-items: center;
   border-radius: 11px;
-  color: #7054f6;
+  color: #6d51ef;
   background: #f0edff;
   font-size: 17px;
 }
@@ -241,7 +241,7 @@
 .groupCard > p {
   min-height: 42px;
   margin: 0 0 24px;
-  color: #7b808d;
+  color: #6a6e79;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -249,7 +249,7 @@
 .groupMeta {
   padding-top: 15px;
   border-top: 1px solid #eff0f3;
-  color: #9a9eaa;
+  color: #6b6e76;
   font-size: 11px;
 }
 

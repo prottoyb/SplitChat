@@ -54,7 +54,7 @@ function AppLayout() {
           </div>
         </div>
 
-        <nav className="navigation">
+        <nav className="navigation" aria-label="Main">
           <NavLink
             to="/"
             end

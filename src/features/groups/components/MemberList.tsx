@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatDateShort } from '../../../shared/domain/dates'
 import { Avatar } from '../../../shared/ui'
 import type { Member } from '../api/groups'
@@ -27,6 +27,22 @@ export function MemberList({
   onTransfer: (member: Member) => Promise<void>
 }) {
   const [pending, setPending] = useState<Pending>(null)
+  // Keyboard users keep their place: the confirmation focuses its safe
+  // choice (Cancel); cancelling returns focus to the button that opened it.
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const reopen = useRef<string | null>(null)
+  useEffect(() => {
+    if (pending) cancelRef.current?.focus()
+    else if (reopen.current) {
+      listRef.current?.querySelector<HTMLButtonElement>(`[data-action="${reopen.current}"]`)?.focus()
+      reopen.current = null
+    }
+  }, [pending])
+  const cancel = () => {
+    if (pending) reopen.current = `${pending.action}-${pending.userId}`
+    setPending(null)
+  }
 
   const run = async (member: Member, action: 'remove' | 'transfer') => {
     await (action === 'remove' ? onRemove(member) : onTransfer(member))
@@ -34,7 +50,7 @@ export function MemberList({
   }
 
   return (
-    <ul className={styles.memberList} aria-label="Group members">
+    <ul className={styles.memberList} aria-label="Group members" ref={listRef}>
       {members.map((member) => {
         const isSelf = member.userId === currentUserId
         const confirming = pending?.userId === member.userId ? pending.action : null
@@ -62,6 +78,7 @@ export function MemberList({
                     type="button"
                     className={styles.removeButton}
                     onClick={() => setPending({ userId: member.userId, action: 'transfer' })}
+                    data-action={`transfer-${member.userId}`}
                     disabled={busy}
                     aria-describedby={`member-${member.userId}`}
                   >
@@ -71,6 +88,7 @@ export function MemberList({
                     type="button"
                     className={styles.removeButton}
                     onClick={() => setPending({ userId: member.userId, action: 'remove' })}
+                    data-action={`remove-${member.userId}`}
                     disabled={busy}
                     aria-describedby={`member-${member.userId}`}
                   >
@@ -80,7 +98,14 @@ export function MemberList({
               )}
 
               {confirming && (
-                <div className={styles.confirmActions}>
+                <div
+                  className={styles.confirmActions}
+                  role="group"
+                  aria-label={confirming === 'transfer' ? `Make ${member.fullName} the owner?` : `Remove ${member.fullName} from the group?`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && !busy) cancel()
+                  }}
+                >
                   <button
                     type="button"
                     className={styles.confirmRemoveButton}
@@ -94,8 +119,9 @@ export function MemberList({
                   </button>
                   <button
                     type="button"
+                    ref={cancelRef}
                     className={styles.cancelActionButton}
-                    onClick={() => setPending(null)}
+                    onClick={cancel}
                     disabled={busy}
                   >
                     Cancel

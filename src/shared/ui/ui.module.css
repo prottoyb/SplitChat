@@ -46,7 +46,7 @@
   place-items: center;
   margin: 0 auto 16px;
   border-radius: 14px;
-  color: #7054f6;
+  color: #6d51ef;
   background: #f0edff;
   font-size: 19px;
   font-weight: 750;
@@ -185,7 +185,7 @@
 
 .confirmBox p {
   margin: 0 0 14px;
-  color: #876d6d;
+  color: #836a6a;
   font-size: 12px;
   line-height: 1.55;
 }

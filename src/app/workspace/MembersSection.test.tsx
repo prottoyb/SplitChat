@@ -122,6 +122,19 @@ describe('Members section membership actions use RPCs', () => {
     expect(screen.queryByText(/was added/)).not.toBeInTheDocument()
   })
 
+  it('keeps keyboard focus in the removal confirmation, and Escape returns it', async () => {
+    seedGroup()
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove' }))
+    expect(screen.getByRole('group', { name: 'Remove Bob Brown from the group?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('button', { name: 'Remove' })).toHaveFocus()
+    expect(supabaseMock.rpc.mock.calls.some(([n]) => n === 'remove_group_member')).toBe(false)
+  })
+
   it('removes a member through remove_group_member', async () => {
     seedGroup()
     const user = userEvent.setup()

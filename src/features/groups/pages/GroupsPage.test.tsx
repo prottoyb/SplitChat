@@ -49,8 +49,8 @@ describe('GroupsPage', () => {
     seedGroups()
     renderPage()
 
-    const flat = (await screen.findByText('Flat')).closest('article')
-    const trip = screen.getByText('Trip').closest('article')
+    const flat = (await screen.findByText('Flat')).closest('a')
+    const trip = screen.getByText('Trip').closest('a')
     expect(flat).toHaveTextContent('Member')
     expect(flat).not.toHaveTextContent('Owner')
     expect(flat).toHaveTextContent('2 members')

@@ -130,7 +130,10 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
           $
         </span>
         <p className={styles.title}>Expense proposal</p>
-        <span className={styles.status}>{status}</span>
+        {/* Announced when it changes (e.g. approved or rejected by someone else). */}
+        <span className={styles.status} aria-live="polite">
+          {status}
+        </span>
       </header>
       {old && <p className={styles.note}>Proposed more than {OLD_DAYS} days ago.</p>}
 

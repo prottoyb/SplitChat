@@ -12,7 +12,9 @@ import styles from './GroupsPage.module.css'
 function GroupCard({ group }: { group: GroupSummary }) {
   return (
     <Link to={`/groups/${group.id}`} className={styles.groupCardLink}>
-      <article className={styles.groupCard}>
+      {/* A div, not an article: a landmark inside a link hides the card's
+          text from the link's accessible name. */}
+      <div className={styles.groupCard}>
         <div className={styles.groupCardTop}>
           <div className={styles.groupIcon} aria-hidden="true">
             ◎
@@ -25,7 +27,7 @@ function GroupCard({ group }: { group: GroupSummary }) {
           {group.memberCount} {group.memberCount === 1 ? 'member' : 'members'} · Created{' '}
           {formatDateShort(group.createdAt.slice(0, 10))}
         </div>
-      </article>
+      </div>
     </Link>
   )
 }
