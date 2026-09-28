@@ -1,0 +1,278 @@
+.successMessage,
+.errorMessage {
+  margin-bottom: 22px;
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.successMessage {
+  border: 1px solid #cde7d7;
+  color: #297149;
+  background: #f1faf5;
+}
+
+.errorMessage {
+  border: 1px solid #efd0d0;
+  color: #a13f3f;
+  background: #fff4f4;
+}
+
+.createPanel {
+  margin-bottom: 28px;
+  border: 1px solid #e4e6eb;
+  border-radius: 18px;
+  padding: 26px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(21, 25, 38, 0.05);
+}
+
+.createHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.createHeader h3 {
+  margin: 2px 0 7px;
+  color: #171922;
+  font-size: 21px;
+}
+
+.createHeader > div > p:last-child {
+  margin: 0;
+  color: #6a6e7b;
+  font-size: 13px;
+}
+
+.closeButton {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 9px;
+  color: #696e7a;
+  background: #f4f5f7;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.closeButton:hover:not(:disabled) {
+  background: #ebedf1;
+}
+
+.closeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.createForm {
+  display: grid;
+  gap: 19px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  color: #383b46;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dfe1e7;
+  border-radius: 11px;
+  outline: none;
+  padding: 13px 14px;
+  color: #20222a;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.field input {
+  height: 48px;
+}
+
+.field textarea {
+  min-height: 105px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: #7357ff;
+  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.11);
+}
+
+.field small {
+  justify-self: end;
+  color: #6c6e75;
+  font-size: 12px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.groupsSection {
+  margin-top: 8px;
+}
+
+.stateCard {
+  display: grid;
+  min-height: 340px;
+  place-items: center;
+  align-content: center;
+  border: 1px solid #e6e7eb;
+  border-radius: 18px;
+  padding: 40px 24px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.stateIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  color: #6d51ef;
+  background: #f0edff;
+  font-size: 21px;
+}
+
+.stateCard h3 {
+  margin: 0 0 8px;
+  color: #20222a;
+  font-size: 18px;
+}
+
+.stateCard p {
+  max-width: 430px;
+  margin: 0 0 20px;
+  color: #6a6f7a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.groupGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.groupCardLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.groupCard {
+  min-height: 210px;
+  border: 1px solid #e4e6eb;
+  border-radius: 17px;
+  padding: 22px;
+  background: #ffffff;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.groupCard:hover {
+  transform: translateY(-2px);
+  border-color: #d7d3f7;
+  box-shadow: 0 12px 32px rgba(29, 33, 48, 0.07);
+}
+
+.groupCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 26px;
+}
+
+.groupIcon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border-radius: 11px;
+  color: #6d51ef;
+  background: #f0edff;
+  font-size: 17px;
+}
+
+.ownerBadge {
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #6750d8;
+  background: #f2efff;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.groupCard h3 {
+  margin: 0 0 9px;
+  color: #1d1f27;
+  font-size: 18px;
+}
+
+.groupCard > p {
+  min-height: 42px;
+  margin: 0 0 24px;
+  color: #6a6e79;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.groupMeta {
+  padding-top: 15px;
+  border-top: 1px solid #eff0f3;
+  color: #6b6e76;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .groupGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .createPanel {
+    padding: 20px;
+  }
+
+  .groupGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+  }
+
+  .formActions button {
+    width: 100%;
+  }
+}

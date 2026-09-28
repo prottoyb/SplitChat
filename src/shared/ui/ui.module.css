@@ -1,0 +1,297 @@
+/* Shared UI primitives (ADR-0008). Values follow the existing page styles. */
+
+.stateCard {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  align-content: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.stateTitle {
+  margin: 0 0 8px;
+  color: #22242c;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.stateCompact {
+  min-height: 140px;
+  padding: 16px 8px;
+}
+
+.stateCompact .stateIcon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 10px;
+}
+
+.stateCompact .stateTitle {
+  font-size: 15px;
+}
+
+.stateCard p {
+  max-width: 430px;
+  margin: 0 0 18px;
+  color: #6b707c;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.stateIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  color: #6d51ef;
+  background: #f0edff;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.stateIconError {
+  color: #a13f3f;
+  background: #fff1f1;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #dcd6ff;
+  border-top-color: #7054f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.link {
+  color: #6549ed;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration: underline;
+}
+
+.notice {
+  margin: 0 0 18px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.noticeSuccess {
+  border: 1px solid #cde7d7;
+  color: #297149;
+  background: #f1faf5;
+}
+
+.noticeError {
+  border: 1px solid #efd0d0;
+  color: #a13f3f;
+  background: #fff4f4;
+}
+
+.noticeInfo {
+  border: 1px solid #dcd6ff;
+  color: #4f3bb8;
+  background: #f6f4ff;
+}
+
+.noticeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.button,
+.dangerButton,
+.confirmButton,
+.cancelButton {
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.button {
+  border: 1px solid #dcd6ff;
+  padding: 9px 12px;
+  color: #5b41e0;
+  background: #ffffff;
+}
+
+.button:hover:not(:disabled) {
+  background: #f6f4ff;
+}
+
+.dangerButton {
+  width: 100%;
+  border: 1px solid #e7caca;
+  padding: 11px 14px;
+  color: #a33d3d;
+  background: #ffffff;
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: #fff5f5;
+}
+
+.confirmBox {
+  border: 1px solid #edd0d0;
+  border-radius: 12px;
+  padding: 15px;
+  background: #fff8f8;
+}
+
+.confirmBox strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #8d3434;
+  font-size: 12px;
+}
+
+.confirmBox p {
+  margin: 0 0 14px;
+  color: #836a6a;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 8px;
+}
+
+.confirmButton {
+  flex: 1;
+  padding: 9px 10px;
+  color: #ffffff;
+  background: #aa3d3d;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: #913232;
+}
+
+.cancelButton {
+  flex: 1;
+  border: 1px solid #e0e2e7;
+  padding: 9px 10px;
+  color: #595e6a;
+  background: #ffffff;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #f5f6f8;
+}
+
+.button:disabled,
+.dangerButton:disabled,
+.confirmButton:disabled,
+.cancelButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button:focus-visible,
+.dangerButton:focus-visible,
+.confirmButton:focus-visible,
+.cancelButton:focus-visible,
+.link:focus-visible {
+  outline: 2px solid #7054f6;
+  outline-offset: 2px;
+}
+
+.avatar {
+  display: inline-grid;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  color: #5b41e0;
+  background: #f0edff;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Section header inside a workspace (focus target on navigation). */
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 18px;
+}
+
+.sectionHeader h3 {
+  margin: 0;
+  color: #1c1e26;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.sectionHeader h3:focus {
+  outline: none;
+}
+
+.sectionHeader h3:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.sectionHeader p {
+  margin: 4px 0 0;
+  color: #5f6470;
+  font-size: 13px;
+}
+
+.sectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

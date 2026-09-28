@@ -37,6 +37,19 @@ It is intended to be genuinely usable by real people, not a feature demo.
   saved only through the canonical expense service. No opaque AI decides
   money.
 
+## Approved product rules for chat and Smart Expense (2026-09-29)
+
+- Group chat messages are permanent and cannot be edited or deleted. After
+  an account is deleted, its messages remain and show "Deleted user".
+- A chat message can create at most one Smart Expense proposal. Proposals
+  are visible to the whole group and do not expire.
+- The payer is never guessed or defaulted. "with Sam" includes the sender.
+- The person who approves a proposal becomes the expense's creator. Once a
+  proposal is approved or rejected, its proposal text never changes.
+- The interpreter never writes financial state: every expense comes from a
+  person's explicit approval through the canonical expense service
+  (ADR-0011, ADR-0012).
+
 ## Quality goals
 
 Correctness, security, data integrity, reliability, usability, responsive

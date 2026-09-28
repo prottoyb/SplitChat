@@ -10,13 +10,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "test:db": "node scripts/db-test.mjs"
+    "test:db": "node scripts/db-test.mjs",
+    "test:e2e": "node scripts/e2e/e2e.mjs",
+    "test:a11y": "node scripts/e2e/a11y.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router": "^8.3.0",
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {

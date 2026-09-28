@@ -1,0 +1,209 @@
+/* An expense proposal: a bordered record-like panel, deliberately unlike a
+   chat bubble, so a message and a (proposed) financial record never look
+   the same (Phase 6/7 UI review). */
+
+.card {
+  display: grid;
+  gap: 10px;
+  border: 1.5px solid #cfc6ff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
+}
+
+.approved {
+  border-color: #a9d8bc;
+}
+
+.rejected {
+  border-style: dashed;
+  border-color: #d6d9e0;
+  background: #fbfbfc;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 8px;
+  color: #5b41e0;
+  background: #efecff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  color: #1c1e26;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: #2b2f38;
+  background: #f2f3f6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.incomplete .status {
+  border: 1px solid #e8c48a;
+  color: #7a4a06;
+  background: #fff8ec;
+}
+
+.approved .status {
+  color: #1d5e39;
+  background: #e6f5ec;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.field {
+  display: contents;
+}
+
+.fields dt {
+  color: #5f6470;
+}
+
+.fields dd {
+  margin: 0;
+  color: #1c1e26;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.missing {
+  color: #8a4b08;
+  font-weight: 700;
+}
+
+.hint {
+  color: #5f6470;
+  font-weight: 500;
+}
+
+.note {
+  margin: 0;
+  color: #5f6470;
+  font-size: 12px;
+}
+
+.done {
+  margin: 0;
+  color: #1d5e39;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.done a {
+  color: #5b41e0;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.actions :global(.primary-button) {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.actions :global(.primary-button):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.secondary {
+  border: 1px solid #d6d9e0;
+  border-radius: 9px;
+  padding: 7px 12px;
+  color: #2b2f38;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary:disabled {
+  opacity: 0.6;
+}
+
+.confirm {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #eceef2;
+  padding-top: 10px;
+}
+
+.confirmTitle {
+  margin: 0;
+  color: #1c1e26;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.shares {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.shares li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+}
+
+.form > button {
+  justify-self: start;
+}
+
+/* The shared destructive trigger is full width by default; here it sits in
+   the action row. Its confirmation still takes the full row when open. */
+.rejectSlot {
+  display: contents;
+}
+
+.rejectSlot > button {
+  width: auto;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.rejectSlot > [role='group'] {
+  flex-basis: 100%;
+}

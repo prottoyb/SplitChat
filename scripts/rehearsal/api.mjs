@@ -15,6 +15,18 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadDevTarget, verifySentinel } from './dev.mjs'
 
+// HISTORICAL (Phase 8): this script exercises the schema before M14 dropped
+// the legacy numeric expense RPC; against the current schema it fails by
+// design. It is kept as the evidence cited by the Phase 1 rehearsal records
+// and only runs when explicitly asked to (e.g. while replaying production's
+// path from a reset SplitChat-Dev). Current checks: api-chat, api-settlements,
+// api-activity, api-smart-expense, api-security-audit, and the E2E suite.
+if (!process.argv.includes('--historical-pre-m14')) {
+  console.error('HISTORICAL script for a pre-M14 schema (it calls the dropped legacy expense RPC).')
+  console.error('Pass --historical-pre-m14 to run it deliberately against such a schema; see scripts/rehearsal/README.md.')
+  process.exit(2)
+}
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const STATE_FILE = path.join(root, '.splitchat-dev-rehearsal.json.local')
 const t = loadDevTarget()

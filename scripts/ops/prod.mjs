@@ -23,13 +23,14 @@
 //     starting history;
 //   - secrets are never printed.
 //
-// Usage (every command takes --batch batch1|batch2|batch3a|batch3b):
+// Usage (every command takes --batch batch1|batch2|batch3a|batch3b|batch4):
 //   node scripts/ops/prod.mjs identify
 //   node scripts/ops/prod.mjs preflight <evidence-dir>   (read-only)
 //   node scripts/ops/prod.mjs repair-m0                  (WRITE, batch1 only)
 //   node scripts/ops/prod.mjs dry-run                    (read-only)
 //   node scripts/ops/prod.mjs push                       (WRITE, approval)
 //   node scripts/ops/prod.mjs verify <evidence-dir>      (read-only)
+//   node scripts/ops/prod.mjs audit [<evidence-dir>]     (read-only catalog security audit)
 //
 // --rehearse-on-dev runs the identical procedure against SplitChat-Dev (its
 // own git-ignored credentials; the dev sentinel must be PRESENT) so the
@@ -45,7 +46,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isolatedEnv, normaliseDump } from '../db-test.mjs'
 import { loadDevTarget } from '../rehearsal/dev.mjs'
-import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, parseMigrationList } from './cliOutput.mjs'
+import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, evaluateSecurityAudit, parseMigrationList } from './cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PROD_REF = 'jhftlnsccurhfgneltgi'
@@ -75,6 +76,15 @@ const M = {
   '20260927130000_delete_group_rpc.sql': '0204022c08cad6509db756792c925b9e89f43d5d61bf0c232a7873da56a8e3c1',
   '20260927135000_serialise_owner_deletion_and_member_add.sql': 'ddf392bca3cff2dea4ff47f563ec21b96fe0b564e7f8583354c9f8686d148c96',
   '20260927140000_drop_legacy_expense_rpc.sql': 'e3e653568265e5bd13185bc960f5e3c971ec42b844d0df267bf9a5e7c7c551ad',
+  // Batch 4 (Phases 3-8), reviewed and rehearsed on SplitChat-Dev.
+  '20260928100000_activity_event_log.sql': '493f5f5c7d32ff4b1d0652abf4f7032e195a5d8e43ff7d4f0ca42ba0aff6fafc',
+  '20260928110000_settlements.sql': 'fb03143a00b4fb67b3faba07189eddf61123f9283981d693eef7d5971b8b1896',
+  '20260928120000_group_messages.sql': 'fb817c1359e817219fe5f650a5c6504dff152ff716bc7d623e648320a207b03e',
+  '20260929100000_smart_expense_candidates.sql': '6aab0d73ab1daa388291d7a0291b9c9c782275065a3d03b34046de734aab334f',
+  '20260929110000_expense_core_membership_locks.sql': '5e4fce9b920d34ff2facdacc1c0a5213718e1040355edd7b7c5a4d091ac63b5d',
+  '20260930100000_membership_and_expense_edit_locks.sql': 'e681e7cb7951df0c2cfe61132dbb3c885b034c282667afa605a51f183f625975',
+  '20260930110000_index_cleanup.sql': '60324cf9ea346a2384c4271137b3dded5ac51e2898bbdd393fe406f17288591f',
+  '20260930120000_realtime_anon_silence.sql': '75e672d334486c551378c80a9a5c52ce752f1222cd068e35c0d79e1c16d54b19',
 }
 const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
 const versions = (n) => Object.keys(M).slice(0, n).map((f) => f.slice(0, 14))
@@ -137,6 +147,24 @@ const BATCHES = {
     zeroChecks: ['Q4', 'Q5'],
     postchecks: 'batch3b_postchecks.sql',
     expectedSchema: ['batch3b_expected_schema.sql', '0804dc02e90b430c94c9a468322542cdbfbcee4f5ca1380d41b859663967ea5c'],
+    frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
+  },
+  // M16 activity log (+ backfill of creation/membership events), M17
+  // settlements, M18 chat, M19 Smart Expense candidates (+ shared expense
+  // core; v2 contract unchanged), M20/M21 lock discipline, M22 indexes, M23
+  // anon Realtime silence. Additive for the batch-3b frontend (every existing
+  // RPC keeps its contract), so any frontend containing the M12 commit may be
+  // live; the Phase 3-8 frontend needs this batch first. M18/M19 add two
+  // tables to the Realtime publication (prechecks Q20-Q22).
+  batch4: {
+    migrations: pick(25),
+    before: ['batch3b_expected_schema.sql', '0804dc02e90b430c94c9a468322542cdbfbcee4f5ca1380d41b859663967ea5c'],
+    preflightHistory: versions(17),
+    startHistory: versions(17),
+    prechecks: 'batch4_prechecks.sql',
+    zeroChecks: ['Q4', 'Q5', 'Q20', 'Q21', 'Q22'],
+    postchecks: 'batch4_postchecks.sql',
+    expectedSchema: ['batch4_expected_schema.sql', 'c571e828719a14c4991657fb53b3ff6f270501c8c19b72e6a30e93dee5c3c46c'],
     frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
   },
 }
@@ -362,6 +390,18 @@ function main() {
     case 'verify':
       process.exit(verify(t, id, b, a1) ? 0 : 1)
       break
+    case 'audit': {
+      // Catalog security audit (read-only): every A-check must return 0 rows.
+      const out = readonly(t, readPinned('security_audit.sql'))
+      const { sections, missing, unexpected, passed } = evaluateSecurityAudit(out)
+      for (const [name, rows] of sections) gate(`${name} returns no offending rows`, rows === 0, `${rows} rows`)
+      gate('every audit check present exactly once', !missing.length && !unexpected.length,
+        [missing.length && `missing ${missing.join(', ')}`, unexpected.length && `unexpected ${unexpected.join(', ')}`].filter(Boolean).join('; '))
+      if (a1) fs.writeFileSync(path.join(a1, 'security_audit.txt'), out)
+      console.log(passed ? '\nAUDIT PASSED' : '\nAUDIT FAILED: stop and assess')
+      process.exit(passed ? 0 : 1)
+      break
+    }
     case 'dry-run':
       // Against the same verified staging copy a push would use.
       r = cli(t, ['db', 'push', '--dry-run'], stageApprovedMigrations(b, { write: false }))

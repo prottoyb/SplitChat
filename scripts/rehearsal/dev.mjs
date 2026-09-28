@@ -22,7 +22,7 @@ import { isolatedEnv } from '../db-test.mjs'
 import { CLI_MODE_FLAGS } from '../ops/cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const PROD_REF = 'jhftlnsccurhfgneltgi'
+export const PROD_REF = 'jhftlnsccurhfgneltgi'
 const SENTINEL = 'splitchat_rehearsal_sentinel'
 
 export function loadDevTarget() {

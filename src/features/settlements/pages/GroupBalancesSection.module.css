@@ -1,0 +1,69 @@
+.refreshing {
+  margin: 0 0 12px;
+  color: #5f6470;
+  font-size: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.column {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid #e4e6eb;
+  border-radius: 16px;
+  padding: 20px;
+  background: #ffffff;
+  scroll-margin-top: 16px;
+}
+
+.panel h4 {
+  margin: 0;
+  color: #1c1e26;
+  font-size: 17px;
+}
+
+.panel :global(.eyebrow) {
+  margin: 0;
+}
+
+.muted {
+  margin: 0;
+  color: #5f6470;
+  font-size: 14px;
+}
+
+.inlineButton {
+  flex-shrink: 0;
+  border: 1px solid #d9d2ff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #5b41e0;
+  background: #f5f3ff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inlineButton:focus-visible {
+  outline: 2px solid #6549ed;
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

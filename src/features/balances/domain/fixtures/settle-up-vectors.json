@@ -1,0 +1,69 @@
+{
+  "description": "Shared settle-up vectors (ADR-0010): net balances in cents -> the exact deterministic plan. Ties order by plain string comparison of ids.",
+  "vectors": [
+    { "name": "nobody owes anything", "balances": [], "plan": [] },
+    {
+      "name": "all settled",
+      "balances": [{ "userId": "a", "netCents": 0 }, { "userId": "b", "netCents": 0 }],
+      "plan": []
+    },
+    {
+      "name": "one debt",
+      "balances": [{ "userId": "a", "netCents": 4666 }, { "userId": "b", "netCents": -4666 }],
+      "plan": [{ "from": "b", "to": "a", "amountCents": 4666 }]
+    },
+    {
+      "name": "seed group G1",
+      "balances": [{ "userId": "a", "netCents": 4666 }, { "userId": "b", "netCents": -4333 }, { "userId": "e", "netCents": -333 }],
+      "plan": [{ "from": "b", "to": "a", "amountCents": 4333 }, { "from": "e", "to": "a", "amountCents": 333 }]
+    },
+    {
+      "name": "one debtor, two creditors",
+      "balances": [{ "userId": "a", "netCents": 700 }, { "userId": "b", "netCents": 300 }, { "userId": "c", "netCents": -1000 }],
+      "plan": [{ "from": "c", "to": "a", "amountCents": 700 }, { "from": "c", "to": "b", "amountCents": 300 }]
+    },
+    {
+      "name": "a chain collapses to one payment",
+      "balances": [{ "userId": "a", "netCents": -500 }, { "userId": "b", "netCents": 0 }, { "userId": "c", "netCents": 500 }],
+      "plan": [{ "from": "a", "to": "c", "amountCents": 500 }]
+    },
+    {
+      "name": "equal amounts tie-break on id",
+      "balances": [
+        { "userId": "d", "netCents": -100 }, { "userId": "c", "netCents": -100 },
+        { "userId": "b", "netCents": 100 }, { "userId": "a", "netCents": 100 }
+      ],
+      "plan": [{ "from": "c", "to": "a", "amountCents": 100 }, { "from": "d", "to": "b", "amountCents": 100 }]
+    },
+    {
+      "name": "uuid ids order as plain strings",
+      "balances": [
+        { "userId": "00000000-0000-4000-8000-00000000000f", "netCents": -1 },
+        { "userId": "00000000-0000-4000-8000-00000000000a", "netCents": -1 },
+        { "userId": "00000000-0000-4000-8000-000000000009", "netCents": 2 }
+      ],
+      "plan": [
+        { "from": "00000000-0000-4000-8000-00000000000a", "to": "00000000-0000-4000-8000-000000000009", "amountCents": 1 },
+        { "from": "00000000-0000-4000-8000-00000000000f", "to": "00000000-0000-4000-8000-000000000009", "amountCents": 1 }
+      ]
+    },
+    {
+      "name": "mixed partials",
+      "balances": [
+        { "userId": "a", "netCents": 1001 }, { "userId": "b", "netCents": 1 }, { "userId": "c", "netCents": -334 },
+        { "userId": "d", "netCents": -333 }, { "userId": "e", "netCents": -335 }
+      ],
+      "plan": [
+        { "from": "e", "to": "a", "amountCents": 335 }, { "from": "c", "to": "a", "amountCents": 334 },
+        { "from": "d", "to": "a", "amountCents": 332 }, { "from": "d", "to": "b", "amountCents": 1 }
+      ]
+    },
+    {
+      "name": "ceiling amounts stay exact",
+      "balances": [
+        { "userId": "a", "netCents": 999999999999 }, { "userId": "b", "netCents": -999999999998 }, { "userId": "c", "netCents": -1 }
+      ],
+      "plan": [{ "from": "b", "to": "a", "amountCents": 999999999998 }, { "from": "c", "to": "a", "amountCents": 1 }]
+    }
+  ]
+}

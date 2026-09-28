@@ -27,6 +27,7 @@ import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { evaluateSecurityAudit } from './ops/cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -48,7 +49,7 @@ const MIGRATIONS_DIR = path.join(root, 'supabase', 'migrations')
 const ROLLBACKS_DIR = path.join(root, 'supabase', 'rollbacks')
 const SHIM_DIR = path.join(root, 'tests', 'db', 'shim')
 const CASES_DIR = path.join(root, 'tests', 'db', 'cases')
-const SPLIT_VECTORS = path.join(root, 'src', 'lib', 'fixtures', 'equal-split-vectors.json')
+const SPLIT_VECTORS = path.join(root, 'src', 'features', 'expenses', 'domain', 'fixtures', 'equal-split-vectors.json')
 
 const FORBIDDEN_ENV = /^(PG.*|SUPABASE_.*|DATABASE_URL|DB_URL|POSTGRES_.*)$/i
 
@@ -157,7 +158,10 @@ class Cluster {
   }
 
   start() {
-    const opts = `-p ${this.port} -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off`
+    // Unix-socket directory: the packaged default (/var/run/postgresql) is not
+    // writable by an unprivileged CI user, so use the cluster's own temp dir.
+    const socketDir = process.platform === 'win32' ? '' : ` -c unix_socket_directories=${this.tmpDir}`
+    const opts = `-p ${this.port} -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off${socketDir}`
     // stdio ignored: on Windows the detached server would otherwise inherit our pipes.
     const r = run(pgBin('pg_ctl'), ['start', '-w', '-D', this.dataDir, '-l', path.join(this.tmpDir, 'server.log'), '-o', opts], { env: this.env, stdio: 'ignore' })
     if (r.status !== 0) throw new Error(`pg_ctl start failed; see ${path.join(this.tmpDir, 'server.log')}`)
@@ -390,6 +394,24 @@ async function main() {
     cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'tests', 'db', 'fixtures', 'seed.sql'), extra: ['-1'] })
 
     const results = runCases(cluster)
+    // The catalog security audit (supabase/ops/security_audit.sql, also run
+    // on production by prod.mjs audit) must find nothing on the migrated
+    // schema, so a migration that drifts from it fails here and in CI.
+    cluster.assertTarget(TEMPLATE_DB)
+    const audit = cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'supabase', 'ops', 'security_audit.sql') }).stdout
+    const { sections, missing, unexpected, offending, passed } = evaluateSecurityAudit(audit)
+    if (!passed) {
+      const detail = [
+        ...offending.map(([n, r]) => `${n}: ${r} rows`),
+        ...(missing.length ? [`missing ${missing.join(', ')}`] : []),
+        ...(unexpected.length ? [`unexpected ${unexpected.join(', ')}`] : []),
+      ].join('; ')
+      results.push({ file: 'security_audit.sql', oks: 0, failure: detail })
+      console.log(`FAIL  security_audit.sql  (${detail})`)
+    } else {
+      results.push({ file: 'security_audit.sql', oks: sections.length })
+      console.log(`pass  security_audit.sql  (${sections.length} catalog checks, 0 offending rows)`)
+    }
     const failures = results.filter((r) => r.failure)
     const assertions = results.reduce((n, r) => n + r.oks, 0)
     console.log(`\n${results.length - failures.length}/${results.length} case files passed, ${assertions} assertions`)

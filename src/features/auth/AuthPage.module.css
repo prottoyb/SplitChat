@@ -1,0 +1,383 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.1fr);
+  background: #f7f8fa;
+}
+
+.brandPanel {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 56px;
+  color: #ffffff;
+  background:
+    radial-gradient(
+      circle at 15% 15%,
+      rgba(124, 92, 255, 0.35),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 85% 85%,
+      rgba(67, 181, 255, 0.2),
+      transparent 30%
+    ),
+    #11131a;
+}
+
+.brandPanel::after {
+  content: '';
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  right: -190px;
+  top: 35%;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 50%;
+}
+
+.brandContent {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+}
+
+.logoMark {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  margin-bottom: 70px;
+  border-radius: 14px;
+  background: #7357ff;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 12px 28px rgba(115, 87, 255, 0.3);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #6d56e2;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.brandPanel .eyebrow {
+  color: #a999ff;
+}
+
+.brandContent h1 {
+  max-width: 520px;
+  margin: 0;
+  font-size: clamp(38px, 4vw, 58px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+}
+
+.brandDescription {
+  max-width: 500px;
+  margin: 26px 0 48px;
+  color: #aeb3c2;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.featureList {
+  display: grid;
+  gap: 26px;
+}
+
+.feature {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 16px;
+}
+
+.featureNumber {
+  padding-top: 2px;
+  color: #a8afbc; /* on the dark hero */
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.feature strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.feature p {
+  margin: 0;
+  color: #b8bec9; /* on the dark hero */
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.brandFooter {
+  position: relative;
+  z-index: 1;
+  margin: 40px 0 0;
+  color: #a8afbc; /* on the dark hero */
+  font-size: 12px;
+}
+
+.authPanel {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 28px 26px;
+}
+
+.authCard {
+  width: min(100%, 450px);
+}
+
+.mobileBrand {
+  display: none;
+}
+
+.heading {
+  margin-bottom: 30px;
+}
+
+.heading h2 {
+  margin: 0 0 10px;
+  color: #161820;
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.heading > p:last-child {
+  margin: 0;
+  color: #4b5261;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.modeSelector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 28px;
+  padding: 4px;
+  border: 1px solid #e8e9ee;
+  border-radius: 12px;
+  background: #f0f1f4;
+}
+
+.modeSelector button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  color: #4b5261;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.modeSelector .activeMode {
+  color: #1d1f27;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(18, 22, 33, 0.08);
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  color: #383b46;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.field input {
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  border: 1px solid #dfe1e7;
+  border-radius: 11px;
+  outline: none;
+  padding: 0 14px;
+  color: #20222a;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.field input::placeholder {
+  color: #6d7076;
+}
+
+.field input:focus {
+  border-color: #7357ff;
+  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.11);
+}
+
+.field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.submitButton {
+  width: 100%;
+  min-height: 49px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 11px;
+  color: #ffffff;
+  background: #191b23;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    background 150ms ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #292c36;
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.errorMessage,
+.successMessage {
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.errorMessage {
+  border: 1px solid #f1cece;
+  color: #a33d3d;
+  background: #fff3f3;
+}
+
+.successMessage {
+  border: 1px solid #c8e6d5;
+  color: #287247;
+  background: #f0faf4;
+}
+
+.switchText {
+  margin: 25px 0 0;
+  color: #696e79;
+  font-size: 13px;
+  text-align: center;
+}
+
+.switchText button {
+  margin-left: 5px;
+  border: 0;
+  padding: 0;
+  color: #6648f5;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.switchText button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.authFooter {
+  margin: 60px 0 0;
+  color: #6c6f76;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .brandPanel {
+    display: none;
+  }
+
+  .authPanel {
+    padding: 32px 22px;
+  }
+
+  .mobileBrand {
+    display: flex;
+    width: min(100%, 450px);
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 50px;
+    color: #191b23;
+    font-size: 18px;
+    font-weight: 750;
+  }
+
+  .mobileBrand .logoMark {
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    border-radius: 11px;
+    font-size: 18px;
+  }
+
+  .heading h2 {
+    font-size: 28px;
+  }
+
+  .authFooter {
+    margin-top: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .authPanel {
+    justify-content: flex-start;
+    padding-top: 24px;
+  }
+
+  .mobileBrand {
+    margin-bottom: 42px;
+  }
+
+  .heading {
+    margin-bottom: 24px;
+  }
+
+  .heading h2 {
+    font-size: 26px;
+  }
+}

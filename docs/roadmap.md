@@ -7,13 +7,13 @@ current phase is in `docs/phase-state.md`.
 | # | Phase | Status |
 |---|---|---|
 | 0 | Production schema baseline capture | ✅ Done (`cb2db08`) |
-| 1 | Database and security foundation | ✅ Complete in production (2026-09-27; batches 1, 2, 3a, 3b verified) — awaiting phase-completion approval |
-| 2 | Frontend/domain consolidation | Not started |
-| 3 | Dashboard and activity | Not started |
-| 4 | Balances, debt simplification and settlements | Not started |
-| 5 | Group navigation and product UX integration | Not started |
-| 6 | Group chat | Not started |
-| 7 | Deterministic Smart Expense | Not started |
+| 1 | Database and security foundation | ✅ Complete in production (2026-09-27; batches 1, 2, 3a, 3b verified); accepted and merged to `main` |
+| 2 | Frontend/domain consolidation | ✅ Complete (2026-09-27, `feature/phase2-frontend-domain`) |
+| 3 | Dashboard and activity | ✅ Complete (2026-09-28, `feature/phase3-dashboard-activity`; M16 awaits a production release batch) |
+| 4 | Balances, debt simplification and settlements | ✅ Complete (2026-09-28, `feature/phase4-balances-settlements`; M17 awaits a production release batch) |
+| 5 | Group navigation and product UX integration | ✅ Complete (2026-09-28, `feature/phase5-group-workspace`; no database change) |
+| 6 | Group chat | ✅ Complete (2026-09-28, `feature/phase6-group-chat`; M18 awaits a production release batch) |
+| 7 | Deterministic Smart Expense | ✅ Complete (2026-09-29, `feature/phase7-smart-expense`; M19, M20 await a production release batch) |
 | 8 | Full integration, security and QA hardening | Not started |
 | 9 | Portfolio/release readiness | Not started |
 
@@ -95,6 +95,9 @@ current phase is in `docs/phase-state.md`.
   - Accessibility and responsive validation.
 - **Dependencies:** Phases 1–7.
 - **Gate:** start and completion.
+- **Status:** complete on `feature/phase8-hardening`, at the completion gate
+  (`docs/phase8/plan.md`). Production batch 4 (M16–M23) prepared and
+  rehearsed on SplitChat-Dev, not executed; not merged; not deployed.
 
 ## Phase 9 — Portfolio/release readiness
 - **Outcome:**

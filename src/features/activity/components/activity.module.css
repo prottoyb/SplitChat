@@ -1,0 +1,156 @@
+.feed {
+  display: grid;
+  gap: 18px;
+}
+
+.day h4 {
+  margin: 0 0 8px;
+  color: #6b707c;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: start;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.item:hover {
+  background: #f8f7ff;
+}
+
+.icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.expense {
+  color: #5b41e0;
+  background: #f0edff;
+}
+
+.member {
+  color: #297149;
+  background: #eaf7ef;
+}
+
+.group {
+  color: #8a5a00;
+  background: #fff4dc;
+}
+
+.settlement {
+  color: #1f5f8b;
+  background: #e6f1fa;
+}
+
+.sentence {
+  margin: 0;
+  color: #2b2f38;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sentence strong {
+  font-weight: 700;
+}
+
+.sentence a {
+  color: #5b41e0;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sentence a:hover,
+.sentence a:focus-visible {
+  text-decoration: underline;
+}
+
+.meta {
+  margin: 2px 0 0;
+  color: #6a6d76;
+  font-size: 12px;
+}
+
+.detail {
+  color: #5b606c;
+}
+
+.time {
+  color: #6a6d76;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.footer {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.note {
+  margin: 0;
+  color: #6a6d76;
+  font-size: 12px;
+  text-align: center;
+}
+
+.empty {
+  padding: 28px 12px;
+  color: #6b707c;
+  font-size: 13px;
+  text-align: center;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.filters label {
+  color: #383b46;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.filters select {
+  min-height: 40px;
+  border: 1px solid #dfe1e7;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .item {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .time {
+    grid-column: 2;
+  }
+}

@@ -40,6 +40,18 @@ roadmap Phase 9.
 `test:db` needs PostgreSQL 17 binaries (default Windows install path, or set
 `SPLITCHAT_PG_BIN`). It only ever connects to its own loopback cluster.
 
+## Code structure
+
+`src/app` (routes, layout) · `src/shared` (Supabase client and `Result`
+error codes, integer-cent money, dates, `useResource`, UI primitives) ·
+`src/features/<feature>` (`api/` — the only code that talks to Supabase —
+`domain/`, `components/`, `pages/`, public `index.ts`). The rules are in
+`docs/ADR/0008-frontend-feature-modules.md` and are checked by
+`scripts/architecture.test.mjs`.
+
+CI (`.github/workflows/ci.yml`) runs lint, build, tests, `npm audit` and the
+database harness on every push and pull request.
+
 ## Database changes
 
 - The schema is under migration control: `supabase/migrations/` (M0 is the

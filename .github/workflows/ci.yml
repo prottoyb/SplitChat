@@ -1,0 +1,76 @@
+# Continuous integration: the same checks the team runs locally before any
+# change is considered done (CLAUDE.md "Checks"). No secrets and no Supabase
+# access: the database job uses a throwaway local PostgreSQL 17 cluster.
+#
+# Required status checks for `main` (branch protection; job names are
+# stable): "Lint, build, test, audit" and "Database harness (PostgreSQL 17)".
+# The E2E, accessibility and SplitChat-Dev API suites need Dev credentials
+# and are run by the team before sign-off (docs/operations/ci.md).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Lint, build, test, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      # Deliberately strict (any severity fails): a known vulnerability is only
+      # accepted through the exception process in .claude/rules/security.md
+      # (Mandatory Gate #3), never by a threshold.
+      - run: npm audit
+
+  database:
+    name: Database harness (PostgreSQL 17)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SPLITCHAT_PG_BIN: /usr/lib/postgresql/17/bin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install PostgreSQL 17 (PGDG)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-17
+          "$SPLITCHAT_PG_BIN/initdb" --version
+      - run: npm ci
+      - name: npm run test:db
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:db 2>&1 | tee db-test.log
+      # Job logs need repository admin rights to read; the failure summary is
+      # also published as an annotation, which anyone can read.
+      - name: Publish the harness failure summary
+        if: failure()
+        shell: bash
+        run: |
+          summary=$(grep -E '^(FAIL|ERROR|      psql)' db-test.log | head -20 | tr '\n' ' ' | cut -c1-1500)
+          [ -n "$summary" ] || summary=$(tail -c 1500 db-test.log | tr '\n' ' ')
+          echo "::error title=Database harness::$summary"
