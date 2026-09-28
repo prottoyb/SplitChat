@@ -1,11 +1,17 @@
 # Continuous integration: the same checks the team runs locally before any
 # change is considered done (CLAUDE.md "Checks"). No secrets and no Supabase
 # access: the database job uses a throwaway local PostgreSQL 17 cluster.
+#
+# Required status checks for `main` (branch protection; job names are
+# stable): "Lint, build, test, audit" and "Database harness (PostgreSQL 17)".
+# The E2E, accessibility and SplitChat-Dev API suites need Dev credentials
+# and are run by the team before sign-off (docs/operations/ci.md).
 name: CI
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,8 +26,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm
@@ -41,8 +47,8 @@ jobs:
     env:
       SPLITCHAT_PG_BIN: /usr/lib/postgresql/17/bin
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           cache: npm

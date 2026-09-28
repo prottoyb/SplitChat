@@ -413,6 +413,10 @@ button {
     margin-top: 18px;
     flex-direction: row;
     overflow-x: auto;
+    scroll-snap-type: x proximity;
+    /* Fade the right edge so a clipped link reads as "more to scroll". */
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    padding-right: 28px;
   }
 
   .nav-item {

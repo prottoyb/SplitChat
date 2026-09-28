@@ -1,5 +1,5 @@
-import { Suspense, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { signOut, useAuth } from '../features/auth'
 import { LoadingState } from '../shared/ui'
 
@@ -8,6 +8,13 @@ function AppLayout() {
   const { session, profile } = useAuth()
 
   const [isSigningOut, setIsSigningOut] = useState(false)
+  // On narrow screens the main navigation scrolls sideways: keep the
+  // current section's link in view.
+  const { pathname } = useLocation()
+  const mainNav = useRef<HTMLElement>(null)
+  useEffect(() => {
+    mainNav.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [pathname])
 
   const user = session?.user
 
@@ -54,7 +61,7 @@ function AppLayout() {
           </div>
         </div>
 
-        <nav className="navigation" aria-label="Main">
+        <nav className="navigation" aria-label="Main" ref={mainNav}>
           <NavLink
             to="/"
             end
