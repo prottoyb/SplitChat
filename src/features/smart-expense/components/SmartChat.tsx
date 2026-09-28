@@ -44,7 +44,6 @@ export function SmartChat({ group, userId }: { group: GroupDetail; userId: strin
           members={members}
           userId={userId}
           isOwner={isOwner}
-          onSave={smart.save}
           onApprove={smart.approve}
           onReject={smart.reject}
         />

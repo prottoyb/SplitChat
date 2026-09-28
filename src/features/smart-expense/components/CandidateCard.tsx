@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Failure } from '../../../shared/api/result'
 import { formatDateLong } from '../../../shared/domain/dates'
-import { centsToDecimalText, formatCents } from '../../../shared/domain/money'
+import { formatCents } from '../../../shared/domain/money'
 import { InlineConfirm, Notice } from '../../../shared/ui'
-import { allocateEqualSplit, ExpenseForm, type ExpenseInput, type FormPerson } from '../../expenses'
+import { allocateEqualSplit } from '../../expenses'
 import type { ChatMessage } from '../../chat'
 import type { Candidate } from '../api/candidates'
 import { interpretMessage, type Issue, type Member } from '../domain/interpreter'
@@ -17,7 +17,6 @@ type Props = {
   members: readonly Member[]
   userId: string
   isOwner: boolean
-  onSave: (candidate: Candidate, input: ExpenseInput) => Promise<Failure | null>
   onApprove: (candidate: Candidate) => Promise<Failure | null>
   onReject: (candidate: Candidate) => Promise<Failure | null>
 }
@@ -52,8 +51,8 @@ function hint(issue: Issue | undefined, nameOf: (id: string) => string): string 
  * message and not yet a record. Reviewing, editing, approving and rejecting
  * are offered only to its proposer or the group owner (the server decides).
  */
-export function CandidateCard({ candidate: c, message, members, userId, isOwner, onSave, onApprove, onReject }: Props) {
-  const [mode, setMode] = useState<'view' | 'edit' | 'confirm'>('view')
+export function CandidateCard({ candidate: c, message, members, userId, isOwner, onApprove, onReject }: Props) {
+  const [mode, setMode] = useState<'view' | 'confirm'>('view')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<Failure | null>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -119,7 +118,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
   const status =
     c.status === 'approved' ? 'Expense added' : c.status === 'rejected' ? 'Rejected' : complete ? 'Ready to review' : 'Needs details'
 
-  const people: FormPerson[] = members.map((m) => ({ userId: m.id, name: m.name, current: true }))
+  const editPath = `/groups/${c.groupId}/proposals/${c.id}/edit`
 
   return (
     <article
@@ -135,36 +134,13 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
       </header>
       {old && <p className={styles.note}>Proposed more than {OLD_DAYS} days ago.</p>}
 
-      {mode === 'edit' ? (
-        <div className={styles.form}>
-          <ExpenseForm
-            mode="create"
-            people={people}
-            currentUserId={userId}
-            labels={{ form: 'Edit expense proposal', submit: 'Save proposal', busy: 'Saving…' }}
-            initial={{
-              description: c.description ?? '',
-              amount: c.amountCents === null ? '' : centsToDecimalText(c.amountCents),
-              expenseDate: c.expenseDate ?? '',
-              paidBy: c.paidBy ?? '',
-              participantIds: c.participantIds ?? [],
-              notes: c.notes ?? '',
-            }}
-            onSubmit={(input) => run(() => onSave(c, input))}
-          />
-          <button type="button" className={styles.secondary} onClick={() => setMode('view')}>
-            Cancel editing
-          </button>
-        </div>
-      ) : (
-        <dl className={styles.fields}>
-          {field('Amount', c.amountCents === null ? null : formatCents(c.amountCents), 'amount')}
-          {field('For', c.description, 'description')}
-          {field('Date', c.expenseDate && formatDateLong(c.expenseDate), 'date')}
-          {field('Paid by', c.paidBy && who(c.paidBy), 'payer')}
-          {field('Split between', c.participantIds && c.participantIds.map(who).join(', '), 'participants')}
-        </dl>
-      )}
+      <dl className={styles.fields}>
+        {field('Amount', c.amountCents === null ? null : formatCents(c.amountCents), 'amount')}
+        {field('For', c.description, 'description')}
+        {field('Date', c.expenseDate && formatDateLong(c.expenseDate), 'date')}
+        {field('Paid by', c.paidBy && who(c.paidBy), 'payer')}
+        {field('Split between', c.participantIds && c.participantIds.map(who).join(', '), 'participants')}
+      </dl>
 
       {error && (
         <Notice tone="error">
@@ -191,14 +167,14 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
               <button type="button" className="primary-button" disabled={busy} onClick={() => setMode('confirm')}>
                 Review and add
               </button>
-              <button type="button" className={styles.secondary} disabled={busy} onClick={() => setMode('edit')}>
+              <Link to={editPath} className={styles.secondary}>
                 Edit
-              </button>
+              </Link>
             </>
           ) : (
-            <button type="button" className="primary-button" disabled={busy} onClick={() => setMode('edit')}>
+            <Link to={editPath} className="primary-button">
               Add details
-            </button>
+            </Link>
           )}
           <span className={styles.rejectSlot}>
             <InlineConfirm

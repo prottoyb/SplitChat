@@ -129,7 +129,7 @@ describe('Smart Expense in chat', () => {
     expect(within(card).getByText('— add who paid')).toBeInTheDocument()
     // Only the usable action leads; the approval path appears once complete.
     expect(within(card).queryByRole('button', { name: 'Review and add' })).not.toBeInTheDocument()
-    expect(within(card).getByRole('button', { name: 'Add details' })).toBeEnabled()
+    expect(within(card).getByRole('link', { name: 'Add details' })).toHaveAttribute('href', `/groups/${G}/proposals/c1/edit`)
     expect(within(card).getByText('To add it, fill in: what it was for, who paid.')).toBeInTheDocument()
   })
 

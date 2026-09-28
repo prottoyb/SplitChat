@@ -94,6 +94,18 @@ export function listCandidates(groupId: string, messageIds: readonly number[]): 
   }, 'Unable to load expense proposals.')
 }
 
+/** One candidate by id (RLS: active members of its group only). */
+export function loadCandidate(id: string): Promise<Result<Candidate>> {
+  return guard(async () => {
+    const result = await supabase.from('expense_candidates').select(COLUMNS).eq('id', id).limit(1)
+    if (result.error) return failureFrom(result.error, 'Unable to load this proposal.')
+    const row = (Array.isArray(result.data) ? result.data : [])[0]
+    if (!row) return fail('not_found', 'This proposal does not exist or you do not have access to it.')
+    const c = parseCandidate(row)
+    return c ? ok(c) : fail('unknown', UNEXPECTED)
+  }, 'Unable to load this proposal.')
+}
+
 const draftArgs = (d: Partial<Draft> & { notes?: string | null }) => ({
   p_description: d.description ?? null,
   p_amount_cents: d.amountCents ?? null,

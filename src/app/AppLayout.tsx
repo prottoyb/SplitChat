@@ -62,7 +62,7 @@ function AppLayout() {
               `nav-item${isActive ? ' active' : ''}`
             }
           >
-            <span>⌂</span>
+            <span aria-hidden="true">⌂</span>
             Dashboard
           </NavLink>
 
@@ -72,7 +72,7 @@ function AppLayout() {
               `nav-item${isActive ? ' active' : ''}`
             }
           >
-            <span>◎</span>
+            <span aria-hidden="true">◎</span>
             Groups
           </NavLink>
 
@@ -82,7 +82,7 @@ function AppLayout() {
               `nav-item${isActive ? ' active' : ''}`
             }
           >
-            <span>↔</span>
+            <span aria-hidden="true">↔</span>
             Expenses
           </NavLink>
 
@@ -92,7 +92,7 @@ function AppLayout() {
               `nav-item${isActive ? ' active' : ''}`
             }
           >
-            <span>◌</span>
+            <span aria-hidden="true">◌</span>
             Activity
           </NavLink>
         </nav>

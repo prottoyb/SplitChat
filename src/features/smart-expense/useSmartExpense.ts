@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { localIsoDate } from '../../shared/domain/dates'
 import type { Failure } from '../../shared/api/result'
-import type { ExpenseInput } from '../expenses'
 import type { ChatMessage } from '../chat'
 import {
   approveCandidate,
@@ -9,7 +8,6 @@ import {
   parseCandidate,
   proposeCandidate,
   rejectCandidate,
-  updateCandidate,
   type Candidate,
 } from './api/candidates'
 import { deterministicInterpreter, type ExpenseInterpreter, type InterpretContext, type Member } from './domain/interpreter'
@@ -119,16 +117,6 @@ export function useSmartExpense(
     [interpreter, merge],
   )
 
-  const save = useCallback(
-    async (candidate: Candidate, input: ExpenseInput): Promise<Failure | null> => {
-      const result = await updateCandidate(candidate, input)
-      if (!result.ok) return result
-      merge([result.value])
-      return null
-    },
-    [merge],
-  )
-
   const refresh = useCallback((candidate: Candidate) => void load([candidate.messageId]), [load])
 
   const reject = useCallback(
@@ -149,5 +137,5 @@ export function useSmartExpense(
     [refresh],
   )
 
-  return { byMessage, checked, onMessagesShown, onOwnMessageConfirmed, proposeManually, save, reject, approve, refresh }
+  return { byMessage, checked, onMessagesShown, onOwnMessageConfirmed, proposeManually, reject, approve, refresh }
 }

@@ -15,6 +15,7 @@ const EditExpensePage = lazy(() => import('../features/expenses/pages/EditExpens
 const ExpensesPage = lazy(() => import('../features/expenses/pages/ExpensesPage'))
 const ExpenseDetailsPage = lazy(() => import('../features/expenses/pages/ExpenseDetailsPage'))
 const ActivityPage = lazy(() => import('../features/activity/ActivityPage'))
+const EditProposalPage = lazy(() => import('../features/smart-expense/pages/EditProposalPage'))
 
 const pageFallback = <LoadingState title="Loading..." />
 
@@ -39,6 +40,7 @@ function App() {
               {/* The workspace owns its sections (overview, expenses, balances, activity, members). */}
               <Route path="groups/:groupId/*" element={<GroupWorkspace />} />
               <Route path="groups/:groupId/expenses/new" element={<NewExpensePage />} />
+              <Route path="groups/:groupId/proposals/:candidateId/edit" element={<EditProposalPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
               <Route path="expenses/:expenseId/edit" element={<EditExpensePage />} />

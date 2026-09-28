@@ -14,19 +14,17 @@
 // may use {flat}, {trip}, {solo} and {missing}, and expectVisible is a CSS
 // selector reported as visible or not within the first viewport. Without one, the Phase 5 set is used.
 
-import { spawn } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { createClient } from '@supabase/supabase-js'
-import { loadDevTarget, PROD_REF, verifySentinel } from './dev.mjs'
+import { openBrowser, startApp } from './browser.mjs'
+import { loadDevTarget, verifySentinel } from './dev.mjs'
 
 const [outDir, ...rest] = process.argv.slice(2)
 if (!outDir) throw new Error('usage: render-review.mjs <out-dir> [--routes file.json]')
 const routesFile = rest[0] === '--routes' ? rest[1] : null
-const CHROME = process.env.SPLITCHAT_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const PORT = 5199
 const WIDTHS = [
   { label: 'desktop', width: 1440, height: 900, mobile: false },
@@ -150,142 +148,49 @@ const routes = (routesFile ? JSON.parse(fs.readFileSync(routesFile, 'utf8')) : d
   path: r.path.replace(/\{(\w+)\}/g, (_, k) => ids[k] ?? k),
 }))
 
-// ---- Vite (SplitChat-Dev env only) -----------------------------------------
-const vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(PORT), '--strictPort'], {
-  env: { ...process.env, VITE_SUPABASE_URL: t.url, VITE_SUPABASE_PUBLISHABLE_KEY: t.anonKey },
-  stdio: ['ignore', 'pipe', 'pipe'],
-})
-let viteOut = ''
-vite.stdout.on('data', (d) => (viteOut += d))
-vite.stderr.on('data', (d) => (viteOut += d))
-
-// ---- Chrome over CDP --------------------------------------------------------
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'splitchat-render-'))
-const chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' })
-
-const violations = []
+// ---- Render (shared driver: SplitChat-Dev only, fail-closed requests) -------
+const app = await startApp(t, PORT)
+const page = await openBrowser({ allowedOrigins: [app.origin, new URL(t.url).origin] })
 let exitCode = 0
 try {
-  for (let i = 0; !viteOut.replace(/\x1b\[[0-9;]*m/g, '').includes('Local:'); i++) {
-    if (i > 100) throw new Error(`vite did not start:\n${viteOut}`)
-    await sleep(200)
-  }
-  const portFile = path.join(profile, 'DevToolsActivePort')
-  for (let i = 0; !fs.existsSync(portFile); i++) {
-    if (i > 100) throw new Error('chrome did not start')
-    await sleep(100)
-  }
-  const cdpPort = fs.readFileSync(portFile, 'utf8').split('\n')[0].trim()
-  const target = await (await fetch(`http://127.0.0.1:${cdpPort}/json/new?about:blank`, { method: 'PUT' })).json()
-  const ws = new WebSocket(target.webSocketDebuggerUrl)
-  await new Promise((resolve, reject) => {
-    ws.onopen = resolve
-    ws.onerror = reject
-  })
-  let nextId = 0
-  const pending = new Map()
-  const listeners = []
-  ws.onmessage = (msg) => {
-    const data = JSON.parse(msg.data)
-    if (data.id && pending.has(data.id)) {
-      const { resolve, reject } = pending.get(data.id)
-      pending.delete(data.id)
-      return data.error ? reject(new Error(data.error.message)) : resolve(data.result)
-    }
-    for (const l of listeners) l(data)
-  }
-  const send = (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      const id = ++nextId
-      pending.set(id, { resolve, reject })
-      ws.send(JSON.stringify({ id, method, params }))
-    })
-
-  // Fail closed: only the local Vite origin and the SplitChat-Dev project may
-  // be reached. Anything else (production above all) is blocked and fails
-  // the run, so the guard does not depend on spotting the production ref.
-  const allowedOrigins = new Set([`http://localhost:${PORT}`, new URL(t.url).origin])
-  listeners.push((event) => {
-    if (event.method !== 'Fetch.requestPaused') return
-    const { requestId, request } = event.params
-    let allowed = /^(data|blob):/.test(request.url)
-    try {
-      allowed ||= allowedOrigins.has(new URL(request.url).origin)
-    } catch {
-      allowed = false
-    }
-    if (allowed && !request.url.includes(PROD_REF)) {
-      void send('Fetch.continueRequest', { requestId })
-    } else {
-      violations.push(request.url)
-      void send('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' })
-    }
-  })
-  await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] })
-  await send('Page.enable')
-  await send('Runtime.enable')
-
-  const origin = `http://localhost:${PORT}`
   // Sign in by storing the dev session where supabase-js looks for it.
-  await send('Page.navigate', { url: `${origin}/login` })
-  await sleep(2500)
-  const storageKey = `sb-${t.ref}-auth-token`
-  await send('Runtime.evaluate', { expression: `localStorage.setItem(${JSON.stringify(storageKey)}, ${JSON.stringify(JSON.stringify(me.session))})` })
+  await page.goto(`${app.origin}/login`)
+  await page.evaluate(`localStorage.setItem(${JSON.stringify(`sb-${t.ref}-auth-token`)}, ${JSON.stringify(JSON.stringify(me.session))})`)
 
   for (const size of WIDTHS) {
-    await send('Emulation.setDeviceMetricsOverride', { width: size.width, height: size.height, deviceScaleFactor: 1, mobile: size.mobile })
+    await page.send('Emulation.setDeviceMetricsOverride', { width: size.width, height: size.height, deviceScaleFactor: 1, mobile: size.mobile })
     for (const route of routes) {
-      await send('Page.navigate', { url: origin + route.path })
+      await page.goto(app.origin + route.path)
       // Wait for data: no spinner and no "Checking…" left, up to 15 s.
-      for (let i = 0; i < 60; i++) {
-        await sleep(250)
-        const busy = await send('Runtime.evaluate', {
-          expression: `!!document.querySelector('[aria-busy="true"]') || document.body.innerText.includes('Checking')`,
-          returnByValue: true,
-        })
-        if (i > 3 && !busy.result.value) break
-      }
-      await sleep(300)
-      // Optional: is this element fully inside the viewport as the user
-      // first sees it (before the full-page capture below)?
+      await page
+        .waitFor(`!document.querySelector('[aria-busy="true"]') && !document.body.innerText.includes('Checking')`, 15000)
+        .catch(() => {})
+      await sleep(500)
+      // Optional: is this element fully inside the viewport as the user first
+      // sees it (before the full-page capture below)?
       let visibility = ''
       if (route.expectVisible) {
-        const v = await send('Runtime.evaluate', {
-          expression: `(() => { const el = document.querySelector(${JSON.stringify(route.expectVisible)}); if (!el) return 'missing';
-            const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight ? 'visible' : 'NOT VISIBLE (top ' + Math.round(r.top) + ', bottom ' + Math.round(r.bottom) + ', viewport ' + window.innerHeight + ')' })()`,
-          returnByValue: true,
-        })
-        visibility = `  [${route.expectVisible}: ${v.result.value}]`
+        const v = await page.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(route.expectVisible)}); if (!el) return 'missing';
+          const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight ? 'visible' : 'NOT VISIBLE (top ' + Math.round(r.top) + ', bottom ' + Math.round(r.bottom) + ', viewport ' + window.innerHeight + ')' })()`)
+        visibility = `  [${route.expectVisible}: ${v}]`
       }
-      const { result } = await send('Runtime.evaluate', { expression: 'document.documentElement.scrollHeight', returnByValue: true })
-      const { data } = await send('Page.captureScreenshot', {
-        format: 'png',
-        captureBeyondViewport: true,
-        clip: { x: 0, y: 0, width: size.width, height: Math.min(result.value, 6000), scale: 1 },
-      })
       const file = path.join(outDir, `${route.name}-${size.label}.png`)
-      fs.writeFileSync(file, Buffer.from(data, 'base64'))
-      const overflow = await send('Runtime.evaluate', {
-        expression: 'document.documentElement.scrollWidth > window.innerWidth',
-        returnByValue: true,
-      })
-      console.log(`${file}${overflow.result.value ? '  (HORIZONTAL OVERFLOW)' : ''}${visibility}`)
+      await page.screenshot(file)
+      const overflow = await page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
+      console.log(`${file}${overflow ? '  (HORIZONTAL OVERFLOW)' : ''}${visibility}`)
     }
   }
-  ws.close()
 } catch (error) {
   console.error(error)
   exitCode = 1
 } finally {
-  chrome.kill()
-  vite.kill()
-  await sleep(500)
-  fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5 })
+  await page.close()
+  app.stop()
 }
 
-if (violations.length) {
-  console.error(`FAIL: ${violations.length} request(s) outside SplitChat-Dev and the local app were blocked:`)
-  for (const url of violations) console.error(`  ${new URL(url).origin}`)
+if (page.violations.length) {
+  console.error(`FAIL: ${page.violations.length} request(s) outside SplitChat-Dev and the local app were blocked:`)
+  for (const url of page.violations) console.error(`  ${new URL(url).origin}`)
   exitCode = 1
 } else {
   console.log('Only the local app and SplitChat-Dev were reached (no request to production or elsewhere).')
