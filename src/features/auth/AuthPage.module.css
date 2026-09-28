@@ -392,3 +392,29 @@
     font-size: 26px;
   }
 }
+.forgotLink {
+  justify-self: end;
+  margin-top: calc(-1 * var(--space-2));
+  border: 0;
+  padding: var(--space-1) 0;
+  color: var(--brand-600);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+}
+
+.forgotLink:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+/* The reset page: the form panel alone, centred. */
+.singlePage {
+  grid-template-columns: 1fr;
+}

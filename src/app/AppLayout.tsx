@@ -62,6 +62,7 @@ function AppLayout() {
               trigger={<span className="profile-avatar" aria-hidden="true">{initials}</span>}
               triggerClassName="account-trigger"
               items={[
+                { key: 'profile', label: 'Profile', to: '/profile' },
                 {
                   key: 'sign-out',
                   label: isSigningOut ? 'Signing out...' : 'Sign out',
@@ -120,7 +121,9 @@ function AppLayout() {
           <div className="profile-avatar">{initials}</div>
 
           <div className="profile-details">
-            <strong>{displayName}</strong>
+            <NavLink to="/profile" className="profile-link">
+              {displayName}
+            </NavLink>
 
             <button
               type="button"

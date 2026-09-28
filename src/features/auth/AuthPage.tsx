@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { signIn, signUp } from './api/auth'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { requestPasswordReset, signIn, signUp } from './api/auth'
 import styles from './AuthPage.module.css'
 
-type AuthMode = 'signin' | 'signup'
+type AuthMode = 'signin' | 'signup' | 'forgot'
 
 function AuthPage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
 
   const [mode, setMode] = useState<AuthMode>('signin')
   const [fullName, setFullName] = useState('')
@@ -16,9 +17,12 @@ function AuthPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState(
+    params.get('reset') === 'done' ? 'Your password has been changed. Sign in with your new password.' : '',
+  )
 
   const isSignUp = mode === 'signup'
+  const isForgot = mode === 'forgot'
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode)
@@ -36,6 +40,23 @@ function AuthPage() {
 
     const cleanEmail = email.trim().toLowerCase()
     const cleanFullName = fullName.trim()
+
+    if (isForgot) {
+      if (!cleanEmail) {
+        setErrorMessage('Please enter your email address.')
+        return
+      }
+      setIsLoading(true)
+      const result = await requestPasswordReset(cleanEmail)
+      setIsLoading(false)
+      if (!result.ok) {
+        setErrorMessage(result.message)
+        return
+      }
+      // Same message whether or not the address has an account.
+      setSuccessMessage('If an account exists for that email, we have sent a link to reset its password. Check your inbox.')
+      return
+    }
 
     if (!cleanEmail || !password) {
       setErrorMessage('Please enter your email and password.')
@@ -155,18 +176,21 @@ function AuthPage() {
         <div className={styles.authCard}>
           <div className={styles.heading}>
             <p className={styles.eyebrow}>
-              {isSignUp ? 'GET STARTED' : 'WELCOME BACK'}
+              {isSignUp ? 'GET STARTED' : isForgot ? 'FORGOT PASSWORD' : 'WELCOME BACK'}
             </p>
 
-            <h2>{isSignUp ? 'Create your account' : 'Sign in to SplitChat'}</h2>
+            <h2>{isSignUp ? 'Create your account' : isForgot ? 'Reset your password' : 'Sign in to SplitChat'}</h2>
 
             <p>
               {isSignUp
                 ? 'Start organising shared expenses with the people that matter.'
-                : 'Enter your details to continue to your dashboard.'}
+                : isForgot
+                  ? 'Enter your email and we will send you a link to choose a new password.'
+                  : 'Enter your details to continue to your dashboard.'}
             </p>
           </div>
 
+          {!isForgot && (
           <div className={styles.modeSelector}>
             <button
               type="button"
@@ -184,6 +208,7 @@ function AuthPage() {
               Create account
             </button>
           </div>
+          )}
 
           <form className={styles.form} onSubmit={handleSubmit}>
             {isSignUp && (
@@ -212,6 +237,7 @@ function AuthPage() {
               />
             </label>
 
+            {!isForgot && (
             <label className={styles.field}>
               <span>Password</span>
               <input
@@ -225,6 +251,13 @@ function AuthPage() {
                 disabled={isLoading}
               />
             </label>
+            )}
+
+            {mode === 'signin' && (
+              <button type="button" className={styles.forgotLink} onClick={() => switchMode('forgot')} disabled={isLoading}>
+                Forgot password?
+              </button>
+            )}
 
             {isSignUp && (
               <label className={styles.field}>
@@ -263,19 +296,21 @@ function AuthPage() {
                 ? 'Please wait...'
                 : isSignUp
                   ? 'Create account'
-                  : 'Sign in'}
+                  : isForgot
+                    ? 'Send reset link'
+                    : 'Sign in'}
             </button>
           </form>
 
           <p className={styles.switchText}>
-            {isSignUp ? 'Already have an account?' : 'New to SplitChat?'}
+            {isSignUp ? 'Already have an account?' : isForgot ? 'Remembered it?' : 'New to SplitChat?'}
 
             <button
               type="button"
-              onClick={() => switchMode(isSignUp ? 'signin' : 'signup')}
+              onClick={() => switchMode(isSignUp || isForgot ? 'signin' : 'signup')}
               disabled={isLoading}
             >
-              {isSignUp ? 'Sign in' : 'Create an account'}
+              {isSignUp ? 'Sign in' : isForgot ? 'Back to sign in' : 'Create an account'}
             </button>
           </p>
         </div>

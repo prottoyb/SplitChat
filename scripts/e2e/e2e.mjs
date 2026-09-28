@@ -271,6 +271,29 @@ try {
     await jo.find('heading', 'Balances')
   })
 
+  await step('the owner renames the group; a member sees the details read-only', async () => {
+    await priya.goto(`${app.origin}${groupPath}`)
+    await tab(priya, 'Group settings')
+    await priya.type('Name', `${groupName} renamed`)
+    await priya.click('button', 'Save changes')
+    await priya.waitForText('Group details saved.')
+    await priya.find('heading', `${groupName} renamed`)
+    await sam.goto(`${app.origin}${groupPath}/settings`)
+    await sam.waitForText('Only the group owner can change these.')
+    await sam.waitForText(`${groupName} renamed`)
+    assert((await sam.count('textbox', 'Name')) === 0, 'a member can edit the group name')
+  })
+
+  await step('a user changes their display name on the profile page', async () => {
+    await sam.goto(`${app.origin}/profile`)
+    await sam.type('Display name', 'Sam L.')
+    await sam.click('button', 'Save name')
+    await sam.waitForText('Your name has been updated')
+    await sam.type('Display name', 'Deleted user')
+    await sam.click('button', 'Save name')
+    await sam.waitForText('That name is reserved')
+  })
+
   await step('no request left localhost and SplitChat-Dev; no uncaught page errors', async () => {
     const violations = pages.flatMap((p) => p.violations)
     const errors = pages.flatMap((p) => p.consoleErrors)

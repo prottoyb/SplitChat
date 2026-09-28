@@ -7,6 +7,8 @@ import './App.css'
 
 // Route pages load on demand, so the first paint only ships the shell.
 const AuthPage = lazy(() => import('../features/auth/AuthPage'))
+const ResetPasswordPage = lazy(() => import('../features/auth/pages/ResetPasswordPage'))
+const ProfilePage = lazy(() => import('../features/auth/pages/ProfilePage'))
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'))
 const GroupsRoute = lazy(() => import('./GroupsRoute'))
 const GroupWorkspace = lazy(() => import('./workspace/GroupWorkspace'))
@@ -26,6 +28,8 @@ function App() {
         <Suspense fallback={pageFallback}>
           <Routes>
             <Route path="/login" element={<AuthPage />} />
+            {/* Public: the recovery session comes from the emailed link. */}
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             <Route
               path="/"
@@ -45,6 +49,7 @@ function App() {
               <Route path="expenses/:expenseId" element={<ExpenseDetailsPage />} />
               <Route path="expenses/:expenseId/edit" element={<EditExpensePage />} />
               <Route path="activity" element={<ActivityPage />} />
+              <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Routes>
         </Suspense>

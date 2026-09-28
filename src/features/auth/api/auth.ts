@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../../shared/api/supabase'
+import { isPasswordRecovery, supabase } from '../../../shared/api/supabase'
 import { fail, failureFrom, guard, ok, type Result } from '../../../shared/api/result'
 import type { Profile } from '../authState'
 
@@ -16,6 +16,9 @@ const AUTH_MESSAGES: Record<string, string> = {
   over_request_rate_limit: 'Too many attempts. Please wait a moment and try again.',
   over_email_send_rate_limit: 'Too many emails were requested. Please wait a while and try again.',
   signup_disabled: 'New accounts cannot be created right now.',
+  same_password: 'Choose a password you have not used for this account before.',
+  reauthentication_needed: 'For your security, sign in again and then change your password.',
+  session_not_found: 'Your session has ended. Please sign in again.',
 }
 
 type AuthErrorLike = { code?: string; status?: number } | null
@@ -81,4 +84,59 @@ export function signOut(): Promise<Result<void>> {
     const { error } = await supabase.auth.signOut()
     return error ? fail('unknown', 'Unable to sign out. Please try again.') : ok(undefined)
   }, 'Unable to sign out.')
+}
+
+export { isPasswordRecovery }
+
+/**
+ * Sends a password-reset link. The outcome is the same whether or not the
+ * address has an account (no enumeration); only rate limits are reported.
+ */
+export function requestPasswordReset(email: string): Promise<Result<void>> {
+  return guard(async () => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error && (error.code === 'over_request_rate_limit' || error.code === 'over_email_send_rate_limit')) {
+      return authFailure(error, 'Unable to send the reset link. Please try again.')
+    }
+    return ok(undefined)
+  }, 'Unable to send the reset link.')
+}
+
+/** Sets a new password for the signed-in (or recovering) user. */
+export function setNewPassword(password: string): Promise<Result<void>> {
+  return guard(async () => {
+    const { error } = await supabase.auth.updateUser({ password })
+    return error ? authFailure(error, 'Unable to change the password. Please try again.') : ok(undefined)
+  }, 'Unable to change the password.')
+}
+
+/**
+ * Changes the password of the signed-in user after confirming the current
+ * one (signing in again also satisfies Auth's "recent sign-in" rule).
+ */
+export function changePassword(email: string, currentPassword: string, newPassword: string): Promise<Result<void>> {
+  return guard(async () => {
+    const check = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+    if (check.error) {
+      return check.error.code === 'invalid_credentials'
+        ? fail('validation', 'Your current password is incorrect.')
+        : authFailure(check.error, 'Unable to change the password. Please try again.')
+    }
+    return setNewPassword(newPassword)
+  }, 'Unable to change the password.')
+}
+
+/** Updates the caller's display name (own row only: RLS and a column grant; M25 rules). */
+export function updateDisplayName(userId: string, fullName: string): Promise<Result<void>> {
+  return guard(async () => {
+    const { error } = await supabase.from('profiles').update({ full_name: fullName }).eq('id', userId)
+    if (error) {
+      return error.code === '23514'
+        ? fail('validation', 'That name cannot be used. Please choose another.')
+        : failureFrom(error, 'Unable to save your name. Please try again.')
+    }
+    return ok(undefined)
+  }, 'Unable to save your name.')
 }

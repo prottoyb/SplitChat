@@ -134,6 +134,22 @@ button {
   font-weight: 700;
 }
 
+.profile-link {
+  color: var(--text-on-brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.profile-link:hover,
+.profile-link.active {
+  text-decoration: underline;
+}
+
+.profile-link:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
 .profile-details {
   display: flex;
   flex-direction: column;

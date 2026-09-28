@@ -207,3 +207,39 @@ with increments 1–4.
   real usage.
 - **P18 covered:** the overall figure carries a sign, colour and words;
   per-group positions already use words.
+
+## Increment 4: account and group management (2026-09-29)
+
+- **D4 (M24):** owners rename a group and edit its description through
+  `update_group_details` (ADR-0013). Members see the details read-only.
+  The activity feed describes renames.
+- **P15 (M25):** display-name rules, `NOT VALID` so no existing row
+  changes, with sign-up input cleaning (ADR-0013).
+- **D3:**
+  - Profile page (`/profile`): display name, email, change password (the
+    current password is required), sign out. **No account deletion.**
+  - "Forgot password?" on sign-in sends a reset link with the same
+    message whether or not an account exists.
+  - `/reset-password` offers a new password only to a recovery session
+    started by the emailed link on that page load; it then signs out.
+- **SplitChat-Dev rehearsal:**
+  - Dry run first, listing exactly M24 and M25.
+  - Pushed with the pinned CLI; Dev now at 27 versions, 0 pending.
+  - Read-only ledger snapshot identical before and after.
+  - 0 of 128 Dev profiles break M25.
+  - Dev schema IDENTICAL to the harness (3,396 normalised lines).
+  - Catalog security audit: 12 checks, 0 rows.
+  - API security audit **165/165**, with 3 new checks: anon, outsider and
+    former member are all refused by `update_group_details`.
+  - One Realtime control check (a member receiving a chat message) timed
+    out on the first run and passed on the rerun. It is unrelated: no
+    message or Realtime path changed.
+  - E2E **22/22**, with 2 new journeys (rename; display name including
+    the reserved name). a11y 30 page views, 0 findings.
+- **Production (not done, needs separate approval):**
+  - M24 and M25 are not applied to production.
+  - Password reset in production needs the Auth redirect URL
+    (`<site>/reset-password`) and working email delivery configured. This
+    is the operator's production Auth gate.
+  - Before M25's constraint can ever be validated, a read-only count of
+    live profiles that break it is needed.

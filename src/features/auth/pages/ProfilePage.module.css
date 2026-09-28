@@ -1,0 +1,102 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-5);
+}
+
+.heading {
+  margin: 0 0 var(--space-4);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.field label {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.field input {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.field input:focus {
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid='true'] {
+  border-color: var(--danger-fg);
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--danger-fg);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.details {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-5);
+}
+
+.details dt {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.details dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  overflow-wrap: anywhere;
+}
+
+.signOut {
+  margin-top: var(--space-6);
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-4);
+}
+
+@media (max-width: 1000px) {
+  .grid,
+  .pair {
+    grid-template-columns: 1fr;
+  }
+}
