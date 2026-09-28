@@ -56,3 +56,26 @@ export function parseMigrationList(stdout) {
   if (new Set(remote).size !== remote.length) throw refuse('duplicate remote versions', stdout)
   return remote
 }
+
+// Catalog security audit (supabase/ops/security_audit.sql) as printed by
+// psql: each check echoes a line starting with its name, then a result
+// table ending in "(N rows)". Shared by the harness (scripts/db-test.mjs)
+// and the production tool (prod.mjs audit), which must agree exactly.
+export const SECURITY_AUDIT_CHECKS = ['A1', 'A2', 'A3', 'A3b', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11']
+
+const AUDIT_SECTION = /^(A\d+\w*) .*$[\s\S]*?^\((\d+) rows?\)$/gm
+
+/**
+ * Reads the audit output. Returns every section found as [name, rows], the
+ * checks that are missing or repeated, and the sections with offending
+ * rows. `passed` requires exactly SECURITY_AUDIT_CHECKS, each with 0 rows:
+ * a check that vanished (renamed, psql format change) fails, never passes.
+ */
+export function evaluateSecurityAudit(stdout) {
+  const sections = [...String(stdout ?? '').matchAll(AUDIT_SECTION)].map((m) => [m[1], Number(m[2])])
+  const names = sections.map(([name]) => name)
+  const missing = SECURITY_AUDIT_CHECKS.filter((name) => !names.includes(name))
+  const unexpected = names.filter((name, i) => !SECURITY_AUDIT_CHECKS.includes(name) || names.indexOf(name) !== i)
+  const offending = sections.filter(([, rows]) => rows !== 0)
+  return { sections, missing, unexpected, offending, passed: !missing.length && !unexpected.length && !offending.length }
+}

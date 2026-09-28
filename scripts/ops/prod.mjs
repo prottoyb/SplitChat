@@ -46,7 +46,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isolatedEnv, normaliseDump } from '../db-test.mjs'
 import { loadDevTarget } from '../rehearsal/dev.mjs'
-import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, parseMigrationList } from './cliOutput.mjs'
+import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, evaluateSecurityAudit, parseMigrationList } from './cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PROD_REF = 'jhftlnsccurhfgneltgi'
@@ -393,9 +393,10 @@ function main() {
     case 'audit': {
       // Catalog security audit (read-only): every A-check must return 0 rows.
       const out = readonly(t, readPinned('security_audit.sql'))
-      const sections = [...out.matchAll(/^(A\d+\w*) .*$[\s\S]*?^\((\d+) rows?\)$/gm)].map((m) => [m[1], Number(m[2])])
+      const { sections, missing, unexpected, passed } = evaluateSecurityAudit(out)
       for (const [name, rows] of sections) gate(`${name} returns no offending rows`, rows === 0, `${rows} rows`)
-      const passed = sections.length >= 11 && sections.every(([, rows]) => rows === 0)
+      gate('every audit check present exactly once', !missing.length && !unexpected.length,
+        [missing.length && `missing ${missing.join(', ')}`, unexpected.length && `unexpected ${unexpected.join(', ')}`].filter(Boolean).join('; '))
       if (a1) fs.writeFileSync(path.join(a1, 'security_audit.txt'), out)
       console.log(passed ? '\nAUDIT PASSED' : '\nAUDIT FAILED: stop and assess')
       process.exit(passed ? 0 : 1)

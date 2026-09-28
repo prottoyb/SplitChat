@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, parseMigrationList } from './cliOutput.mjs'
+import { CLI_MODE_FLAGS, MIGRATION_LIST_ARGS, SECURITY_AUDIT_CHECKS, evaluateSecurityAudit, parseMigrationList } from './cliOutput.mjs'
 
 const row = (local, remote) => ({ local, remote, time: '2026-09-26 00:00:00' })
 const doc = (rows) => JSON.stringify({ migrations: rows })
@@ -71,5 +71,40 @@ describe('CLI invocation flags', () => {
   it('pins agent detection off and asks migration list for JSON explicitly', () => {
     expect(CLI_MODE_FLAGS).toEqual(['--agent', 'no'])
     expect(MIGRATION_LIST_ARGS).toEqual(['migration', 'list', '--output-format', 'json'])
+  })
+})
+
+describe('evaluateSecurityAudit', () => {
+  const section = (name, rows) =>
+    `${name} some description\n col \n-----\n${' x\n'.repeat(rows)}(${rows} ${rows === 1 ? 'row' : 'rows'})\n\n`
+  const allClean = () => SECURITY_AUDIT_CHECKS.map((n) => section(n, 0)).join('')
+
+  it('passes when every check is present with no offending rows', () => {
+    const r = evaluateSecurityAudit(`I1 informational\n(3 rows)\n\n${allClean()}`)
+    expect(r.passed).toBe(true)
+    expect(r.sections).toHaveLength(SECURITY_AUDIT_CHECKS.length)
+  })
+
+  it('fails on offending rows and names the check', () => {
+    const r = evaluateSecurityAudit(allClean().replace(section('A5', 0), section('A5', 1)))
+    expect(r.passed).toBe(false)
+    expect(r.offending).toEqual([['A5', 1]])
+  })
+
+  it('fails when a check is missing, so a vanished section never passes', () => {
+    const r = evaluateSecurityAudit(allClean().replace(section('A3b', 0), ''))
+    expect(r.passed).toBe(false)
+    expect(r.missing).toEqual(['A3b'])
+  })
+
+  it('fails on a repeated or unknown check', () => {
+    const r = evaluateSecurityAudit(allClean() + section('A4', 0) + section('A12', 0))
+    expect(r.passed).toBe(false)
+    expect(r.unexpected).toEqual(['A4', 'A12'])
+  })
+
+  it('fails on empty or unreadable output', () => {
+    expect(evaluateSecurityAudit('').passed).toBe(false)
+    expect(evaluateSecurityAudit(undefined).passed).toBe(false)
   })
 })

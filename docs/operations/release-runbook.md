@@ -81,7 +81,7 @@ Then the catalog security audit (read-only; every A-check must return 0
 rows; must print `AUDIT PASSED`):
 
 ```powershell
-node scripts/ops/prod.mjs audit --batch batch4 "$env:TEMP\splitchat-evidenceatch4"
+node scripts/ops/prod.mjs audit --batch batch4 "$env:TEMP\splitchat-evidence\batch4"
 ```
 
 ## 5. Frontend

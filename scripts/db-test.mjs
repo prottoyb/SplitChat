@@ -27,6 +27,7 @@ import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { evaluateSecurityAudit } from './ops/cliOutput.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -398,11 +399,15 @@ async function main() {
     // schema, so a migration that drifts from it fails here and in CI.
     cluster.assertTarget(TEMPLATE_DB)
     const audit = cluster.mustPsql(TEMPLATE_DB, SUPERUSER, { file: path.join(root, 'supabase', 'ops', 'security_audit.sql') }).stdout
-    const sections = [...audit.matchAll(/^(A\d+\w*) .*$[\s\S]*?^\((\d+) rows?\)$/gm)].map((m) => [m[1], Number(m[2])])
-    const offending = sections.filter(([, rows]) => rows !== 0)
-    if (sections.length < 11 || offending.length) {
-      results.push({ file: 'security_audit.sql', oks: 0, failure: `audit sections ${sections.length}; offending: ${offending.map(([n, r]) => `${n}=${r}`).join(', ')}` })
-      console.log(`FAIL  security_audit.sql  (${offending.map(([n, r]) => `${n}: ${r} rows`).join('; ') || 'sections missing'})`)
+    const { sections, missing, unexpected, offending, passed } = evaluateSecurityAudit(audit)
+    if (!passed) {
+      const detail = [
+        ...offending.map(([n, r]) => `${n}: ${r} rows`),
+        ...(missing.length ? [`missing ${missing.join(', ')}`] : []),
+        ...(unexpected.length ? [`unexpected ${unexpected.join(', ')}`] : []),
+      ].join('; ')
+      results.push({ file: 'security_audit.sql', oks: 0, failure: detail })
+      console.log(`FAIL  security_audit.sql  (${detail})`)
     } else {
       results.push({ file: 'security_audit.sql', oks: sections.length })
       console.log(`pass  security_audit.sql  (${sections.length} catalog checks, 0 offending rows)`)
