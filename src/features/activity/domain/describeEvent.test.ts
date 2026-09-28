@@ -79,6 +79,9 @@ describe('describeEvent', () => {
 
   it.each([
     ['group_created', {}, 'Bob created the group'],
+    ['group_updated', { payload: { v: 1, fields: ['name'] } }, 'Bob renamed the group'],
+    ['group_updated', { payload: { v: 1, fields: ['description'] } }, 'Bob changed the group description'],
+    ['group_updated', { payload: { v: 1, fields: ['name', 'description'] } }, 'Bob renamed the group and changed its description'],
     ['member_rejoined', { subjectUserId: 'cara' }, 'Bob re-added Cara'],
     ['member_left', { subjectUserId: 'cara', actorId: 'cara' }, 'Cara left the group'],
     ['member_removed', { subjectUserId: 'cara' }, 'Bob removed Cara'],

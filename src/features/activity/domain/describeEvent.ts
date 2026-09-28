@@ -66,6 +66,16 @@ export function describeEvent(event: ActivityEvent, ctx: DescribeContext): Descr
   switch (event.kind) {
     case 'group_created':
       return { actor: who(event.actorId), action: 'created the group', target: null, detail: null, category: 'group' }
+    case 'group_updated': {
+      // The payload lists changed fields only (M24); the text itself is never logged.
+      const fields = Array.isArray(p.fields) ? p.fields : []
+      const what = fields.includes('name') && fields.includes('description')
+        ? 'renamed the group and changed its description'
+        : fields.includes('name')
+          ? 'renamed the group'
+          : 'changed the group description'
+      return { actor: who(event.actorId), action: what, target: null, detail: null, category: 'group' }
+    }
     case 'member_added':
       return { actor: event.actorId ? who(event.actorId) : 'Someone', action: 'added', target: { label: whom(event.subjectUserId), to: null }, detail: null, category: 'member' }
     case 'member_rejoined':

@@ -26,11 +26,13 @@ export type GroupDetail = {
   name: string
   description: string | null
   createdAt: string
+  /** The version an edit is based on (optimistic concurrency, M24). */
+  updatedAt: string
   members: Member[]
   myRole: Role | null
 }
 
-type GroupRow = { id: string; name: string; description: string | null; created_at: string }
+type GroupRow = { id: string; name: string; description: string | null; created_at: string; updated_at: string }
 type MembershipRow = { group_id: string; user_id: string; role: Role; joined_at: string }
 
 /**
@@ -76,7 +78,7 @@ export function loadGroupDetail(groupId: string, userId: string): Promise<Result
   return guard(async () => {
     const group = await supabase
       .from('groups')
-      .select('id, name, description, created_at')
+      .select('id, name, description, created_at, updated_at')
       .eq('id', groupId)
       .limit(1)
     if (group.error) return failureFrom(group.error, 'Unable to load this group.')
@@ -99,6 +101,7 @@ export function loadGroupDetail(groupId: string, userId: string): Promise<Result
       name: row.name,
       description: row.description,
       createdAt: row.created_at,
+      updatedAt: row.updated_at,
       members: rows.map((m) => ({
         userId: m.user_id,
         fullName: nameOf(names.value, m.user_id),
@@ -108,6 +111,28 @@ export function loadGroupDetail(groupId: string, userId: string): Promise<Result
       myRole: rows.find((m) => m.user_id === userId)?.role ?? null,
     })
   }, 'Unable to load this group.')
+}
+
+/**
+ * Renames a group and/or changes its description (owner only, M24). Based on
+ * the version the caller read; returns the new version. A change made in
+ * between is refused (code 'stale') rather than overwritten.
+ */
+export function updateGroupDetails(groupId: string, input: GroupInput, expectedUpdatedAt: string): Promise<Result<string>> {
+  return guard(async () => {
+    const { data, error } = await supabase.rpc('update_group_details', {
+      p_group_id: groupId,
+      p_name: input.name,
+      p_description: input.description,
+      p_expected_updated_at: expectedUpdatedAt,
+    })
+    if (error) {
+      return failureFrom(error, 'Unable to save the group details. Please try again.', {
+        invalid_description: 'Please enter a description of up to 300 characters.',
+      })
+    }
+    return typeof data === 'string' ? ok(data) : fail('unknown', 'Unable to save the group details. Please try again.')
+  }, 'Unable to save the group details.')
 }
 
 /** Creates a group (column-granted INSERT; the owner row is added by trigger). */

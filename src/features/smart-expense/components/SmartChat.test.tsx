@@ -29,6 +29,7 @@ const group = (myRole: 'owner' | 'member'): GroupDetail => ({
   name: 'Flat',
   description: null,
   createdAt: now,
+  updatedAt: now,
   myRole,
   members: [
     { userId: P, fullName: 'Priya Raman', role: myRole === 'owner' ? 'owner' : 'member', joinedAt: now },

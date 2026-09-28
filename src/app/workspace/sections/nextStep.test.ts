@@ -4,7 +4,7 @@ import { nextStep } from './nextStep'
 
 const member = (userId: string, fullName: string, role: 'owner' | 'member' = 'member') => ({ userId, fullName, role, joinedAt: '2026-09-01' })
 const group = (members = [member('me', 'Me', 'owner'), member('a', 'Alex'), member('s', 'Sam')]): GroupDetail => ({
-  id: 'g1', name: 'Flat', description: null, createdAt: '2026-09-01T00:00:00Z', members, myRole: 'owner',
+  id: 'g1', name: 'Flat', description: null, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', members, myRole: 'owner',
 })
 const names = new Map([['me', 'Me'], ['a', 'Alex'], ['s', 'Sam']])
 

@@ -206,7 +206,7 @@ function GroupWorkspace() {
           />
           <Route path="chat" element={<ChatSection group={detail} userId={userId} />} />
           <Route path="activity" element={<ActivitySection group={detail} userId={userId} />} />
-          <Route path="settings" element={<SettingsSection group={detail} />} />
+          <Route path="settings" element={<SettingsSection group={detail} onSaved={group.reload} />} />
           <Route
             path="members"
             element={

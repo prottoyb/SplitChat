@@ -24,7 +24,7 @@ const balance = (user_id: string, paid: number, owed: number) => ({
 })
 
 function seed() {
-  supabaseMock.setTable('groups', [{ id: 'g1', name: 'Flat 4B', description: 'Rent and bills', created_at: '2026-09-01T00:00:00Z' }])
+  supabaseMock.setTable('groups', [{ id: 'g1', name: 'Flat 4B', description: 'Rent and bills', created_at: '2026-09-01T00:00:00Z', updated_at: '2026-09-05T00:00:00.123456+00:00' }])
   supabaseMock.setTable('group_members', [
     { group_id: 'g1', user_id: 'u1', role: 'owner', joined_at: '2026-09-01T00:00:00Z' },
     { group_id: 'g1', user_id: 'u2', role: 'member', joined_at: '2026-09-02T00:00:00Z' },
@@ -150,12 +150,60 @@ describe('GroupWorkspace sections', () => {
     expect(await screen.findByRole('link', { name: '2 members' })).toHaveAttribute('href', '/groups/g1/members')
   })
 
-  it('shows the group details read-only in settings', async () => {
+  it('shows the group details read-only to a member', async () => {
     renderAt('/groups/g1/settings')
     await screen.findByRole('heading', { name: 'Group settings', level: 3 })
+    expect(screen.getByText('Only the group owner can change these.')).toBeInTheDocument()
     expect(screen.getByText('Rent and bills')).toBeInTheDocument()
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('lets the owner rename the group, based on the version they read', async () => {
+    const user = userEvent.setup()
+    mock.userId = 'u1'
+    supabaseMock.setRpc('update_group_details', '2026-09-06T00:00:00+00:00')
+    renderAt('/groups/g1/settings')
+    const form = await screen.findByRole('form', { name: 'Group details' })
+    const save = within(form).getByRole('button', { name: 'Save changes' })
+    expect(save).toBeDisabled() // nothing changed yet
+
+    const name = within(form).getByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, '  Flat 4B (2027)  ')
+    await user.click(save)
+
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('update_group_details', {
+      p_group_id: 'g1', p_name: 'Flat 4B (2027)', p_description: 'Rent and bills', p_expected_updated_at: '2026-09-05T00:00:00.123456+00:00',
+    })
+    expect(await screen.findByText('Group details saved.')).toBeInTheDocument()
+  })
+
+  it('checks the name before calling the server', async () => {
+    const user = userEvent.setup()
+    mock.userId = 'u1'
+    renderAt('/groups/g1/settings')
+    const form = await screen.findByRole('form', { name: 'Group details' })
+    await user.clear(within(form).getByLabelText('Name'))
+    await user.type(within(form).getByLabelText('Name'), '   ')
+    await user.click(within(form).getByRole('button', { name: 'Save changes' }))
+    expect(within(form).getByText('Please enter a group name.')).toBeInTheDocument()
+    expect(within(form).getByLabelText('Name')).toHaveAttribute('aria-invalid', 'true')
+    expect(supabaseMock.rpc).not.toHaveBeenCalledWith('update_group_details', expect.anything())
+  })
+
+  it('explains a change made by someone else and offers a reload', async () => {
+    const user = userEvent.setup()
+    mock.userId = 'u1'
+    supabaseMock.setRpc('update_group_details', null, { message: 'stale_group' })
+    renderAt('/groups/g1/settings')
+    const form = await screen.findByRole('form', { name: 'Group details' })
+    await user.type(within(form).getByLabelText(/Description/), ' and more')
+    await user.click(within(form).getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText(/changed by someone else/)).toBeInTheDocument()
+    const groupReads = queriesOf('groups').length
+    await user.click(screen.getByRole('button', { name: 'Reload' }))
+    await waitFor(() => expect(queriesOf('groups').length).toBeGreaterThan(groupReads))
   })
 
   it('badges the Chat tab with the open proposals I can act on', async () => {

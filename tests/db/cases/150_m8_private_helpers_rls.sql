@@ -6,7 +6,7 @@ SELECT tests.assert_eq(
   ARRAY['add_group_member_by_email', 'approve_expense_candidate', 'create_equal_split_expense_v2',
         'delete_expense', 'delete_group', 'get_group_balances', 'get_ledger_identities',
         'leave_group', 'propose_expense_candidate', 'record_settlement', 'reject_expense_candidate', 'remove_group_member',
-        'send_group_message', 'transfer_group_ownership', 'update_equal_split_expense', 'update_expense_candidate', 'void_settlement'],
+        'send_group_message', 'transfer_group_ownership', 'update_equal_split_expense', 'update_expense_candidate', 'update_group_details', 'void_settlement'],
   'public exposes only the client RPCs');
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace IN ('public'::regnamespace, 'private'::regnamespace)
@@ -26,6 +26,7 @@ SELECT tests.assert_eq(
         'reject_expense_candidate(uuid,integer)', 'remove_group_member(uuid,uuid)', 'send_group_message(uuid,text,uuid)', 'transfer_group_ownership(uuid,uuid)',
         'update_equal_split_expense(uuid,timestamp with time zone,text,bigint,date,uuid,uuid[],text)',
         'update_expense_candidate(uuid,integer,text,bigint,date,uuid,uuid[],text)',
+        'update_group_details(uuid,text,text,timestamp with time zone)',
         'void_settlement(uuid,text)'],
   'authenticated EXECUTE allowlist (no helper takes an arbitrary user id)');
 SELECT tests.assert(

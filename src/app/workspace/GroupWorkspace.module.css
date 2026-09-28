@@ -580,3 +580,69 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.settingsForm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 560px;
+}
+
+.settingsField {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.settingsField label {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.settingsField input,
+.settingsField textarea {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.settingsField input:focus,
+.settingsField textarea:focus {
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
+}
+
+.settingsField input[aria-invalid='true'] {
+  border-color: var(--danger-fg);
+}
+
+.optional {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--danger-fg);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.counter {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: right;
+}
+
+.detailsMeta {
+  margin-top: var(--space-6);
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-4);
+}
