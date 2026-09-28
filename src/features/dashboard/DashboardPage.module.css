@@ -53,7 +53,7 @@ a.groupItem:focus-visible {
 .attentionItem span,
 .groupItem span {
   color: #6b707c;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .attentionItem > span {

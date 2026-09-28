@@ -142,6 +142,7 @@ const defaultRoutes = [
   { name: 'solo-expenses', path: '/groups/{solo}/expenses' },
   { name: 'add-expense', path: '/groups/{flat}/expenses/new' },
   { name: 'missing-group', path: '/groups/{missing}' },
+  { name: 'login', path: '/login?signed-out' },
 ]
 const routes = (routesFile ? JSON.parse(fs.readFileSync(routesFile, 'utf8')) : defaultRoutes).map((r) => ({
   ...r,

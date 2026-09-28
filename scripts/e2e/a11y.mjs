@@ -144,6 +144,14 @@ for (const [label, width, height, mobile] of [['desktop', 1280, 900, false], ['m
 
     findings.push(...(await page.evaluate(PAGE_CHECKS)))
 
+    // Touch targets on phones: buttons at least 44px tall (inline text links exempt).
+    if (mobile) {
+      const small = await page.evaluate(`[...document.querySelectorAll('button, [role="button"], .primary-button, .secondary-button')]
+        .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden' && r.height < 43.5 })
+        .map((el) => (el.getAttribute('aria-label') || el.innerText || '').trim().slice(0, 30) + ' ' + Math.round(el.getBoundingClientRect().height) + 'px')`)
+      for (const s of small) findings.push({ kind: 'target', text: `touch target under 44px: ${s}` })
+    }
+
     // Keyboard: Tab through up to 40 stops; each must show a focus indicator.
     await page.evaluate('document.activeElement?.blur(); window.scrollTo(0, 0)')
     const stops = []

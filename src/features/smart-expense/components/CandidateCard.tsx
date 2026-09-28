@@ -56,10 +56,22 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<Failure | null>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const reviewRef = useRef<HTMLButtonElement>(null)
+  const returnFocus = useRef(false)
   const [openedAt] = useState(() => Date.now())
+  // Like every confirmation: Cancel is focused on open, Escape cancels, and
+  // focus returns to "Review and add".
   useEffect(() => {
     if (mode === 'confirm') cancelRef.current?.focus()
+    else if (returnFocus.current) {
+      returnFocus.current = false
+      reviewRef.current?.focus()
+    }
   }, [mode])
+  const cancelConfirm = () => {
+    returnFocus.current = true
+    setMode('view')
+  }
 
   const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'Former member'
   const who = (id: string) => (id === userId ? 'You' : nameOf(id))
@@ -167,7 +179,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
         <div className={styles.actions}>
           {complete ? (
             <>
-              <button type="button" className="primary-button" disabled={busy} onClick={() => setMode('confirm')}>
+              <button type="button" ref={reviewRef} className="primary-button" disabled={busy} onClick={() => setMode('confirm')}>
                 Review and add
               </button>
               <Link to={editPath} className={styles.secondary}>
@@ -194,7 +206,14 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
       )}
 
       {canManage && mode === 'confirm' && split?.ok && c.amountCents !== null && (
-        <div className={styles.confirm} role="group" aria-label="Confirm the expense">
+        <div
+          className={styles.confirm}
+          role="group"
+          aria-label="Confirm the expense"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && !busy) cancelConfirm()
+          }}
+        >
           <p className={styles.confirmTitle}>Add this {formatCents(c.amountCents)} expense?</p>
           <p className={styles.note}>
             “{c.description}” on {formatDateLong(c.expenseDate ?? '')}, paid by {who(c.paidBy ?? '')}. Each person’s share:
@@ -211,7 +230,7 @@ export function CandidateCard({ candidate: c, message, members, userId, isOwner,
             <button type="button" className="primary-button" disabled={busy} onClick={() => void run(() => onApprove(c))}>
               {busy ? 'Adding…' : 'Add expense'}
             </button>
-            <button type="button" ref={cancelRef} className={styles.secondary} disabled={busy} onClick={() => setMode('view')}>
+            <button type="button" ref={cancelRef} className={styles.secondary} disabled={busy} onClick={cancelConfirm}>
               Cancel
             </button>
           </div>

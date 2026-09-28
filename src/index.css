@@ -31,3 +31,14 @@ textarea,
 select {
   font-family: inherit;
 }
+/* Touch devices: every button (and link styled as one) is at least 44px
+   tall, so actions such as Remove, Record or Retry are easy to hit (Phase 8
+   accessibility review). Inline text links are exempt. */
+@media (pointer: coarse) {
+  button,
+  [role='button'],
+  .primary-button,
+  .secondary-button {
+    min-height: 44px;
+  }
+}

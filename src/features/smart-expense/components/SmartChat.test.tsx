@@ -165,8 +165,16 @@ describe('Smart Expense in chat', () => {
     expect(within(confirm).getByRole('button', { name: 'Cancel' })).toHaveFocus()
     expect(rpcCalls('approve_expense_candidate')).toHaveLength(0)
 
-    await user.click(within(confirm).getByRole('button', { name: 'Add expense' }))
-    expect(within(confirm).getByRole('button', { name: 'Adding…' })).toBeDisabled()
+    // Escape cancels and returns focus to the trigger; nothing is approved.
+    await user.keyboard('{Escape}')
+    expect(within(card).getByRole('button', { name: 'Review and add' })).toHaveFocus()
+    expect(rpcCalls('approve_expense_candidate')).toHaveLength(0)
+    await user.click(within(card).getByRole('button', { name: 'Review and add' }))
+    const confirmAgain = within(card).getByRole('group', { name: 'Confirm the expense' })
+    expect(within(confirmAgain).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+
+    await user.click(within(confirmAgain).getByRole('button', { name: 'Add expense' }))
+    expect(within(confirmAgain).getByRole('button', { name: 'Adding…' })).toBeDisabled()
     expect(rpcCalls('approve_expense_candidate')[0][1]).toEqual({ p_id: 'c1', p_expected_version: 1 })
 
     supabaseMock.setTable('expense_candidates', [candidate({ status: 'approved', expense_id: 'x9', decided_by: P, version: 2 })])

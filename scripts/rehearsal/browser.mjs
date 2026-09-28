@@ -125,7 +125,11 @@ export async function openBrowser({ allowedOrigins, width = 1280, height = 900, 
   await send('Runtime.enable')
   await send('Page.addScriptToEvaluateOnNewDocument', { source: HELPERS })
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile })
-  if (mobile) await send('Emulation.setTouchEmulationEnabled', { enabled: true })
+  if (mobile) {
+    await send('Emulation.setTouchEmulationEnabled', { enabled: true })
+    // As on a phone: (pointer: coarse) and (hover: none) media queries apply.
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] })
+  }
 
   const evaluate = async (expression) => {
     const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })

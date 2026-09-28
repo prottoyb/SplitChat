@@ -42,7 +42,7 @@
   display: block;
   margin-bottom: 10px;
   color: #6c707a;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -60,7 +60,7 @@
 .statCard p {
   margin: 0;
   color: #6b6e76;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -139,7 +139,7 @@
   border-radius: 12px;
   color: #654bea;
   background: #efecff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -178,7 +178,7 @@
 .payerBadge {
   border-radius: 999px;
   padding: 4px 7px;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -241,13 +241,13 @@
 
 .infoList span {
   color: #6a6d76;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .infoList strong {
   max-width: 60%;
   color: #40434d;
-  font-size: 11px;
+  font-size: 12px;
   text-align: right;
 }
 
@@ -255,7 +255,7 @@
   max-width: 60%;
   overflow: hidden;
   color: #6549ed;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   text-align: right;
   text-decoration: none;
@@ -394,7 +394,7 @@
 .deleteConfirmation p {
   margin: 0 0 14px;
   color: #836a6a;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -409,7 +409,7 @@
   padding: 9px 10px;
   color: #ffffff;
   background: #aa3d3d;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -424,7 +424,7 @@
   padding: 9px 10px;
   color: #686d79;
   background: #ffffff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -479,14 +479,14 @@
 
 .infoList dt {
   color: #6a6d76;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .infoList dd {
   max-width: 60%;
   margin: 0;
   color: #40434d;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-align: right;
 }

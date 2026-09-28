@@ -6,7 +6,7 @@
 .day h4 {
   margin: 0 0 8px;
   color: #6b707c;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -88,7 +88,7 @@
 .meta {
   margin: 2px 0 0;
   color: #6a6d76;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .detail {
@@ -97,7 +97,7 @@
 
 .time {
   color: #6a6d76;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -110,7 +110,7 @@
 .note {
   margin: 0;
   color: #6a6d76;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
 }
 
