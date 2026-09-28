@@ -127,6 +127,22 @@ publication change to the next production batch. Chat content is permanent.
 - Production's publication might be `FOR ALL TABLES` or non-empty; the
   batch pre-checks it.
 
+## Phase 8 security audit (2026-09-30)
+- **Fixed (M23):** anonymous callers subscribed to `group_messages` or
+  `expense_candidates` without a filter received content-free "401" notices
+  for every INSERT/UPDATE platform-wide (activity timing). Anon now holds
+  SELECT on exactly the two published tables with a RESTRICTIVE
+  always-false policy, so anon reads and receives nothing (case 245 proves
+  the restrictive policy wins over any later permissive one).
+- **Accepted residual (LOW, QA/Security, measured):** Realtime does not
+  RLS-filter DELETE events. The only DELETEs on these tables come from a
+  user deleting their own solo group; filtered subscriptions (the app's)
+  receive nothing, and an unfiltered subscriber receives only
+  `{"old":{"id":…}}` — no content, group or person. No mitigation without
+  replacing Postgres Changes (REPLICA IDENTITY FULL would leak more).
+  Evidence: `scripts/rehearsal/api-security-audit.mjs` 162/162 on
+  SplitChat-Dev.
+
 ## Binding conditions
 1. One migration (M18) in house style (`SET LOCAL lock_timeout`, REVOKE ALL
    then explicit GRANTs, `search_path=''`, header, rollback note; fix-forward

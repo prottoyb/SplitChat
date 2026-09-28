@@ -62,7 +62,9 @@ SELECT tests.assert(has_table_privilege('authenticated', 'public.expense_candida
 SELECT tests.assert(NOT EXISTS (SELECT 1 FROM unnest(ARRAY['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p
                                  WHERE has_table_privilege('authenticated', 'public.expense_candidates', p)),
   'clients cannot write candidates directly');
-SELECT tests.assert(NOT has_table_privilege('anon', 'public.expense_candidates', 'SELECT'), 'anon cannot read candidates');
+SELECT tests.assert(EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'expense_candidates' AND roles = ARRAY['anon']::name[]
+                             AND permissive = 'RESTRICTIVE' AND qual = 'false'),
+  'M23: a restrictive policy denies every candidate row to anon');
 SELECT tests.assert(NOT EXISTS (
     SELECT 1 FROM unnest(ARRAY['public.propose_expense_candidate(bigint,text,text,text,bigint,date,uuid,uuid[],text)',
                                'public.update_expense_candidate(uuid,integer,text,bigint,date,uuid,uuid[],text)',

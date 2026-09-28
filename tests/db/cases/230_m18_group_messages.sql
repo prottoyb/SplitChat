@@ -43,9 +43,12 @@ SELECT tests.assert(has_table_privilege('authenticated', 'public.group_messages'
 SELECT tests.assert(NOT EXISTS (SELECT 1 FROM unnest(ARRAY['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p
                                  WHERE has_table_privilege('authenticated', 'public.group_messages', p)),
   'clients cannot write messages directly');
-SELECT tests.assert(NOT EXISTS (SELECT 1 FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) p
+SELECT tests.assert(NOT EXISTS (SELECT 1 FROM unnest(ARRAY['INSERT','UPDATE','DELETE']) p
                                  WHERE has_table_privilege('anon', 'public.group_messages', p)),
-  'anon has no access to messages');
+  'anon cannot write messages');
+SELECT tests.assert(EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'group_messages' AND roles = ARRAY['anon']::name[]
+                             AND permissive = 'RESTRICTIVE' AND qual = 'false'),
+  'M23: a restrictive policy denies every message row to anon');
 SELECT tests.assert(has_function_privilege('authenticated', 'public.send_group_message(uuid,text,uuid)', 'EXECUTE'),
   'members can call send_group_message');
 SELECT tests.assert(NOT has_function_privilege('anon', 'public.send_group_message(uuid,text,uuid)', 'EXECUTE'),
@@ -87,7 +90,7 @@ SELECT tests.assert_raises($$SELECT public.send_group_message(tests.g1(), 'hi', 
 SELECT tests.assert_eq((SELECT count(*) FROM public.group_messages), 0::bigint, 'no identity, no reading');
 RESET ROLE;
 SET LOCAL ROLE anon;
-SELECT tests.assert_raises($$SELECT count(*) FROM public.group_messages$$, '42501', 'anon cannot select messages');
+SELECT tests.assert_eq((SELECT count(*) FROM public.group_messages), 0::bigint, 'anon reads no messages (M23: rows denied, so Realtime sends anon nothing)');
 SELECT tests.assert_raises($$SELECT public.send_group_message(tests.g1(), 'hi', tests.rid(3))$$, '42501', 'anon cannot send');
 RESET ROLE;
 SELECT tests.assert_eq(tests.event_count(), (SELECT n FROM baseline), 'sending writes no group_events');

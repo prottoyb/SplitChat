@@ -1,12 +1,14 @@
 -- M6 regression: least-privilege grants (QS-5, QS-9) and default privileges.
 
--- anon has no table privileges at all.
+-- anon has no table privileges, except SELECT on the two Realtime-published
+-- tables (M23), where a RESTRICTIVE policy denies every row to anon.
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_class c
                CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p
                WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
-                 AND has_table_privilege('anon', c.oid, p)),
-  'anon holds no privilege on any public table');
+                 AND has_table_privilege('anon', c.oid, p)
+                 AND NOT (p = 'SELECT' AND c.relname IN ('group_messages', 'expense_candidates'))),
+  'anon holds no privilege on any public table (M23: only SELECT on the published tables, rows denied)');
 -- Nobody but service_role holds TRUNCATE / REFERENCES / TRIGGER.
 SELECT tests.assert(
   NOT EXISTS (SELECT 1 FROM pg_class c
