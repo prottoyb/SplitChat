@@ -169,7 +169,7 @@ function ProfilePage() {
       </header>
 
       <div className={styles.grid}>
-        <section className="panel" aria-labelledby="profile-heading">
+        <section className={`panel ${styles.fit}`} aria-labelledby="profile-heading">
           <h3 id="profile-heading" className={styles.heading}>
             Profile
           </h3>
@@ -182,7 +182,7 @@ function ProfilePage() {
           )}
         </section>
 
-        <section className="panel" aria-labelledby="signin-heading">
+        <section className={`panel ${styles.fit}`} aria-labelledby="signin-heading">
           <h3 id="signin-heading" className={styles.heading}>
             Sign-in
           </h3>

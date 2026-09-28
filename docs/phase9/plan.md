@@ -294,3 +294,21 @@ with increments 1–4.
   AuthContext refetches the profile only when the user id changes, so
   there is no extra fetch or flicker. The change-password path is covered
   by unit tests (`auth.test.ts`, `AccountPages.test.tsx`), not by E2E.
+
+## Final design review (2026-09-29)
+
+**UI/UX Product Designer: PASS WITH CHANGES.** No CRITICAL or HIGH. The
+reviewer opened mobile screenshots only; desktop was spot-checked by the
+coordinator.
+
+- **MEDIUM "Groups tab highlighted on /profile": not reproduced.** No
+  bottom tab is active on /profile. The Groups icon (◎) was misread as an
+  active pill.
+- **Coordinator (fixed):** Profile and Group settings panels had a large
+  empty area, from the shared `.panel` 330 px minimum. They now size to
+  their content.
+- **LOW, still deferred:** secondary pages repeat the full group header;
+  the top bar shows the brand rather than the group.
+- **Subjective:** Overview's "Record a payment" and Balances' "Record"
+  lead to the same form (intended); "Needs you" could visually separate
+  action items from FYI items. Candidates for later polish.

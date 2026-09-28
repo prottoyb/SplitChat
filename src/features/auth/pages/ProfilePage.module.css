@@ -100,3 +100,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Panels size to their content (the shared .panel has a dashboard minimum). */
+.fit {
+  min-height: 0;
+}

@@ -124,7 +124,7 @@ export function SettingsSection({ group, onSaved }: { group: GroupDetail; onSave
           {feedback.text}
         </Notice>
       )}
-      <section className="panel">
+      <section className={`panel ${styles.compactPanel}`}>
         {isOwner ? (
           // Keyed on the version so a reload after a save or conflict resets the form.
           <DetailsForm key={group.updatedAt} group={group} onSaved={onSaved} onFeedback={setFeedback} />
