@@ -13,7 +13,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
-import { loadDevTarget, verifySentinel } from '../rehearsal/dev.mjs'
+import { PROD_REF, loadDevTarget, verifySentinel } from '../rehearsal/dev.mjs'
 import { openBrowser, startApp } from '../rehearsal/browser.mjs'
 
 const args = process.argv.slice(2)
@@ -264,7 +264,7 @@ try {
   await step('no request left localhost and SplitChat-Dev; no uncaught page errors', async () => {
     const violations = pages.flatMap((p) => p.violations)
     const errors = pages.flatMap((p) => p.consoleErrors)
-    assert(violations.length === 0, `blocked requests: ${violations.map((u) => new URL(u).origin).join(', ')}`)
+    assert(violations.length === 0, `blocked requests: ${violations.map((u) => new URL(u).origin.replaceAll(PROD_REF, '<production-ref>')).join(', ')}`)
     assert(errors.length === 0, `page errors: ${errors.join(' | ').slice(0, 400)}`)
   })
 } catch (error) {

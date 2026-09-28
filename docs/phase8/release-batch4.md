@@ -47,7 +47,8 @@ unchanged), so it can run while any frontend containing `a5ed4e8` is live
 | SplitChat-Dev, production tool rehearsal (`--rehearse-on-dev`) on the post-batch state | preflight correctly **refuses** (drift, history, Q22); dry run stages hash-verified copies; **verify PASSED** (13/13, schema exact); **audit PASSED** |
 | SplitChat-Dev API checks | security audit **162/162**; chat 25/25; Smart Expense 23/23; settlements 19/19; activity 11/11 |
 | End-to-end (real Chrome, SplitChat-Dev) | **20/20** journeys, twice |
-| Rendered accessibility audit | 24 page views, **0 findings** |
+| Rendered accessibility audit (final, stricter rules) | 24 page views, **0 findings** |
+| Browser production-safety guard self-test (HTTP + WebSocket, with controls) | **7/7 PASS** |
 
 Not yet done (recommended before execution, needs approval): a full dress
 rehearsal of preflight → push → verify with the production tool from an
@@ -68,5 +69,8 @@ in-place reset of SplitChat-Dev replayed to production's current state
 
 ## Reviews
 
-- QA/Security: see `docs/phase8/plan.md` (Reviews).
-- Senior Review: see `docs/phase8/plan.md` (Reviews).
+- QA/Security: release package **PASS** (hashes recomputed, gates, env
+  scrubbing, read-only guard, pre/post-check semantics); M21/M23 **PASS**.
+- Senior Review: release docs **READY**; M21–M23 **APPROVE**.
+- Both recommend the full dress rehearsal (above) as a precondition to
+  execution approval. Details: `docs/phase8/plan.md` (Reviews).

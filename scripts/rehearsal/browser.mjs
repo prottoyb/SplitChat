@@ -6,6 +6,9 @@
 // (process env beats .env.local, which targets PRODUCTION), and every browser
 // request is intercepted: only the local app and the SplitChat-Dev origin
 // are allowed; anything else is blocked and recorded as a violation.
+// WebSockets (Realtime) bypass request interception, so they are checked
+// separately against the same list (a disallowed one is a violation), and
+// any URL containing the production ref is blocked outright.
 //
 // Elements are found the way people and assistive technology find them: by
 // role and accessible name (button/link text or aria-label, a field's label),
@@ -104,8 +107,23 @@ export async function openBrowser({ allowedOrigins, width = 1280, height = 900, 
     })
 
   const allowed = new Set(allowedOrigins)
+  const webSockets = []
   listeners.push((event) => {
     if (event.method === 'Runtime.exceptionThrown') consoleErrors.push(event.params.exceptionDetails.exception?.description ?? event.params.exceptionDetails.text)
+    if (event.method === 'Network.webSocketCreated') {
+      const { url } = event.params
+      webSockets.push(url)
+      let ok = false
+      try {
+        const u = new URL(url)
+        const origin = `${u.protocol === 'wss:' ? 'https:' : u.protocol === 'ws:' ? 'http:' : u.protocol}//${u.host}`
+        ok = allowed.has(origin) && !url.includes(PROD_REF)
+      } catch {
+        ok = false
+      }
+      if (!ok) violations.push(url)
+      return
+    }
     if (event.method !== 'Fetch.requestPaused') return
     const { requestId, request } = event.params
     let ok = /^(data|blob):/.test(request.url)
@@ -121,6 +139,8 @@ export async function openBrowser({ allowedOrigins, width = 1280, height = 900, 
     }
   })
   await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] })
+  await send('Network.enable')
+  await send('Network.setBlockedURLs', { urls: [`*${PROD_REF}*`] })
   await send('Page.enable')
   await send('Runtime.enable')
   await send('Page.addScriptToEvaluateOnNewDocument', { source: HELPERS })
@@ -142,6 +162,7 @@ export async function openBrowser({ allowedOrigins, width = 1280, height = 900, 
     evaluate,
     violations,
     consoleErrors,
+    webSockets,
     async goto(url) {
       await send('Page.navigate', { url })
       await page.waitFor('document.readyState === "complete" && !!window.__e2e', 20000, `load ${url}`)

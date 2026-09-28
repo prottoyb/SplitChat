@@ -20,7 +20,7 @@ import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { createClient } from '@supabase/supabase-js'
 import { openBrowser, startApp } from './browser.mjs'
-import { loadDevTarget, verifySentinel } from './dev.mjs'
+import { PROD_REF, loadDevTarget, verifySentinel } from './dev.mjs'
 
 const [outDir, ...rest] = process.argv.slice(2)
 if (!outDir) throw new Error('usage: render-review.mjs <out-dir> [--routes file.json]')
@@ -191,7 +191,7 @@ try {
 
 if (page.violations.length) {
   console.error(`FAIL: ${page.violations.length} request(s) outside SplitChat-Dev and the local app were blocked:`)
-  for (const url of page.violations) console.error(`  ${new URL(url).origin}`)
+  for (const url of page.violations) console.error(`  ${new URL(url).origin.replaceAll(PROD_REF, '<production-ref>')}`)
   exitCode = 1
 } else {
   console.log('Only the local app and SplitChat-Dev were reached (no request to production or elsewhere).')

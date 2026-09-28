@@ -2,11 +2,18 @@
 // Rendered accessibility audit (WCAG 2.1 AA-oriented) of SplitChat's key
 // screens in real Chrome on SplitChat-Dev, at desktop and mobile widths:
 //   - names: every interactive element has an accessible name (Chrome's own
-//     accessibility tree, as screen readers get it);
+//     accessibility tree, as screen readers get it); images and other
+//     non-text content have a text alternative or are marked decorative;
 //   - keyboard: Tab reaches controls in order, and every focus stop shows a
-//     visible indicator (outline or box-shadow differs from the unfocused state);
-//   - contrast: visible text meets 4.5:1 (3:1 for large text) against its
-//     effective background;
+//     visible indicator (outline or box-shadow differs from the unfocused
+//     state), and an outline/ring indicator has 3:1 contrast with its surface;
+//   - contrast: visible text meets 4.5:1 (3:1 for large text) against every
+//     background it may sit on (gradient stops included; ancestor opacity
+//     applied; text over an image is reported for manual review);
+//   - touch targets (mobile): buttons and button-styled links at least 44px.
+// Limits (the human rendered review covers them): a focus change shown only
+// by a border/background colour change is not contrast-checked; text inside
+// form controls and disabled controls (WCAG-exempt) is skipped.
 //   - structure: <html lang>, a main landmark, labelled navigation, no
 //     skipped heading levels.
 // Reports every finding; exits 1 if any exist.
@@ -77,14 +84,42 @@ const PAGES = [
   ['edit proposal', `${g}/proposals/${cand.id}/edit`, true],
 ]
 
-// In-page checks (contrast, focus indicator, structure).
-const PAGE_CHECKS = String.raw`(() => {
-  const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(',').map((x) => parseFloat(x)); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 } }
+// Colour maths shared by the in-page checks. Backgrounds: solid layers are
+// composited; a gradient contributes each of its colour stops (the text must
+// pass against the worst one); an image background cannot be computed and is
+// reported for manual review. Ancestor opacity fades the text towards its
+// background (an approximation of the compositing group).
+const COLOR = String.raw`
+  const parse = (c) => { const m = c && c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(',').map((x) => parseFloat(x)); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 } }
   const lum = ({ r, g, b }) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b) }
   const blend = (top, bottom) => ({ r: top.r * top.a + bottom.r * (1 - top.a), g: top.g * top.a + bottom.g * (1 - top.a), b: top.b * top.a + bottom.b * (1 - top.a), a: 1 })
-  const bgOf = (el) => { const layers = []; for (let n = el; n; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break } }
-    let bg = { r: 255, g: 255, b: 255, a: 1 }; for (const l of layers.reverse()) bg = blend(l, bg); return bg }
+  const WHITE = { r: 255, g: 255, b: 255, a: 1 }
+  const under = (layers, bottom) => { let bg = bottom; for (const l of [...layers].reverse()) bg = blend(l, bg); return bg }
+  // Every background the element may sit on, or null when one is an image.
+  const bgsOf = (el) => { const layers = []
+    for (let n = el; n; n = n.parentElement) { const cs = getComputedStyle(n)
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+        if (/url\(/.test(cs.backgroundImage)) return null
+        const base = under([parse(cs.backgroundColor)].filter((c) => c && c.a > 0), WHITE)
+        const stops = (cs.backgroundImage.match(/rgba?\([^)]+\)/g) || []).map(parse)
+        return (stops.length ? stops : [base]).map((s) => under(layers, blend(s, base))) }
+      const c = parse(cs.backgroundColor); if (c && c.a > 0) { layers.push(c); if (c.a >= 1) return [under(layers, WHITE)] } }
+    return [under(layers, WHITE)] }
+  const opacityOf = (el) => { let o = 1; for (let n = el; n; n = n.parentElement) o *= parseFloat(getComputedStyle(n).opacity); return o }
+  const ratio = (a, b) => { const L1 = lum(a), L2 = lum(b); return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05) }
+`
+
+// In-page checks (non-text names, contrast, structure).
+const PAGE_CHECKS = String.raw`(() => {
+  ${COLOR}
   const findings = []
+  // Non-text content (WCAG 1.1.1): images need a text alternative (alt="" or aria-hidden marks decoration).
+  for (const el of document.querySelectorAll('img, [role="img"], svg, canvas, video, object')) {
+    if (el.closest('[aria-hidden="true"]') || el.getAttribute('role') === 'presentation' || el.getAttribute('role') === 'none') continue
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue
+    const named = el.hasAttribute('alt') || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.getAttribute('title') || el.querySelector?.(':scope > title')
+    if (!named) findings.push({ kind: 'name', text: el.tagName.toLowerCase() + ' without a text alternative (alt, aria-label, or aria-hidden if decorative): ' + el.outerHTML.replace(/\s+/g, ' ').slice(0, 100) })
+  }
   const seen = new Set()
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   while (walker.nextNode()) {
@@ -94,11 +129,13 @@ const PAGE_CHECKS = String.raw`(() => {
     if (!r.width || !r.height || cs.visibility === 'hidden' || cs.display === 'none' || el.closest('[aria-hidden="true"]')) continue
     if (el.closest('input,textarea,select') || (el.matches(':disabled') || el.closest(':disabled'))) continue
     const fg = parse(cs.color); if (!fg) continue
-    const bg = bgOf(el); const fgb = blend(fg, bg)
-    const L1 = lum(fgb), L2 = lum(bg); const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05)
+    const bgs = bgsOf(el)
+    if (!bgs) { findings.push({ kind: 'contrast', text: 'text over an image background (check manually): ' + text.slice(0, 40) }); continue }
+    const faded = { ...fg, a: fg.a * opacityOf(el) }
+    const worst = Math.min(...bgs.map((bg) => ratio(blend(faded, bg), bg)))
     const size = parseFloat(cs.fontSize); const bold = parseInt(cs.fontWeight, 10) >= 700
     const large = size >= 24 || (bold && size >= 18.66)
-    if (ratio < (large ? 3 : 4.5)) findings.push({ kind: 'contrast', text: text.slice(0, 40), ratio: Math.round(ratio * 100) / 100, need: large ? 3 : 4.5, color: cs.color, size })
+    if (worst < (large ? 3 : 4.5)) findings.push({ kind: 'contrast', text: text.slice(0, 40), ratio: Math.round(worst * 100) / 100, need: large ? 3 : 4.5, color: cs.color, size })
   }
   if (!document.documentElement.lang) findings.push({ kind: 'structure', text: 'html has no lang' })
   if (!document.querySelector('main')) findings.push({ kind: 'structure', text: 'no main landmark' })
@@ -108,10 +145,24 @@ const PAGE_CHECKS = String.raw`(() => {
   return findings
 })()`
 
-const FOCUS_STYLE = `(() => { const el = document.activeElement; if (!el || el === document.body) return null; const cs = getComputedStyle(el);
+// The focused element's look. indicatorContrast: the best contrast (WCAG
+// 1.4.11, needs 3:1) of its outline or focus-ring colours against the
+// surface around it; null when the indicator is a border/background change.
+const FOCUS_STYLE = String.raw`(() => { ${COLOR}
+  const el = document.activeElement; if (!el || el === document.body) return null; const cs = getComputedStyle(el);
   const p = el.parentElement ? getComputedStyle(el.parentElement) : null
-  return { name: (el.getAttribute('aria-label') || el.innerText || el.value || el.placeholder || el.tagName).trim().slice(0, 40), outline: cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0, shadow: cs.boxShadow !== 'none', border: cs.borderColor, bg: cs.backgroundColor, tag: el.tagName,
-    parent: p ? p.boxShadow + '|' + p.borderColor + '|' + p.outlineStyle : '' } })()`
+  const outline = cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0
+  // Each ring is judged against the surface it is painted on: an inset ring
+  // (negative outline-offset, inset shadow) on the element's own background,
+  // any other ring on the parent's.
+  const outside = (el.parentElement && bgsOf(el.parentElement)) || [WHITE]
+  const inside = bgsOf(el) || outside
+  const rings = [...(outline ? [{ color: cs.outlineColor, surface: parseFloat(cs.outlineOffset) < 0 ? inside : outside }] : []),
+    ...(cs.boxShadow !== 'none' ? cs.boxShadow.split(/,(?![^(]*\))/).map((s) => ({ color: (s.match(/rgba?\([^)]+\)/) || [])[0], surface: /\binset\b/.test(s) ? inside : outside })) : [])]
+    .map((r) => ({ ...r, color: parse(r.color) })).filter((r) => r.color && r.color.a > 0)
+  const indicatorContrast = rings.length ? Math.max(...rings.map((r) => Math.min(...r.surface.map((bg) => ratio(blend(r.color, bg), bg))))) : null
+  return { name: (el.getAttribute('aria-label') || el.innerText || el.value || el.placeholder || el.tagName).trim().slice(0, 40), outline, shadow: cs.boxShadow !== 'none', border: cs.borderColor, bg: cs.backgroundColor, tag: el.tagName,
+    indicatorContrast, parent: p ? p.boxShadow + '|' + p.borderColor + '|' + p.outlineStyle : '' } })()`
 
 const app = await startApp(t, 5196)
 const allowedOrigins = [app.origin, new URL(t.url).origin]
@@ -165,6 +216,10 @@ for (const [label, width, height, mobile] of [['desktop', 1280, 900, false], ['m
       // A wrapper's :focus-within ring counts (e.g. the amount field's "$" box).
       const indicated = focused.outline || (focused.shadow && !plain.shadow) || focused.border !== plain.border || focused.bg !== plain.bg || focused.parent !== plain.parent
       if (!indicated) findings.push({ kind: 'focus', text: `no visible focus indicator on ${focused.tag} "${focused.name}"` })
+      // A ring that is there but barely visible does not count (a shadow ring
+      // is judged only when it appears on focus; an outline always).
+      else if ((focused.outline || (focused.shadow && !plain.shadow)) && focused.indicatorContrast !== null && focused.indicatorContrast < 3 && focused.border === plain.border && focused.bg === plain.bg && focused.parent === plain.parent)
+        findings.push({ kind: 'focus', text: `focus indicator contrast ${Math.round(focused.indicatorContrast * 100) / 100}:1 (needs 3:1) on ${focused.tag} "${focused.name}"` })
       stops.push(focused.name)
       if (stops.length > 3 && stops.at(-1) === stops[0]) break
     }

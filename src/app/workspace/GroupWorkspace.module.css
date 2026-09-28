@@ -393,6 +393,7 @@
 
   /* Fade the right edge so a clipped tab reads as "more to scroll". */
   .tabs {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
     mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
     padding-right: 28px;
   }

@@ -27,6 +27,7 @@ node scripts/ops/prod.mjs identify --batch batch4
 node scripts/ops/prod.mjs preflight --batch batch4 "$env:TEMP\splitchat-evidence\batch4"
 ```
 
+`preflight` creates the evidence folder; `verify` and `audit` write into it.
 Must print `PREFLIGHT PASSED`:
 
 - live schema == `supabase/ops/batch3b_expected_schema.sql` exactly;

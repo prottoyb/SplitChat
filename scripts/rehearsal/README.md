@@ -17,6 +17,7 @@ Production operations use `scripts/ops/prod.mjs`, run by the operator.
 | `render-review.mjs <dir> [--routes f]` | screenshots at 1440 / 900 / 390 with seeded data |
 | `../e2e/e2e.mjs` (`npm run test:e2e`) | 20 critical user journeys in real Chrome |
 | `../e2e/a11y.mjs` (`npm run test:a11y`) | rendered WCAG AA-oriented audit |
+| `browser-guard-selftest.mjs` | the browser guard itself: a WebSocket or request outside the allowlist, or any URL with the production ref, is a violation; allowed traffic is not (needs only Chrome; contacts no project) |
 | `dev.mjs readonly ../../supabase/ops/security_audit.sql` | catalog security audit (every check 0 rows) |
 | `compare-dumps.mjs`, `dev.mjs dump` | Dev schema identical to the harness |
 

@@ -95,6 +95,9 @@ current phase is in `docs/phase-state.md`.
   - Accessibility and responsive validation.
 - **Dependencies:** Phases 1–7.
 - **Gate:** start and completion.
+- **Status:** complete on `feature/phase8-hardening`, at the completion gate
+  (`docs/phase8/plan.md`). Production batch 4 (M16–M23) prepared and
+  rehearsed on SplitChat-Dev, not executed; not merged; not deployed.
 
 ## Phase 9 — Portfolio/release readiness
 - **Outcome:**
