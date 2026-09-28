@@ -97,6 +97,18 @@ describe('DashboardPage', () => {
     expect(within(link('Club')).getByText('You are settled up')).toBeInTheDocument()
   })
 
+  it("loads only this month's expenses for the monthly summary", async () => {
+    supabaseMock.setTable('groups', [])
+    supabaseMock.setTable('group_events', [])
+    supabaseMock.setTable('expenses', [])
+    renderPage()
+    await screen.findByText(/Nothing has happened yet/)
+    const calls = supabaseMock.queries.find((q) => q.table === 'expenses')?.calls ?? []
+    const month = new Date()
+    const first = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`
+    expect(calls).toContainEqual({ method: 'gte', args: ['expense_date', first] })
+  })
+
   it('shows honest empty states and no invented balances', async () => {
     supabaseMock.setTable('groups', [])
     supabaseMock.setTable('group_events', [])

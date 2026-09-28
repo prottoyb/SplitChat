@@ -38,7 +38,9 @@ function nextStep(group: GroupDetail, myNet: number | null, expenseCount: number
 /** A group's landing section: what to do next, recent expenses and activity, and who is in it. */
 export function OverviewSection({ group, userId, myNet }: { group: GroupDetail; userId: string; myNet: number | null }) {
   const base = `/groups/${group.id}`
-  const expenses = useResource(`overview-expenses:${group.id}:${userId}`, () => listMyExpenses(userId, { groupId: group.id }))
+  const expenses = useResource(`overview-expenses:${group.id}:${userId}`, () =>
+    listMyExpenses(userId, { groupId: group.id, limit: RECENT_EXPENSES }),
+  )
   const activity = useResource(`overview-activity:${group.id}:${userId}`, () =>
     listActivity({ groupId: group.id, limit: RECENT_EVENTS }),
   )
@@ -71,7 +73,7 @@ export function OverviewSection({ group, userId, myNet }: { group: GroupDetail; 
             ) : expenses.data.length === 0 ? (
               <p className={styles.muted}>No expenses yet.</p>
             ) : (
-              <ExpenseList expenses={expenses.data.slice(0, RECENT_EXPENSES)} userId={userId} showGroup={false} />
+              <ExpenseList expenses={expenses.data} userId={userId} showGroup={false} />
             )}
           </article>
 

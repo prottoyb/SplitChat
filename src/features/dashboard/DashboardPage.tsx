@@ -26,7 +26,8 @@ async function loadDashboard(userId: string): Promise<Result<DashboardData>> {
   const [groups, activity, expenses] = await Promise.all([
     listMyGroups(userId),
     listActivity({ limit: 30 }),
-    listMyExpenses(userId),
+    // Only this month's expenses feed the summary; never the whole history.
+    listMyExpenses(userId, { since: `${localIsoDate().slice(0, 7)}-01` }),
   ])
   if (!groups.ok) return groups
   if (!activity.ok) return activity

@@ -39,15 +39,23 @@ export type ExpenseListItem = {
 
 /**
  * Expenses in the caller's active groups (RLS), newest first, with group
- * names, payer names and the caller's own share; optionally one group only.
+ * names, payer names and the caller's own share. Optionally one group only,
+ * dated on or after `since` (YYYY-MM-DD), and at most `limit` of them — so a
+ * summary or preview never loads a group's whole history.
  */
-export function listMyExpenses(userId: string, { groupId }: { groupId?: string } = {}): Promise<Result<ExpenseListItem[]>> {
+export function listMyExpenses(
+  userId: string,
+  { groupId, since, limit }: { groupId?: string; since?: string; limit?: number } = {},
+): Promise<Result<ExpenseListItem[]>> {
   return guard(async () => {
     let query = supabase.from('expenses').select(EXPENSE_COLUMNS)
     if (groupId) query = query.eq('group_id', groupId)
-    const expenses = await query
+    if (since) query = query.gte('expense_date', since)
+    let ordered = query
       .order('expense_date', { ascending: false })
       .order('created_at', { ascending: false })
+    if (limit) ordered = ordered.limit(limit)
+    const expenses = await ordered
     if (expenses.error) return failureFrom(expenses.error, 'Unable to load your expenses.')
     const rows = (expenses.data ?? []) as ExpenseRow[]
     if (rows.length === 0) return ok([])

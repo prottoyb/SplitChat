@@ -143,6 +143,14 @@ describe('GroupWorkspace sections', () => {
     expect(filters).toEqual([{ method: 'eq', args: ['group_id', 'g1'] }])
   })
 
+  it('loads only the few recent expenses the overview shows, not the whole history', async () => {
+    renderAt('/groups/g1')
+    await screen.findByRole('link', { name: 'Groceries' })
+    const calls = queriesOf('expenses')[0].calls
+    expect(calls).toContainEqual({ method: 'limit', args: [5] })
+    expect(calls).toContainEqual({ method: 'eq', args: ['group_id', 'g1'] })
+  })
+
   it('suggests settling up on the overview when I owe money', async () => {
     renderAt('/groups/g1')
 
