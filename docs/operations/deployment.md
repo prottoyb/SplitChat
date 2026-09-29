@@ -78,9 +78,11 @@ Changing production Auth settings is a human-gated action (CLAUDE.md).
      Without M24, group rename fails.
    - The Phase 9 Auth settings above are completed and tested. Without
      them, password reset fails.
-   - The reset-link race in `ResetPasswordPage` is fixed and the E2E
-     genuine reset-link journey passes. It fails on Dev as of 2026-09-29;
-     see `docs/phase9/release-batch5.md`.
+   - The reset-link race fix must be in the release commit. It is fixed on
+     `fix/password-recovery-race` (QA/Security PASS, Senior APPROVE; the
+     E2E genuine reset-link journey passes on Dev, 2026-09-29) but **not
+     yet merged to `main`**. See `docs/phase9/release-batch5.md`, "Reset-link
+     race fix".
 3. Build the frontend from the release commit (must contain `a5ed4e8`, the
    integer-cents frontend, and the Phase 8 commits).
 4. Deploy; smoke-test sign-in, a group, an expense, balances, chat, and

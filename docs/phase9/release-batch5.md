@@ -247,6 +247,115 @@ About the E2E failure:
   - It fails safe: no bypass.
   - It blocks the **Phase 9 frontend release**, not batch 5.
   - It needs its own fix branch with QA/Security review.
+  - **Resolved on `fix/password-recovery-race`** (not yet merged); see
+    below.
+
+## Reset-link race fix (2026-09-29, `fix/password-recovery-race`)
+
+Frontend only: no database, Auth setting or dependency change. Production is
+untouched and the frontend is not deployed.
+
+**Root cause (traced in auth-js 2.112.3 and reproduced on SplitChat-Dev):**
+
+- auth-js `_initialize()` validates the link's tokens (`_getUser`), saves
+  the session and returns, which resolves `initializePromise` (and so
+  `getSession()`).
+- It emits `PASSWORD_RECOVERY` afterwards, in a `setTimeout(0)`.
+- `ResetPasswordPage` is lazy-loaded and read the recovery flag once, when
+  `getSession()` resolved.
+- When the page mounted before Auth finished, it decided "invalid or
+  expired" between those two points and never re-checked.
+- When the page mounted after the event, it worked, so the failure depended
+  on timing.
+- A Dev trace with Auth's `/user` call held for 1.5 s: old code 2/2 invalid,
+  fix 2/2 form.
+
+**Second defect found while tracing (same class as the Phase 9 CRITICAL):**
+
+- The recovery flag was a module boolean that was never cleared.
+- After a reset the page signs out and navigates in-app to `/login`.
+- A password sign-in in that same page load could then reopen the reset
+  form without the current password.
+
+**Fix:**
+
+- The page subscribes to the recovery event before reading the session.
+- Once the session is known, it waits up to 2 s for the event.
+- "Checking" is capped at 20 s, and no session means invalid at once.
+- Only the event unlocks the form; the URL never does.
+- The recovery state is bound to the recovery session's `session_id` claim
+  and cleared on sign-out.
+- It is not cleared on `SIGNED_IN`, which auth-js re-emits for the same
+  session when the tab becomes visible.
+- The status text is one live region, and the checking state offers "Back
+  to sign in".
+
+**Security model after the fix:**
+
+- The form appears only when the current session is the session named by a
+  `PASSWORD_RECOVERY` event on this page load, and there has been no
+  sign-out since.
+- auth-js emits that event only after the Auth server accepted the link's
+  tokens.
+- `#type=recovery`, a direct visit, an ordinary session and a later
+  sign-in never unlock the form.
+- Accepted residual (QA/Security, LOW), unchanged since `8d68eae`:
+  - Someone who already holds a valid access token can hand-craft a
+    callback URL with that token, or call `updateUser` directly.
+  - The server-side control is "Secure password change". Enabling and
+    confirming it is part of the production Auth gate (MEDIUM, carried
+    over).
+
+**Regression tests:**
+
+- `src/shared/api/supabase.test.ts`: event-only unlock, `session_id`
+  binding, surviving same-session `SIGNED_IN`, no stale state after
+  sign-out and a new sign-in, and fail-safe on unreadable tokens.
+- `src/features/auth/pages/AccountPages.test.tsx`:
+  - a late event unlocks the form;
+  - an early event unlocks the form;
+  - forged hash, direct visit, ordinary session and stale recovery are
+    refused;
+  - the 20 s cap;
+  - an event after "invalid" still unlocks the form;
+  - unmount cleanup.
+- The race and stale-state tests fail on the old code.
+- E2E on Dev (`scripts/e2e/e2e.mjs`, using a new `delays` option in
+  `browser.mjs` to force the losing order):
+  - a genuine link with slow Auth shows the form, the new password is set,
+    and sign-in with it works;
+  - an in-app visit after that sign-in offers no form;
+  - a used link offers no form, and a fresh one does;
+  - direct visits offer no form, signed in or not;
+  - a hand-typed `#type=recovery` offers no form.
+- `scripts/e2e/a11y.mjs` audits the checking, form and signed-in states.
+
+**Validation (head `d8f7e12`):**
+
+- lint ✅
+- build ✅
+- Vitest ✅ **658/658** (51 files)
+- E2E on Dev ✅ **27/27**
+- a11y ✅ 36 page views, **0 findings**
+- One earlier E2E run timed out on the Smart Expense proposal (Realtime
+  timing, no auth code involved). It passed on the rerun and on the final
+  run.
+
+**Reviews (independent):**
+
+- **QA/Security: PASS** on `6a6b474`, re-confirmed on `d8f7e12`, no
+  CRITICAL or HIGH.
+  - The own-token residual is acceptable, LOW; no client hardening is
+    warranted.
+  - MEDIUM, carried over: verify "Secure password change" in production.
+  - LOW (comment on the decoded claim) fixed; OPTIONAL (held test requests
+    not cancelled) accepted.
+- **Senior Review: APPROVE** on `6a6b474`, re-confirmed on `d8f7e12`.
+  - The HIGH above is **closed**.
+  - LOWs fixed: late-event comment and test, unmount test, a11y
+    `try/finally`.
+  - LOW accepted: signing out in another tab while the form is open leaves
+    it displayed; the server rejects the update and the normal error shows.
 
 ## Runbook (operator's own PowerShell; `DB_URL` = production session pooler, port 5432)
 
