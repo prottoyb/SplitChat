@@ -1,22 +1,22 @@
 .successMessage,
 .errorMessage {
   margin-bottom: 22px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 13px 15px;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .successMessage {
-  border: 1px solid #cde7d7;
-  color: #297149;
-  background: #f1faf5;
+  border: 1px solid var(--success-border);
+  color: var(--success-fg);
+  background: var(--success-subtle-bg);
 }
 
 .errorMessage {
-  border: 1px solid #efd0d0;
-  color: #a13f3f;
-  background: #fff4f4;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
 }
 
 .contentGrid {
@@ -26,10 +26,10 @@
 }
 
 .panel {
-  border: 1px solid #e4e6eb;
-  border-radius: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .panelHeader {
@@ -42,7 +42,7 @@
 
 .panelTitle {
   margin: 2px 0 0;
-  color: #1d1f27;
+  color: var(--text-primary);
   font-size: 19px;
 }
 
@@ -51,9 +51,9 @@
   min-width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 999px;
-  color: #6750d8;
-  background: #f1efff;
+  border-radius: var(--radius-pill);
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 750;
 }
@@ -68,7 +68,7 @@
   align-items: center;
   gap: 13px;
   padding: 16px 0;
-  border-top: 1px solid #eff0f3;
+  border-top: 1px solid var(--border-default);
 }
 
 .memberRow:first-child {
@@ -81,9 +81,9 @@
   width: 40px;
   height: 40px;
   place-items: center;
-  border-radius: 12px;
-  color: #654bea;
-  background: #efecff;
+  border-radius: var(--radius-md);
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 800;
 }
@@ -103,20 +103,20 @@
   display: block;
   overflow: hidden;
   margin-bottom: 4px;
-  color: #292b34;
+  color: var(--text-primary);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .memberInfo span {
-  color: #6b707c;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .ownerBadge,
 .memberBadge {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px 9px;
   font-size: 12px;
   font-weight: 800;
@@ -125,18 +125,18 @@
 }
 
 .ownerBadge {
-  color: #654bd5;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
 }
 
 .memberBadge {
-  color: #5d6575;
-  background: #f0f1f4;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
 }
 
 .panelDescription {
   margin: -4px 0 22px;
-  color: #696f7a;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.65;
 }
@@ -152,7 +152,7 @@
 }
 
 .field span {
-  color: #383b46;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 650;
 }
@@ -161,19 +161,20 @@
   width: 100%;
   height: 47px;
   box-sizing: border-box;
-  border: 1px solid #dfe1e7;
-  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   outline: none;
   padding: 0 14px;
-  color: #20222a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font-family: inherit;
   font-size: 14px;
 }
 
 .field input:focus {
-  border-color: #7357ff;
-  box-shadow: 0 0 0 3px rgba(115, 87, 255, 0.11);
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
 }
 
 .addMemberForm button {
@@ -182,22 +183,22 @@
 
 .infoBox {
   margin-top: 22px;
-  border: 1px solid #e7e5f5;
-  border-radius: 12px;
+  border: 1px solid var(--brand-subtle-border);
+  border-radius: var(--radius-md);
   padding: 14px;
-  background: #faf9ff;
+  background: var(--brand-subtle-bg-hover);
 }
 
 .infoBox strong {
   display: block;
   margin-bottom: 5px;
-  color: #51469a;
+  color: var(--brand-700);
   font-size: 12px;
 }
 
 .infoBox p {
   margin: 0;
-  color: #706f79;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -214,8 +215,8 @@
   place-items: center;
   margin: 0 auto 16px;
   border-radius: 14px;
-  color: #6d51ef;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 19px;
   font-weight: 750;
 }
@@ -223,13 +224,13 @@
 .memberNotice .noticeTitle {
   margin: 0 0 8px;
   font-weight: 700;
-  color: #252731;
+  color: var(--text-primary);
   font-size: 15px;
 }
 
 .memberNotice p {
   margin: 0;
-  color: #6a6e77;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -244,18 +245,18 @@
 
 .stateCard h2 {
   margin: 0 0 8px;
-  color: #22242c;
+  color: var(--text-primary);
 }
 
 .stateCard p {
   max-width: 430px;
   margin: 0 0 18px;
-  color: #6b707a;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .backLink {
-  color: #6549ed;
+  color: var(--brand-600);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -286,17 +287,17 @@
 }
 
 .removeButton {
-  border: 1px solid #ead5d5;
-  border-radius: 8px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
   padding: 6px 9px;
-  color: #a34848;
-  background: #fffafa;
+  color: var(--danger-fg);
+  background: var(--danger-subtle-bg);
   font-size: 12px;
   font-weight: 700;
 }
 
 .removeButton:hover {
-  background: #fff1f1;
+  background: var(--danger-subtle-bg);
 }
 
 .confirmActions {
@@ -306,30 +307,30 @@
 }
 
 .confirmRemoveButton {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 7px 9px;
-  color: #ffffff;
-  background: #ae4040;
+  color: var(--text-on-brand);
+  background: var(--danger-bg);
   font-size: 12px;
   font-weight: 750;
 }
 
 .confirmRemoveButton:hover:not(:disabled) {
-  background: #963535;
+  background: var(--danger-bg-hover);
 }
 
 .cancelActionButton {
-  border: 1px solid #e0e2e7;
-  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   padding: 7px 9px;
-  color: #686d79;
-  background: #ffffff;
+  color: var(--text-secondary);
+  background: var(--surface-card);
   font-size: 12px;
   font-weight: 700;
 }
 
 .cancelActionButton:hover:not(:disabled) {
-  background: #f5f6f8;
+  background: var(--surface-subtle);
 }
 
 .confirmRemoveButton:disabled,
@@ -345,41 +346,41 @@
 .leaveSection {
   margin-top: 18px;
   padding-top: 18px;
-  border-top: 1px solid #eeeef2;
+  border-top: 1px solid var(--border-default);
 }
 
 .leaveButton {
   width: 100%;
-  border: 1px solid #e7caca;
-  border-radius: 10px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
   padding: 11px 14px;
-  color: #a33d3d;
-  background: #ffffff;
+  color: var(--danger-fg);
+  background: var(--surface-card);
   font-size: 12px;
   font-weight: 750;
 }
 
 .leaveButton:hover {
-  background: #fff5f5;
+  background: var(--danger-subtle-bg);
 }
 
 .leaveConfirmation {
-  border: 1px solid #edd0d0;
-  border-radius: 12px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
   padding: 15px;
-  background: #fff8f8;
+  background: var(--danger-subtle-bg);
 }
 
 .leaveConfirmation strong {
   display: block;
   margin-bottom: 6px;
-  color: #8d3434;
+  color: var(--danger-fg);
   font-size: 12px;
 }
 
 .leaveConfirmation p {
   margin: 0 0 14px;
-  color: #836a6a;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -391,16 +392,16 @@
 
 .confirmLeaveButton {
   flex: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 9px 10px;
-  color: #ffffff;
-  background: #aa3d3d;
+  color: var(--text-on-brand);
+  background: var(--danger-bg);
   font-size: 12px;
   font-weight: 750;
 }
 
 .confirmLeaveButton:hover:not(:disabled) {
-  background: #913232;
+  background: var(--danger-bg-hover);
 }
 
 .leaveActions .cancelActionButton {

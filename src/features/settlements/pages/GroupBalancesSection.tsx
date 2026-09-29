@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { fail, type Failure, type Result } from '../../../shared/api/result'
 import { localIsoDate } from '../../../shared/domain/dates'
 import { centsToDecimalText, formatCents } from '../../../shared/domain/money'
@@ -62,6 +63,37 @@ export function GroupBalancesSection({
   // the payment already recorded instead of recording it twice.
   const requestId = useRef(newRequestId())
   const formRef = useRef<HTMLElement>(null)
+
+  // `?settle=<from>~<to>` (from the Overview or the dashboard) opens the
+  // form pre-filled with that suggested payment, once, if the caller may
+  // record it; the parameter is then dropped from the URL either way.
+  const [search, setSearch] = useSearchParams()
+  const settle = search.get('settle')
+  const [handledSettle, setHandledSettle] = useState<string | null>(null)
+  const [focusForm, setFocusForm] = useState(false)
+  if (settle && page.status === 'ready' && handledSettle !== settle) {
+    setHandledSettle(settle)
+    const [from, to] = settle.split('~')
+    const t = page.data.plan.find((p) => p.from === from && p.to === to)
+    if (t && (group.myRole === 'owner' || t.from === userId || t.to === userId)) {
+      setPrefill((p) => ({ key: p.key + 1, values: { fromUserId: t.from, toUserId: t.to, amount: centsToDecimalText(t.amountCents) } }))
+      setFocusForm(true)
+    }
+  }
+  useEffect(() => {
+    if (!handledSettle) return
+    setSearch((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('settle')
+      return next
+    }, { replace: true })
+  }, [handledSettle, setSearch])
+  useEffect(() => {
+    if (!focusForm) return
+    requestId.current = newRequestId()
+    formRef.current?.scrollIntoView?.({ block: 'start' })
+    formRef.current?.focus({ preventScroll: true })
+  }, [focusForm, prefill.key])
 
   const header = (
     <SectionHeader
@@ -168,46 +200,36 @@ export function GroupBalancesSection({
         </p>
       )}
 
+      {/* DOM order is the phone reading order (suggestions, then the form they
+          fill, then everyone's balance); wide screens place the form beside. */}
       <section className={styles.grid}>
-        <div className={styles.column}>
-          <article className={styles.panel}>
-            <p className="eyebrow">SETTLE UP</p>
-            <h4>Suggested payments</h4>
-            {plan.length === 0 ? (
-              <p className={styles.muted}>Everyone is settled up. Nothing needs to be paid.</p>
-            ) : (
-              <>
-                <p className={styles.muted}>
-                  The fewest payments that settle everyone. Paying part of an amount is fine.
-                </p>
-                <RepaymentPlan
-                  plan={plan}
-                  names={names}
-                  currentUserId={userId}
-                  action={(t) =>
-                    canRecord(t) ? (
-                      <button type="button" className={styles.inlineButton} onClick={() => startFromPlan(t)}>
-                        Record
-                      </button>
-                    ) : null
-                  }
-                />
-              </>
-            )}
-          </article>
+        <article className={`${styles.panel} ${styles.suggestPanel}`}>
+          <p className="eyebrow">SETTLE UP</p>
+          <h4>Suggested payments</h4>
+          {plan.length === 0 ? (
+            <p className={styles.muted}>Everyone is settled up. Nothing needs to be paid.</p>
+          ) : (
+            <>
+              <p className={styles.muted}>
+                The fewest payments that settle everyone. Paying part of an amount is fine.
+              </p>
+              <RepaymentPlan
+                plan={plan}
+                names={names}
+                currentUserId={userId}
+                action={(t) =>
+                  canRecord(t) ? (
+                    <button type="button" className={styles.inlineButton} onClick={() => startFromPlan(t)}>
+                      Record
+                    </button>
+                  ) : null
+                }
+              />
+            </>
+          )}
+        </article>
 
-          <article className={styles.panel}>
-            <p className="eyebrow">BALANCES</p>
-            <h4>Everyone&apos;s balance</h4>
-            {balances.people.length === 0 ? (
-              <p className={styles.muted}>No expenses yet, so nobody owes anything.</p>
-            ) : (
-              <BalanceList people={balances.people} names={names} currentUserId={userId} activeMemberIds={activeMemberIds} />
-            )}
-          </article>
-        </div>
-
-        <article className={styles.panel} ref={formRef} tabIndex={-1} aria-label="Record a payment">
+        <article className={`${styles.panel} ${styles.formPanel}`} ref={formRef} tabIndex={-1} aria-label="Record a payment">
           <p className="eyebrow">RECORD A PAYMENT</p>
           <h4>Someone paid someone back?</h4>
           <SettlementForm
@@ -218,6 +240,16 @@ export function GroupBalancesSection({
             initial={initial}
             onSubmit={handleRecord}
           />
+        </article>
+
+        <article className={`${styles.panel} ${styles.balancePanel}`}>
+          <p className="eyebrow">BALANCES</p>
+          <h4>Everyone&apos;s balance</h4>
+          {balances.people.length === 0 ? (
+            <p className={styles.muted}>No expenses yet, so nobody owes anything.</p>
+          ) : (
+            <BalanceList people={balances.people} names={names} currentUserId={userId} activeMemberIds={activeMemberIds} />
+          )}
         </article>
       </section>
 

@@ -10,10 +10,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid #eceef2;
-  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .who {
@@ -26,15 +26,15 @@
 }
 
 .who strong {
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .tag {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 8px;
-  color: #5f6470;
-  background: #f1f2f5;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-size: 12px;
   font-weight: 650;
 }
@@ -46,27 +46,27 @@
 }
 
 .owes {
-  color: #a13f3f;
+  color: var(--danger-fg);
 }
 
 .owed {
-  color: #297149;
+  color: var(--success-fg);
 }
 
 .settled {
-  color: #5f6470;
+  color: var(--text-secondary);
 }
 
 .sentence {
   flex: 1;
   margin: 0;
-  color: #3b3f4a;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .planAmount {
   font-weight: 750;
-  color: #1c1e26;
+  color: var(--text-primary);
 }
 
 @media (max-width: 560px) {

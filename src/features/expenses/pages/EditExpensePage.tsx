@@ -79,10 +79,9 @@ function EditExpensePage() {
           <p className="eyebrow">EDIT EXPENSE</p>
           <h2>Edit expense</h2>
           <p className="subtitle">
-            {groupName} · Changes are saved as a whole and the split is recalculated.
+            {groupName} · Changes are saved as a whole and the equal split is recalculated.
           </p>
         </div>
-        <div className={styles.splitBadge}>Equal split</div>
       </header>
 
       {!expense.canManage && (

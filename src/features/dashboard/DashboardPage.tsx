@@ -8,9 +8,11 @@ import { useAuth } from '../auth'
 import { balanceTone, loadMyBalance, positionText } from '../balances'
 import { listMyExpenses, type ExpenseListItem } from '../expenses'
 import { listMyGroups, type GroupSummary } from '../groups'
+import { listActionableProposals, type Candidate } from '../smart-expense'
 import { ok, type Result } from '../../shared/api/result'
 import { attentionItems, type AttentionItem } from './domain/attention'
-import { lastActivityByGroup, monthSummary, recentChangeCount } from './domain/summary'
+import { needsYouItems, overallPosition, type NeedsYouItem } from './domain/needsYou'
+import { lastActivityByGroup, monthSummary } from './domain/summary'
 import styles from './DashboardPage.module.css'
 
 const RECENT_LIMIT = 8
@@ -20,6 +22,8 @@ type DashboardData = {
   groups: GroupSummary[]
   activity: ActivityPage
   expenses: ExpenseListItem[]
+  /** Null when proposals could not be loaded: the rest of the dashboard still shows. */
+  proposals: Candidate[] | null
 }
 
 async function loadDashboard(userId: string): Promise<Result<DashboardData>> {
@@ -32,7 +36,9 @@ async function loadDashboard(userId: string): Promise<Result<DashboardData>> {
   if (!groups.ok) return groups
   if (!activity.ok) return activity
   if (!expenses.ok) return expenses
-  return ok({ groups: groups.value, activity: activity.value, expenses: expenses.value })
+  const owned = groups.value.filter((g) => g.myRole === 'owner').map((g) => g.id)
+  const proposals = await listActionableProposals(userId, owned)
+  return ok({ groups: groups.value, activity: activity.value, expenses: expenses.value, proposals: proposals.ok ? proposals.value : null })
 }
 
 /** Groups with the most recent activity first (the ones the dashboard lists). */
@@ -42,7 +48,7 @@ function visibleGroups(groups: GroupSummary[], lastActivity: ReadonlyMap<string,
     .slice(0, GROUPS_SHOWN)
 }
 
-/** The caller's position in each listed group; one failed group never fails the others. */
+/** The caller's position in each group; one failed group never fails the others. */
 async function loadPositions(groupIds: string[], userId: string): Promise<Result<Map<string, Result<number>>>> {
   const results = await Promise.all(groupIds.map((id) => loadMyBalance(id, userId)))
   return ok(new Map(groupIds.map((id, i) => [id, results[i]])))
@@ -53,6 +59,31 @@ function GroupPosition({ position }: { position: Result<number> | undefined }) {
   if (!position.ok) return <span className={styles.positionMuted}>Balance unavailable</span>
   return <span className={styles[balanceTone(position.value)]}>{positionText(position.value)}</span>
 }
+
+const quoted = (text: string | null) => (text ? `“${text}”` : 'A proposal')
+
+function needsYouText(item: NeedsYouItem) {
+  if (item.kind === 'you_owe') {
+    return (
+      <>
+        You owe <strong>{formatCents(item.amountCents)}</strong> in <strong>{item.groupName}</strong>
+      </>
+    )
+  }
+  const amount = item.amountCents !== null ? ` ${formatCents(item.amountCents)}` : ''
+  return item.missing.length === 0 ? (
+    <>
+      <strong>{quoted(item.description)}</strong>{amount} is ready to review in <strong>{item.groupName}</strong>
+    </>
+  ) : (
+    <>
+      <strong>{quoted(item.description)}</strong>{amount} needs {item.missing.join(', ')} in <strong>{item.groupName}</strong>
+    </>
+  )
+}
+
+const needsYouAction = (item: NeedsYouItem) =>
+  item.kind === 'you_owe' ? 'Settle up' : item.missing.length === 0 ? 'Review' : 'Add details'
 
 function attentionText(item: AttentionItem) {
   switch (item.kind) {
@@ -81,10 +112,10 @@ function DashboardPage() {
   const { session, profile } = useAuth()
   const userId = session?.user.id ?? ''
   const data = useResource(userId ? `dashboard:${userId}` : null, () => loadDashboard(userId))
-  const shownIds =
-    data.status === 'ready' ? visibleGroups(data.data.groups, lastActivityByGroup(data.data.activity.events)).map((g) => g.id) : []
-  const positions = useResource(shownIds.length ? `positions:${userId}:${shownIds.join(',')}` : null, () =>
-    loadPositions(shownIds, userId),
+  // Every group's position: the list shows a few, the overall figure needs all.
+  const groupIds = data.status === 'ready' ? data.data.groups.map((g) => g.id) : []
+  const positions = useResource(groupIds.length ? `positions:${userId}:${groupIds.join(',')}` : null, () =>
+    loadPositions(groupIds, userId),
   )
   const firstName = profile?.full_name?.trim().split(/\s+/)[0]
 
@@ -120,8 +151,10 @@ function DashboardPage() {
 
   const { groups, activity, expenses } = data.data
   const month = monthSummary(expenses, localIsoDate())
-  const changes = recentChangeCount(activity.events, 7)
-  const attention = attentionItems(activity, groups, userId).slice(0, 5)
+  const positionMap = positions.status === 'ready' ? positions.data : null
+  const overall = positionMap ? overallPosition(positionMap) : null
+  const actions = needsYouItems(data.data.proposals ?? [], groups, positionMap)
+  const attention = attentionItems(activity, groups, userId).slice(0, Math.max(0, 6 - actions.length))
   const lastActivity = lastActivityByGroup(activity.events)
   const recent: ActivityPage = { ...activity, events: activity.events.slice(0, RECENT_LIMIT), next: null }
   const sortedGroups = visibleGroups(groups, lastActivity)
@@ -150,11 +183,28 @@ function DashboardPage() {
           </div>
         </article>
         <article className="summary-card">
-          <div className="summary-icon" aria-hidden="true">↻</div>
+          <div className="summary-icon" aria-hidden="true">±</div>
           <div>
-            <p>Changes this week</p>
-            <h3>{changes}</h3>
-            <span>Across all your groups</span>
+            <p>Overall</p>
+            {overall === null ? (
+              <h3 className={styles.positionMuted}>{positions.status === 'error' ? 'Unavailable' : 'Checking…'}</h3>
+            ) : (
+              <h3 className={styles[balanceTone(overall.netCents)]}>
+                {overall.netCents > 0 ? `+${formatCents(overall.netCents)}` : overall.netCents < 0 ? `−${formatCents(-overall.netCents)}` : formatCents(0)}
+              </h3>
+            )}
+            <span>
+              {overall === null
+                ? 'Across all your groups'
+                : overall.netCents > 0
+                  ? `You are owed, across ${overall.openGroups} ${overall.openGroups === 1 ? 'group' : 'groups'}`
+                  : overall.netCents < 0
+                    ? `You owe, across ${overall.openGroups} ${overall.openGroups === 1 ? 'group' : 'groups'}`
+                    : overall.openGroups > 0
+                      ? `Even overall; settle within each group`
+                      : 'You are settled up everywhere'}
+              {overall && overall.unavailable > 0 && ` · ${overall.unavailable} unavailable`}
+            </span>
           </div>
         </article>
       </section>
@@ -184,14 +234,22 @@ function DashboardPage() {
           <article className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">NEEDS YOUR ATTENTION</p>
+                <p className="eyebrow">NEEDS YOU</p>
                 <h3>For you</h3>
               </div>
             </div>
-            {attention.length === 0 ? (
-              <p className={styles.allClear}>You're all caught up.</p>
+            {actions.length === 0 && attention.length === 0 ? (
+              <p className={styles.allClear}>Nothing needs you right now.</p>
             ) : (
               <ul className={styles.attentionList}>
+                {actions.map((item) => (
+                  <li key={item.key}>
+                    <Link to={item.to} className={styles.attentionItem}>
+                      <p className={styles.attentionText}>{needsYouText(item)}</p>
+                      <span className={styles.actionLabel}>{needsYouAction(item)} →</span>
+                    </Link>
+                  </li>
+                ))}
                 {attention.map((item) => (
                   <li key={item.key}>
                     <Link to={item.to} className={styles.attentionItem}>
@@ -201,6 +259,11 @@ function DashboardPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {data.data.proposals === null && (
+              <p className={styles.allClear} role="status">
+                Expense proposals could not be checked. <button type="button" className={styles.inlineRetry} onClick={data.reload}>Try again</button>
+              </p>
             )}
           </article>
 

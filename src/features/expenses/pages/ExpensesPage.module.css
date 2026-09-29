@@ -6,16 +6,16 @@
 }
 
 .statCard {
-  border: 1px solid #e4e6eb;
-  border-radius: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 20px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .statCard > span {
   display: block;
   margin-bottom: 10px;
-  color: #6c707a;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.05em;
@@ -25,22 +25,22 @@
 .statCard strong {
   display: block;
   margin-bottom: 6px;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 21px;
 }
 
 .statCard p {
   margin: 0;
-  color: #6b6e76;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .expensePanel {
-  border: 1px solid #e4e6eb;
-  border-radius: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .panelHeader {
@@ -53,7 +53,7 @@
 
 .panelHeader h3 {
   margin: 2px 0 0;
-  color: #1d1f27;
+  color: var(--text-primary);
   font-size: 19px;
 }
 
@@ -62,9 +62,9 @@
   min-width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 999px;
-  color: #6750d8;
-  background: #f1efff;
+  border-radius: var(--radius-pill);
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 750;
 }
@@ -85,22 +85,22 @@
   place-items: center;
   margin-bottom: 18px;
   border-radius: 17px;
-  color: #654bea;
-  background: #efecff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 22px;
   font-weight: 800;
 }
 
 .emptyState h3 {
   margin: 2px 0 8px;
-  color: #242630;
+  color: var(--text-primary);
   font-size: 19px;
 }
 
 .emptyState > p:not(.eyebrow) {
   max-width: 390px;
   margin: 0 0 20px;
-  color: #6b7079;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.65;
 }
@@ -120,21 +120,21 @@
   place-items: center;
   margin: 0 auto 16px;
   border-radius: 14px;
-  color: #6d51ef;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 19px;
   font-weight: 750;
 }
 
 .stateCard h2 {
   margin: 0 0 8px;
-  color: #22242c;
+  color: var(--text-primary);
 }
 
 .stateCard p {
   max-width: 430px;
   margin: 0 0 18px;
-  color: #6b707a;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 

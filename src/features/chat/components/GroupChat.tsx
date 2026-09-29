@@ -76,6 +76,8 @@ export type ChatExtensions = {
   onMessagesShown?: (ids: readonly number[]) => void
   /** Content shown as its own list item right after a message (never inside the bubble). */
   renderAfterMessage?: (message: ChatMessage) => ReactNode
+  /** A strip above the messages (e.g. open proposals); nothing when it returns null. */
+  renderBanner?: () => ReactNode
 }
 
 /**
@@ -98,7 +100,7 @@ export function GroupChat({ groupId, userId, extensions = {} }: { groupId: strin
   const lastEpoch = useRef(0)
 
   const itemCount = timeline.messages.length + timeline.pending.length
-  const { onMessagesShown, renderAfterMessage } = extensions
+  const { onMessagesShown, renderAfterMessage, renderBanner } = extensions
   useEffect(() => {
     if (timeline.messages.length) onMessagesShown?.(timeline.messages.map((m) => m.id))
   }, [timeline.messages, onMessagesShown])
@@ -232,11 +234,14 @@ export function GroupChat({ groupId, userId, extensions = {} }: { groupId: strin
 
   return (
     <section className={styles.chat} aria-label="Group chat" ref={section}>
-      {timeline.live === 'paused' && (
-        <p className={styles.liveNotice} role="status">
-          Live updates paused — reconnecting. You can still send messages.
-        </p>
-      )}
+      <div className={styles.top}>
+        {timeline.live === 'paused' && (
+          <p className={styles.liveNotice} role="status">
+            Live updates paused — reconnecting. You can still send messages.
+          </p>
+        )}
+        {renderBanner?.()}
+      </div>
 
       <div className={styles.scroller} ref={scroller} onScroll={onScroll}>
         {timeline.hasOlder && (

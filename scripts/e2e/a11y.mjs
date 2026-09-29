@@ -82,6 +82,9 @@ const PAGES = [
   ['expense details', `/expenses/${expenseId}`, true],
   ['new expense', `${g}/expenses/new`, true],
   ['edit proposal', `${g}/proposals/${cand.id}/edit`, true],
+  ['group settings', `${g}/settings`, true],
+  ['profile', '/profile', true],
+  ['reset password (no link)', '/reset-password', false],
 ]
 
 // Colour maths shared by the in-page checks. Backgrounds: solid layers are

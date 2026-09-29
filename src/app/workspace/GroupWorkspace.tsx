@@ -1,25 +1,33 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { useResource } from '../../shared/hooks/useResource'
-import { ErrorState, LoadingState, SECTION_HEADING_ID } from '../../shared/ui'
+import { ErrorState, LoadingState, Menu, SECTION_HEADING_ID } from '../../shared/ui'
 import { useAuth } from '../../features/auth'
 import { balanceTone, loadMyBalance, positionText } from '../../features/balances'
 import { GroupMembersSection, loadGroupDetail } from '../../features/groups'
+import { listActionableProposals } from '../../features/smart-expense'
 import { GroupBalancesSection } from '../../features/settlements'
 import { ActivitySection } from './sections/ActivitySection'
 import { ChatSection } from './sections/ChatSection'
 import { ExpensesSection } from './sections/ExpensesSection'
 import { OverviewSection } from './sections/OverviewSection'
+import { SettingsSection } from './sections/SettingsSection'
 import styles from './GroupWorkspace.module.css'
 
+// Primary sections are tabs (operator decision D2, Phase 9); the secondary
+// pages are reached from the group menu and keep their deep links.
 const SECTIONS = [
   { path: '', label: 'Overview' },
   { path: 'expenses', label: 'Expenses' },
   { path: 'balances', label: 'Balances' },
   { path: 'chat', label: 'Chat' },
-  { path: 'activity', label: 'Activity' },
-  { path: 'members', label: 'Members' },
 ] as const
+
+const SECONDARY: Record<string, string> = {
+  members: 'Members',
+  activity: 'Activity',
+  settings: 'Group settings',
+}
 
 /**
  * Keeps the current section's link in view in the (scrollable) section nav,
@@ -54,6 +62,13 @@ function GroupWorkspace() {
   const group = useResource(ready ? `group:${groupId}:${userId}` : null, () => loadGroupDetail(groupId, userId))
   // A failed position degrades only the position, never the workspace.
   const position = useResource(ready ? `position:${groupId}:${userId}` : null, () => loadMyBalance(groupId, userId))
+  // Open proposals I can act on in this group, for the Chat tab badge (P4).
+  // Re-read on every section change, so it catches up after leaving the chat.
+  const myRole = group.status === 'ready' ? group.data.myRole : null
+  const openProposals = useResource(
+    group.status === 'ready' ? `open-proposals:${groupId}:${userId}:${myRole}:${pathname}` : null,
+    () => listActionableProposals(userId, myRole === 'owner' ? [groupId] : [], { groupId }),
+  )
   const sectionNav = useRef<HTMLElement>(null)
   useSectionFocus(sectionNav, group.status === 'ready')
 
@@ -79,29 +94,61 @@ function GroupWorkspace() {
   const base = `/groups/${groupId}`
   const memberCount = detail.members.length
   const myNet = position.status === 'ready' ? position.data : null
+  const inChat = pathname.startsWith(`${base}/chat`)
+  const openCount = openProposals.status === 'ready' ? openProposals.data.length : 0
+  const secondary = SECONDARY[pathname.slice(base.length + 1).split('/')[0]]
+
+  const groupMenu = (
+    <Menu
+      label="Group options"
+      trigger={<span aria-hidden="true">⋯</span>}
+      triggerClassName={styles.menuButton}
+      items={[
+        { key: 'members', label: <>Members <span className={styles.menuCount}>{memberCount}</span></>, to: `${base}/members` },
+        { key: 'activity', label: 'Activity', to: `${base}/activity` },
+        { key: 'settings', label: 'Group settings', to: `${base}/settings` },
+      ]}
+    />
+  )
 
   return (
     // The Chat tab is a full-height surface: on narrow screens the header
     // compacts so the composer stays reachable (UI review, Phase 6).
-    <div className={`${styles.workspace}${pathname.startsWith(`${base}/chat`) ? ` ${styles.chatMode}` : ''}`}>
+    <div className={`${styles.workspace}${inChat ? ` ${styles.chatMode}` : ''}`}>
       <header className={styles.header}>
         <nav aria-label="Breadcrumb">
           <ol className={styles.breadcrumb}>
             <li>
               <Link to="/groups">Groups</Link>
             </li>
-            <li aria-current="page">{detail.name}</li>
+            {secondary ? (
+              <>
+                <li>
+                  <Link to={base}>{detail.name}</Link>
+                </li>
+                <li aria-current="page">{secondary}</li>
+              </>
+            ) : (
+              <li aria-current="page">{detail.name}</li>
+            )}
           </ol>
         </nav>
 
         <div className={styles.titleRow}>
           <div className={styles.identity}>
             <div className={styles.titleLine}>
+              {inChat && (
+                <Link to={base} className={styles.chatBack} aria-label={`Back to ${detail.name} overview`}>
+                  ←
+                </Link>
+              )}
               <h2>{detail.name}</h2>
               <span className={styles.roleBadge}>{detail.myRole === 'owner' ? 'Owner' : 'Member'}</span>
             </div>
             <p className={styles.meta}>
-              {memberCount} {memberCount === 1 ? 'member' : 'members'}
+              <Link to={`${base}/members`} className={styles.memberLink}>
+                {memberCount} {memberCount === 1 ? 'member' : 'members'}
+              </Link>
               {detail.description && <span className={styles.description}> · {detail.description}</span>}
             </p>
           </div>
@@ -125,6 +172,7 @@ function GroupWorkspace() {
             <Link to={`${base}/expenses/new`} className={`primary-button ${styles.addButton}`}>
               + Add expense
             </Link>
+            {groupMenu}
           </div>
         </div>
 
@@ -137,6 +185,12 @@ function GroupWorkspace() {
               className={({ isActive }) => `${styles.tab}${isActive ? ` ${styles.tabActive}` : ''}`}
             >
               {s.label}
+              {s.path === 'chat' && openCount > 0 && (
+                <span className={styles.tabBadge}>
+                  <span aria-hidden="true">{openCount}</span>
+                  <span className={styles.visuallyHidden}>, {openCount} {openCount === 1 ? 'proposal needs' : 'proposals need'} you</span>
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -152,6 +206,7 @@ function GroupWorkspace() {
           />
           <Route path="chat" element={<ChatSection group={detail} userId={userId} />} />
           <Route path="activity" element={<ActivitySection group={detail} userId={userId} />} />
+          <Route path="settings" element={<SettingsSection group={detail} onSaved={group.reload} />} />
           <Route
             path="members"
             element={

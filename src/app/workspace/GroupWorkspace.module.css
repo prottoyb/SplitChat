@@ -19,7 +19,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 650;
 }
@@ -38,17 +38,17 @@
 .breadcrumb li + li::before {
   content: '/';
   margin-right: 6px;
-  color: #6a6e75;
+  color: var(--text-secondary);
 }
 
 .breadcrumb a {
-  color: #5f6470;
+  color: var(--text-secondary);
   text-decoration: none;
 }
 
 .breadcrumb a:hover,
 .breadcrumb a:focus-visible {
-  color: #5b41e0;
+  color: var(--brand-600);
   text-decoration: underline;
 }
 
@@ -82,10 +82,10 @@
 }
 
 .roleBadge {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 5px 10px;
-  color: #5b41e0;
-  background: #efecff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.05em;
@@ -94,13 +94,13 @@
 
 .meta {
   margin: 8px 0 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 14px;
   overflow-wrap: anywhere;
 }
 
 .description {
-  color: #6b707c;
+  color: var(--text-secondary);
 }
 
 .aside {
@@ -114,14 +114,14 @@
   display: grid;
   gap: 2px;
   min-width: 0;
-  border: 1px solid #e4e6eb;
-  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 10px 14px;
-  background: #ffffff;
+  background: var(--surface-card);
 }
 
 .positionLabel {
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -134,19 +134,19 @@
 }
 
 .owes {
-  color: #a13f3f;
+  color: var(--danger-fg);
 }
 
 .owed {
-  color: #237044;
+  color: var(--success-fg);
 }
 
 .settled {
-  color: #1c1e26;
+  color: var(--text-primary);
 }
 
 .positionMuted {
-  color: #5f6470;
+  color: var(--text-secondary);
 }
 
 .positionError {
@@ -156,11 +156,11 @@
 }
 
 .retry {
-  border: 1px solid #d9d2ff;
-  border-radius: 7px;
+  border: 1px solid var(--brand-subtle-border);
+  border-radius: var(--radius-sm);
   padding: 3px 9px;
-  color: #5b41e0;
-  background: #f5f3ff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -177,7 +177,7 @@
   overflow-x: auto;
   scroll-snap-type: x proximity;
   scroll-padding-inline: 16px;
-  border-bottom: 1px solid #e4e6eb;
+  border-bottom: 1px solid var(--border-default);
   scrollbar-width: thin;
 }
 
@@ -187,25 +187,25 @@
   margin-bottom: -1px;
   border-bottom: 2px solid transparent;
   padding: 10px 14px;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 650;
   text-decoration: none;
 }
 
 .tab:hover {
-  color: #1c1e26;
+  color: var(--text-primary);
 }
 
 .tab:focus-visible {
-  outline: 2px solid #6549ed;
+  outline: 2px solid var(--brand-600);
   outline-offset: -2px;
   border-radius: 6px 6px 0 0;
 }
 
 .tabActive {
-  border-bottom-color: #5b41e0;
-  color: #1c1e26;
+  border-bottom-color: var(--brand-600);
+  color: var(--text-primary);
 }
 
 .body {
@@ -221,15 +221,15 @@
   justify-content: space-between;
   gap: 12px 18px;
   margin-bottom: 18px;
-  border: 1px solid #e0dbff;
-  border-radius: 13px;
+  border: 1px solid var(--brand-subtle-border);
+  border-radius: var(--radius-md);
   padding: 14px 18px;
-  background: #faf9ff;
+  background: var(--brand-subtle-bg-hover);
 }
 
 .nextStep p {
   margin: 0;
-  color: #2b2f38;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -265,12 +265,12 @@
 
 .panelHead h4 {
   margin: 0;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
 .panelHead a {
-  color: #5b41e0;
+  color: var(--brand-600);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -284,7 +284,7 @@
 
 .muted {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -313,14 +313,14 @@
 }
 
 .you {
-  color: #5f6470;
+  color: var(--text-secondary);
 }
 
 .ownerTag {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 8px;
-  color: #5b41e0;
-  background: #f0edff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -331,21 +331,21 @@
   display: grid;
   justify-items: center;
   gap: 8px;
-  border: 1px dashed #d6d9e0;
-  border-radius: 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
   padding: 40px 20px;
-  background: #ffffff;
+  background: var(--surface-card);
   text-align: center;
 }
 
 .emptyPanel p {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .emptyPanel .emptyTitle {
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 700;
 }
@@ -374,15 +374,18 @@
     width: 100%;
   }
 
+  /* Position on its own row; Add expense and the group menu share the next. */
   .position {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
   }
 
   .position strong {
     white-space: normal;
   }
 
-  .addButton {
+  .aside .addButton {
+    flex: 1 1 auto;
+    width: auto;
     text-align: center;
   }
 
@@ -391,49 +394,255 @@
     font-size: 13px;
   }
 
-  /* Fade the right edge so a clipped tab reads as "more to scroll". */
-  .tabs {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    padding-right: 28px;
+  /* Four tabs share the width (D2); no scrolling at phone widths. */
+  .tab {
+    flex: 1 1 0;
+    text-align: center;
   }
 }
 
-/* Chat tab on narrow screens: one compact header row, no description,
-   smaller position box, so the chat can fill the viewport. */
+/* Chat on phones (P3): one header row (back, group name, menu) and the
+   conversation fills the rest of the screen; the app bars are hidden too. */
+.chatBack {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .chatMode {
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .chatMode .header {
-    gap: 8px;
+    gap: 0;
   }
 
-  .chatMode .meta {
+  .chatMode nav[aria-label='Breadcrumb'],
+  .chatMode .meta,
+  .chatMode .roleBadge,
+  .chatMode .position,
+  .chatMode .addButton,
+  .chatMode .tabs {
     display: none;
   }
 
+  .chatMode .titleRow {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .chatMode .titleLine {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+  }
+
   .chatMode .titleLine h2 {
-    font-size: 20px;
+    overflow: hidden;
+    font-size: var(--text-lg);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chatMode .titleLine h2::after {
+    content: ' · Chat';
+    color: var(--text-secondary);
+    font-weight: 600;
   }
 
   .chatMode .aside {
-    flex-wrap: nowrap;
-    gap: 8px;
-  }
-
-  .chatMode .position {
-    padding: 6px 10px;
-  }
-
-  .chatMode .position strong {
-    font-size: 14px;
-  }
-
-  .chatMode .addButton {
     width: auto;
-    padding: 9px 12px;
-    font-size: 13px;
+    flex-wrap: nowrap;
   }
+
+  .chatMode .chatBack {
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    text-decoration: none;
+  }
+
+  .chatMode .chatBack:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+  }
+
+  .chatMode .chatIntro {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Header row (40px) + page padding and gap. */
+  .chatMode .body {
+    --chat-height: max(320px, calc(100dvh - 88px));
+  }
+}
+
+/* Group menu and secondary pages */
+
+.menuButton {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menuButton:hover {
+  border-color: var(--border-strong);
+}
+
+.menuButton:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.menuCount {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.memberLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+
+.memberLink:hover,
+.memberLink:focus-visible {
+  color: var(--brand-600);
+  text-decoration-color: currentColor;
+}
+
+.details {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.details div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.details dt {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.details dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  overflow-wrap: anywhere;
+}
+
+.tabBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: var(--space-1);
+  border-radius: var(--radius-pill);
+  padding: 0 6px;
+  color: var(--warning-fg);
+  background: var(--warning-subtle-bg);
+  border: 1px solid var(--warning-border);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.settingsForm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 560px;
+}
+
+.settingsField {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.settingsField label {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.settingsField input,
+.settingsField textarea {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: var(--surface-card);
+  font: inherit;
+  font-size: var(--text-base);
+}
+
+.settingsField input:focus,
+.settingsField textarea:focus {
+  border-color: var(--brand-500);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 1px;
+}
+
+.settingsField input[aria-invalid='true'] {
+  border-color: var(--danger-fg);
+}
+
+.optional {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--danger-fg);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.counter {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: right;
+}
+
+.detailsMeta {
+  margin-top: var(--space-6);
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-4);
 }

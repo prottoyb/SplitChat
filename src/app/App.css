@@ -9,15 +9,15 @@ button {
 .app-shell {
   min-height: 100vh;
   display: flex;
-  background: #f6f7f9;
-  color: #18202a;
+  background: var(--surface-page);
+  color: var(--text-primary);
 }
 
 .sidebar {
   width: 255px;
   min-height: 100vh;
-  background: #111827;
-  color: #ffffff;
+  background: var(--shell-bg);
+  color: var(--text-on-brand);
   padding: 28px 20px 22px;
   display: flex;
   flex-direction: column;
@@ -30,17 +30,17 @@ button {
   align-items: center;
   gap: 12px;
   padding: 0 6px 28px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--shell-border-subtle);
 }
 
 .brand-mark {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: grid;
   place-items: center;
-  background: #ffffff;
-  color: #111827;
+  background: var(--shell-active-bg);
+  color: var(--shell-active-text);
   font-size: 20px;
   font-weight: 800;
 }
@@ -54,7 +54,7 @@ button {
 
 .brand p {
   margin: 3px 0 0;
-  color: #94a3b8;
+  color: var(--shell-text-secondary);
   font-size: 12px;
 }
 
@@ -70,12 +70,12 @@ button {
   border: 0;
   background: transparent;
   text-decoration: none;
-  color: #94a3b8;
+  color: var(--shell-text-secondary);
   padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
   transition:
@@ -90,13 +90,13 @@ button {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  background: var(--shell-hover-bg);
+  color: var(--text-on-brand);
 }
 
 .nav-item.active {
-  background: #ffffff;
-  color: #111827;
+  background: var(--shell-active-bg);
+  color: var(--shell-active-text);
   font-weight: 600;
 }
 
@@ -104,19 +104,19 @@ button {
    colour has 3:1 against both the sidebar and the white active item; inset so
    the scrolling mobile nav does not clip it. */
 .nav-item:focus-visible {
-  outline: 2px solid #7054f6;
+  outline: 2px solid var(--focus-color);
   outline-offset: -2px;
 }
 
 .sidebar-footer .text-button:focus-visible {
-  outline: 2px solid #7054f6;
+  outline: 2px solid var(--focus-color);
   outline-offset: 2px;
 }
 
 .sidebar-footer {
   margin-top: auto;
   padding: 18px 6px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--shell-border-subtle);
   display: flex;
   align-items: center;
   gap: 11px;
@@ -125,13 +125,29 @@ button {
 .profile-avatar {
   width: 38px;
   height: 38px;
-  border-radius: 50%;
-  background: #e5e7eb;
-  color: #111827;
+  border-radius: var(--radius-circle);
+  background: var(--border-default);
+  color: var(--shell-active-text);
   display: grid;
   place-items: center;
   font-size: 12px;
   font-weight: 700;
+}
+
+.profile-link {
+  color: var(--text-on-brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.profile-link:hover,
+.profile-link.active {
+  text-decoration: underline;
+}
+
+.profile-link:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
 }
 
 .profile-details {
@@ -146,7 +162,7 @@ button {
 }
 
 .profile-details span {
-  color: #94a3b8;
+  color: var(--shell-text-secondary);
   font-size: 12px;
 }
 
@@ -166,7 +182,7 @@ button {
 
 .eyebrow {
   margin: 0 0 7px;
-  color: #67707e;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1;
   font-weight: 700;
@@ -183,7 +199,7 @@ button {
 .subtitle {
   max-width: 620px;
   margin: 9px 0 0;
-  color: #667085;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -193,7 +209,7 @@ button {
   text-align: center;
   text-decoration: none;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 600;
   transition:
@@ -207,14 +223,14 @@ button {
 }
 
 .primary-button {
-  background: #111827;
-  color: #ffffff;
+  background: var(--action-bg);
+  color: var(--text-on-brand);
   padding: 11px 17px;
 }
 
 .secondary-button {
-  background: #eef0f3;
-  color: #18202a;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   padding: 10px 15px;
 }
 
@@ -226,9 +242,9 @@ button {
 }
 
 .summary-card {
-  background: #ffffff;
-  border: 1px solid #e7e9ed;
-  border-radius: 13px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 22px;
   display: flex;
   align-items: flex-start;
@@ -241,15 +257,15 @@ button {
   flex: 0 0 39px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
-  background: #f2f4f7;
-  color: #344054;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
   font-size: 18px;
 }
 
 .summary-card p {
   margin: 0;
-  color: #667085;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -261,7 +277,7 @@ button {
 }
 
 .summary-card span {
-  color: #69707c;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
@@ -274,9 +290,9 @@ button {
 
 .panel {
   min-height: 330px;
-  background: #ffffff;
-  border: 1px solid #e7e9ed;
-  border-radius: 13px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 24px;
 }
 
@@ -295,7 +311,7 @@ button {
 .text-button {
   border: 0;
   background: transparent;
-  color: #cbd5e1; /* on the dark sidebar */
+  color: var(--shell-text-link); /* on the dark sidebar */
   font-size: 12px;
   cursor: pointer;
 }
@@ -318,9 +334,9 @@ button {
   height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  background: #f2f4f7;
-  color: #667085;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
   font-size: 19px;
   margin-bottom: 14px;
 }
@@ -333,15 +349,15 @@ button {
 .empty-state p {
   max-width: 380px;
   margin: 7px 0 18px;
-  color: #69707c;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
 
 .ai-banner {
-  background: #111827;
-  color: #ffffff;
-  border-radius: 13px;
+  background: var(--shell-bg);
+  color: var(--text-on-brand);
+  border-radius: var(--radius-lg);
   padding: 23px 25px;
   display: flex;
   align-items: center;
@@ -354,9 +370,9 @@ button {
   flex: 0 0 46px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #111827;
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 800;
 }
@@ -366,7 +382,7 @@ button {
 }
 
 .ai-content .eyebrow {
-  color: #696e76;
+  color: var(--text-secondary);
 }
 
 .ai-content h3 {
@@ -376,16 +392,16 @@ button {
 
 .ai-content p:last-child {
   margin: 0;
-  color: #6b7079;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.6;
 }
 
 .ai-status {
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 7px 11px;
-  color: #cbd5e1;
+  color: var(--shell-text-link);
   font-size: 12px;
   font-weight: 600;
 }
@@ -410,32 +426,104 @@ button {
   }
 }
 
+/* The account menu replaces the sidebar footer on phones only. */
+.mobile-account {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     display: block;
   }
 
+  /* Compact top bar (D1): brand mark and name, account menu. */
   .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     width: 100%;
     min-height: auto;
-    position: static;
-    padding: 18px;
+    padding: var(--space-2) var(--space-4);
   }
 
+  .brand {
+    gap: var(--space-2);
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-md);
+  }
+
+  .brand h1 {
+    font-size: var(--text-md);
+  }
+
+  .brand p {
+    display: none;
+  }
+
+  .mobile-account {
+    display: block;
+    margin-left: auto;
+  }
+
+  .account-trigger {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    border-radius: var(--radius-circle);
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .account-trigger .profile-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-xs);
+  }
+
+  .account-trigger:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 0;
+  }
+
+  /* Bottom tab bar (D1): four equal items, icon above label. */
   .navigation {
-    margin-top: 18px;
-    flex-direction: row;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    /* Fade the right edge so a clipped link reads as "more to scroll". */
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    padding-right: 28px;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1);
+    margin: 0;
+    border-top: 1px solid var(--shell-border-subtle);
+    padding: var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom));
+    background: var(--shell-bg);
   }
 
   .nav-item {
-    width: auto;
-    min-width: max-content;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    padding: var(--space-1);
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+
+  .nav-item span {
+    font-size: var(--text-md);
   }
 
   .sidebar-footer {
@@ -445,7 +533,24 @@ button {
   .main-content {
     width: 100%;
     margin-left: 0;
-    padding: 28px 18px;
+    padding: var(--space-5) var(--space-4) calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell--form .navigation {
+    display: none;
+  }
+
+  .app-shell--form .main-content {
+    padding-bottom: var(--space-7);
+  }
+
+  /* Group chat: the conversation gets the whole screen. */
+  .app-shell--chat .sidebar {
+    display: none;
+  }
+
+  .app-shell--chat .main-content {
+    padding: var(--space-2) var(--space-3) var(--space-3);
   }
 
   .topbar {
@@ -462,5 +567,11 @@ button {
 
   .ai-status {
     display: none;
+  }
+}
+
+@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  .nav-item {
+    transition: none;
   }
 }

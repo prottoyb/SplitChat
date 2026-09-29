@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const userId = session?.user.id ?? null
+  const [profileVersion, setProfileVersion] = useState(0)
 
   useEffect(() => {
     if (!userId) return
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       isCancelled = true
     }
-  }, [userId])
+  }, [userId, profileVersion])
 
   const current = userId && loaded?.userId === userId ? loaded : null
   const value = {
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile: current?.profile ?? null,
     isLoading,
     isProfileLoading: Boolean(userId) && current === null,
+    refreshProfile: () => setProfileVersion((v) => v + 1),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

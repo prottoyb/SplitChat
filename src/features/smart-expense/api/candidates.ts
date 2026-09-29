@@ -94,6 +94,40 @@ export function listCandidates(groupId: string, messageIds: readonly number[]): 
   }, 'Unable to load expense proposals.')
 }
 
+// Ids go into a PostgREST filter string: letters, digits and hyphens only
+// (UUIDs), so no value can add a condition (commas, dots, parentheses).
+const SAFE_ID = /^[A-Za-z0-9-]+$/
+
+/**
+ * Open proposals the caller can act on across their groups: their own, and
+ * any in the groups they own (RLS: active members only). Newest first.
+ */
+export function listActionableProposals(
+  userId: string,
+  ownedGroupIds: readonly string[],
+  { groupId, limit = 20 }: { groupId?: string; limit?: number } = {},
+): Promise<Result<Candidate[]>> {
+  return guard(async () => {
+    if (!SAFE_ID.test(userId) || !ownedGroupIds.every((id) => SAFE_ID.test(id))) return fail('unknown', UNEXPECTED)
+    const scoped = groupId === undefined ? supabase.from('expense_candidates').select(COLUMNS) : supabase.from('expense_candidates').select(COLUMNS).eq('group_id', groupId)
+    const owned = new Set(ownedGroupIds)
+    const filter = [`proposed_by.eq.${userId}`, ...(owned.size ? [`group_id.in.(${[...owned].join(',')})`] : [])].join(',')
+    const result = await scoped
+      .eq('status', 'proposed')
+      .or(filter)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (result.error) return failureFrom(result.error, 'Unable to load expense proposals.')
+    const out: Candidate[] = []
+    for (const row of Array.isArray(result.data) ? result.data : []) {
+      const c = parseCandidate(row)
+      if (!c) return fail('unknown', UNEXPECTED)
+      if (c.status === 'proposed' && (c.proposedBy === userId || owned.has(c.groupId)) && (groupId === undefined || c.groupId === groupId)) out.push(c)
+    }
+    return ok(out)
+  }, 'Unable to load expense proposals.')
+}
+
 /** One candidate by id (RLS: active members of its group only). */
 export function loadCandidate(id: string): Promise<Result<Candidate>> {
   return guard(async () => {

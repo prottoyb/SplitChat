@@ -29,6 +29,7 @@ const group = (myRole: 'owner' | 'member'): GroupDetail => ({
   name: 'Flat',
   description: null,
   createdAt: now,
+  updatedAt: now,
   myRole,
   members: [
     { userId: P, fullName: 'Priya Raman', role: myRole === 'owner' ? 'owner' : 'member', joinedAt: now },
@@ -71,6 +72,20 @@ describe('Smart Expense in chat', () => {
     expect(card.closest('li')).not.toContainElement(screen.getByText('I paid $30 for lunch, split with everyone'))
     expect(within(card).getByText('$30.00')).toBeInTheDocument()
     expect(within(card).getByText('You, Sam Lee, Jo Nguyen')).toBeInTheDocument()
+  })
+
+  it('pins the proposals I can act on above the messages and jumps to a card', async () => {
+    const user = userEvent.setup()
+    renderChat()
+    const strip = await screen.findByRole('navigation', { name: '1 open proposal needs you' })
+    await user.click(within(strip).getByRole('button', { name: /lunch \$30\.00/ }))
+    expect(screen.getByRole('article', { name: /Expense proposal/ })).toHaveFocus()
+  })
+
+  it('pins nothing for a member who cannot act on the proposal', async () => {
+    renderChat('member', J)
+    await screen.findByRole('article', { name: /Expense proposal/ })
+    expect(screen.queryByRole('navigation', { name: /open proposal/ })).not.toBeInTheDocument()
   })
 
   it('never proposes from history: loading the chat calls no propose RPC', async () => {

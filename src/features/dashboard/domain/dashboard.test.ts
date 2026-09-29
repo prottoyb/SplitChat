@@ -3,7 +3,7 @@ import type { ActivityEvent, ActivityPage } from '../../activity'
 import type { ExpenseListItem } from '../../expenses'
 import type { GroupSummary } from '../../groups'
 import { attentionItems } from './attention'
-import { lastActivityByGroup, monthSummary, recentChangeCount } from './summary'
+import { lastActivityByGroup, monthSummary } from './summary'
 
 const NOW = new Date('2026-09-27T12:00:00Z')
 
@@ -66,9 +66,8 @@ describe('summary', () => {
       .toEqual({ count: 2, totalCents: 1100, myShareCents: 334 })
   })
 
-  it('counts live changes in a window and finds each group\'s latest event', () => {
+  it('finds each group\'s latest event', () => {
     const events = [ev(3, { groupId: 'g2', createdAt: '2026-09-27T09:00:00Z' }), ev(2, {}), ev(1, { backfilled: true })]
-    expect(recentChangeCount(events, 7, NOW)).toBe(2)
     expect([...lastActivityByGroup(events)]).toEqual([['g2', '2026-09-27T09:00:00Z'], ['g1', '2026-09-26T10:00:00Z']])
   })
 })

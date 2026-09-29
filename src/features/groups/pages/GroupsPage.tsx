@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ComponentType } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { formatDateShort } from '../../../shared/domain/dates'
 import { useResource } from '../../../shared/hooks/useResource'
@@ -9,7 +9,10 @@ import { CreateGroupForm } from '../components/CreateGroupForm'
 import type { GroupInput } from '../domain/groupForm'
 import styles from './GroupsPage.module.css'
 
-function GroupCard({ group }: { group: GroupSummary }) {
+/** Renders the caller's position in a group; supplied by the app, which may use balances. */
+export type GroupPositionComponent = ComponentType<{ groupId: string; userId: string }>
+
+function GroupCard({ group, userId, Position }: { group: GroupSummary; userId: string; Position?: GroupPositionComponent }) {
   return (
     <Link to={`/groups/${group.id}`} className={styles.groupCardLink}>
       {/* A div, not an article: a landmark inside a link hides the card's
@@ -27,12 +30,13 @@ function GroupCard({ group }: { group: GroupSummary }) {
           {group.memberCount} {group.memberCount === 1 ? 'member' : 'members'} · Created{' '}
           {formatDateShort(group.createdAt.slice(0, 10))}
         </div>
+        {Position && <Position groupId={group.id} userId={userId} />}
       </div>
     </Link>
   )
 }
 
-function GroupsPage() {
+function GroupsPage({ Position }: { Position?: GroupPositionComponent }) {
   const { session } = useAuth()
   const userId = session?.user.id ?? ''
   const groups = useResource(userId ? `groups:${userId}` : null, () => listMyGroups(userId))
@@ -98,7 +102,7 @@ function GroupsPage() {
         ) : (
           <div className={styles.groupGrid}>
             {groups.data.map((group) => (
-              <GroupCard key={group.id} group={group} />
+              <GroupCard key={group.id} group={group} userId={userId} Position={Position} />
             ))}
           </div>
         )}

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { initialsOf } from './initials'
 import styles from './ui.module.css'
 
+export { Menu, type MenuItem } from './Menu'
+
 export function Avatar({ name }: { name: string }) {
   return (
     <span className={styles.avatar} aria-hidden="true">

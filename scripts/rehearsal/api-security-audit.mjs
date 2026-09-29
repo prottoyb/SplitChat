@@ -147,6 +147,7 @@ const rpcs = [
   ['transfer_group_ownership', { p_group_id: groupId, p_new_owner_id: outsider.id }],
   ['remove_group_member', { p_group_id: groupId, p_user_id: member.id }],
   ['add_group_member_by_email', { target_group_id: groupId, target_email: email('out') }],
+  ['update_group_details', { p_group_id: groupId, p_name: 'Taken over', p_description: null, p_expected_updated_at: new Date().toISOString() }],
 ]
 for (const [fn, args] of rpcs) {
   const a = await anon.rpc(fn, args)

@@ -52,6 +52,8 @@ const MESSAGES: Record<string, string> = {
   candidate_rejected: 'This proposal was rejected, so it cannot be added.',
   candidate_incomplete: 'Fill in every detail before adding this expense.',
   invalid_source: 'This proposal could not be saved. Please try again.',
+  invalid_name: 'Please enter a group name of 1 to 80 characters.',
+  stale_group: 'This group was changed by someone else. Reload it and try again.',
 }
 
 export type RpcError = { message?: string } | null | undefined

@@ -14,6 +14,8 @@ export type AuthContextValue = {
   profile: Profile | null
   isLoading: boolean
   isProfileLoading: boolean
+  /** Re-reads the profile (e.g. after the user changes their name). */
+  refreshProfile: () => void
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined)

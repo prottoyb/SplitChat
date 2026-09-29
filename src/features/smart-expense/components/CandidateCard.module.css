@@ -5,21 +5,21 @@
 .card {
   display: grid;
   gap: 10px;
-  border: 1.5px solid #cfc6ff;
-  border-radius: 12px;
+  border: 1.5px solid var(--brand-subtle-border);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  background: #ffffff;
+  background: var(--surface-card);
   box-shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
 }
 
 .approved {
-  border-color: #a9d8bc;
+  border-color: var(--success-border);
 }
 
 .rejected {
   border-style: dashed;
-  border-color: #d6d9e0;
-  background: #fbfbfc;
+  border-color: var(--border-strong);
+  background: var(--surface-page);
 }
 
 .header {
@@ -33,9 +33,9 @@
   width: 26px;
   height: 26px;
   place-items: center;
-  border-radius: 8px;
-  color: #5b41e0;
-  background: #efecff;
+  border-radius: var(--radius-sm);
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font-size: 13px;
   font-weight: 800;
 }
@@ -43,30 +43,30 @@
 .title {
   flex: 1;
   margin: 0;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
 .status {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 9px;
-  color: #2b2f38;
-  background: #f2f3f6;
+  color: var(--text-primary);
+  background: var(--surface-subtle);
   font-size: 12px;
   font-weight: 700;
 }
 
 .incomplete .status {
-  border: 1px solid #e8c48a;
-  color: #7a4a06;
-  background: #fff8ec;
+  border: 1px solid var(--warning-border);
+  color: var(--warning-fg);
+  background: var(--warning-subtle-bg);
 }
 
 .approved .status {
-  color: #1d5e39;
-  background: #e6f5ec;
+  color: var(--success-fg);
+  background: var(--success-subtle-bg);
 }
 
 .fields {
@@ -82,41 +82,41 @@
 }
 
 .fields dt {
-  color: #5f6470;
+  color: var(--text-secondary);
 }
 
 .fields dd {
   margin: 0;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .missing {
-  color: #8a4b08;
+  color: var(--warning-fg);
   font-weight: 700;
 }
 
 .hint {
-  color: #5f6470;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .note {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .done {
   margin: 0;
-  color: #1d5e39;
+  color: var(--success-fg);
   font-size: 13px;
   font-weight: 600;
 }
 
 .done a {
-  color: #5b41e0;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -139,11 +139,11 @@
 }
 
 .secondary {
-  border: 1px solid #d6d9e0;
-  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
   padding: 7px 12px;
-  color: #2b2f38;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface-card);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -157,13 +157,13 @@
 .confirm {
   display: grid;
   gap: 8px;
-  border-top: 1px solid #eceef2;
+  border-top: 1px solid var(--border-default);
   padding-top: 10px;
 }
 
 .confirmTitle {
   margin: 0;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 700;
 }
@@ -206,4 +206,75 @@
 
 .rejectSlot > [role='group'] {
   flex-basis: 100%;
+}
+
+/* Open proposals strip above the chat (P5) */
+
+.openStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--warning-border);
+  padding: var(--space-2) var(--space-4);
+  background: var(--warning-subtle-bg);
+}
+
+.openCount {
+  color: var(--warning-fg);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.openStrip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.openStrip button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-primary);
+  background: var(--surface-card);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.openStrip button:hover {
+  border-color: var(--warning-fg);
+}
+
+.openStrip button:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.openState {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.openMore {
+  align-self: center;
+  color: var(--warning-fg);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+@media (pointer: coarse) {
+  .openStrip button {
+    min-height: 44px;
+  }
 }

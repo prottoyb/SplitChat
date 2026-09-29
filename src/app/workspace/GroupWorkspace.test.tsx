@@ -24,7 +24,7 @@ const balance = (user_id: string, paid: number, owed: number) => ({
 })
 
 function seed() {
-  supabaseMock.setTable('groups', [{ id: 'g1', name: 'Flat 4B', description: 'Rent and bills', created_at: '2026-09-01T00:00:00Z' }])
+  supabaseMock.setTable('groups', [{ id: 'g1', name: 'Flat 4B', description: 'Rent and bills', created_at: '2026-09-01T00:00:00Z', updated_at: '2026-09-05T00:00:00.123456+00:00' }])
   supabaseMock.setTable('group_members', [
     { group_id: 'g1', user_id: 'u1', role: 'owner', joined_at: '2026-09-01T00:00:00Z' },
     { group_id: 'g1', user_id: 'u2', role: 'member', joined_at: '2026-09-02T00:00:00Z' },
@@ -104,17 +104,132 @@ describe('GroupWorkspace sections', () => {
     const user = userEvent.setup()
     renderAt('/groups/g1')
     const sections = await screen.findByRole('navigation', { name: 'Group sections' })
+    // Operator decision D2 (Phase 9): four primary sections.
     expect(within(sections).getAllByRole('link').map((l) => l.textContent)).toEqual([
-      'Overview', 'Expenses', 'Balances', 'Chat', 'Activity', 'Members',
+      'Overview', 'Expenses', 'Balances', 'Chat',
     ])
     expect(within(sections).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
 
-    await user.click(within(sections).getByRole('link', { name: 'Members' }))
+    await user.click(within(sections).getByRole('link', { name: 'Balances' }))
 
-    const heading = await screen.findByRole('heading', { name: 'Members', level: 3 })
-    expect(within(sections).getByRole('link', { name: 'Members' })).toHaveAttribute('aria-current', 'page')
+    const heading = await screen.findByRole('heading', { name: 'Balances', level: 3 })
+    expect(within(sections).getByRole('link', { name: 'Balances' })).toHaveAttribute('aria-current', 'page')
     expect(within(sections).getByRole('link', { name: 'Overview' })).not.toHaveAttribute('aria-current')
     await waitFor(() => expect(heading).toHaveFocus())
+  })
+
+  it('reaches Members, Activity and Group settings from the group menu, with a breadcrumb back', async () => {
+    const user = userEvent.setup()
+    renderAt('/groups/g1')
+    await user.click(await screen.findByRole('button', { name: 'Group options' }))
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Members 2', 'Activity', 'Group settings'])
+
+    await user.click(screen.getByRole('menuitem', { name: /Members/ }))
+
+    const heading = await screen.findByRole('heading', { name: 'Members', level: 3 })
+    await waitFor(() => expect(heading).toHaveFocus())
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'Flat 4B' })).toHaveAttribute('href', '/groups/g1')
+    expect(within(crumbs).getByText('Members')).toHaveAttribute('aria-current', 'page')
+    // No primary tab claims a secondary page.
+    const sections = screen.getByRole('navigation', { name: 'Group sections' })
+    expect(within(sections).queryByRole('link', { current: 'page' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['/groups/g1/members', 'Members'],
+    ['/groups/g1/activity', 'Activity'],
+    ['/groups/g1/settings', 'Group settings'],
+  ])('keeps the deep link %s working', async (path, title) => {
+    renderAt(path)
+    expect(await screen.findByRole('heading', { name: title, level: 3 })).toBeInTheDocument()
+  })
+
+  it('links the member count to Members', async () => {
+    renderAt('/groups/g1')
+    expect(await screen.findByRole('link', { name: '2 members' })).toHaveAttribute('href', '/groups/g1/members')
+  })
+
+  it('shows the group details read-only to a member', async () => {
+    renderAt('/groups/g1/settings')
+    await screen.findByRole('heading', { name: 'Group settings', level: 3 })
+    expect(screen.getByText('Only the group owner can change these.')).toBeInTheDocument()
+    expect(screen.getByText('Rent and bills')).toBeInTheDocument()
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('lets the owner rename the group, based on the version they read', async () => {
+    const user = userEvent.setup()
+    mock.userId = 'u1'
+    supabaseMock.setRpc('update_group_details', '2026-09-06T00:00:00+00:00')
+    renderAt('/groups/g1/settings')
+    const form = await screen.findByRole('form', { name: 'Group details' })
+    const save = within(form).getByRole('button', { name: 'Save changes' })
+    expect(save).toBeDisabled() // nothing changed yet
+
+    const name = within(form).getByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, '  Flat 4B (2027)  ')
+    await user.click(save)
+
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('update_group_details', {
+      p_group_id: 'g1', p_name: 'Flat 4B (2027)', p_description: 'Rent and bills', p_expected_updated_at: '2026-09-05T00:00:00.123456+00:00',
+    })
+    expect(await screen.findByText('Group details saved.')).toBeInTheDocument()
+  })
+
+  it('checks the name before calling the server', async () => {
+    const user = userEvent.setup()
+    mock.userId = 'u1'
+    renderAt('/groups/g1/settings')
+    const form = await screen.findByRole('form', { name: 'Group details' })
+    await user.clear(within(form).getByLabelText('Name'))
+    await user.type(within(form).getByLabelText('Name'), '   ')
+    await user.click(within(form).getByRole('button', { name: 'Save changes' }))
+    expect(within(form).getByText('Please enter a group name.')).toBeInTheDocument()
+    expect(within(form).getByLabelText('Name')).toHaveAttribute('aria-invalid', 'true')
+    expect(supabaseMock.rpc).not.toHaveBeenCalledWith('update_group_details', expect.anything())
+  })
+
+  it('explains a change made by someone else and offers a reload', async () => {
+    const user = userEvent.setup()
+    mock.userId = 'u1'
+    supabaseMock.setRpc('update_group_details', null, { message: 'stale_group' })
+    renderAt('/groups/g1/settings')
+    const form = await screen.findByRole('form', { name: 'Group details' })
+    await user.type(within(form).getByLabelText(/Description/), ' and more')
+    await user.click(within(form).getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText(/changed by someone else/)).toBeInTheDocument()
+    const groupReads = queriesOf('groups').length
+    await user.click(screen.getByRole('button', { name: 'Reload' }))
+    await waitFor(() => expect(queriesOf('groups').length).toBeGreaterThan(groupReads))
+  })
+
+  it('badges the Chat tab with the open proposals I can act on', async () => {
+    supabaseMock.setTable('expense_candidates', [{
+      id: 'c1', group_id: 'g1', message_id: 3, proposed_by: 'u2', status: 'proposed', source: 'natural',
+      interpreter_version: 'deterministic-1', description: 'pizza', amount_cents: 4200, expense_date: '2026-09-29',
+      paid_by: 'u2', participant_ids: ['u1', 'u2'], notes: null, version: 1, expense_id: null, decided_by: null,
+      created_at: '2026-09-29T00:00:00Z',
+    }])
+    renderAt('/groups/g1')
+    const sections = await screen.findByRole('navigation', { name: 'Group sections' })
+    expect(await within(sections).findByRole('link', { name: /^Chat\s*, 1 proposal needs you$/ })).toHaveAttribute('href', '/groups/g1/chat')
+    const calls = queriesOf('expense_candidates')[0].calls
+    expect(calls).toContainEqual({ method: 'eq', args: ['group_id', 'g1'] })
+  })
+
+  it('shows no badge when nothing needs me', async () => {
+    supabaseMock.setTable('expense_candidates', [])
+    renderAt('/groups/g1')
+    const sections = await screen.findByRole('navigation', { name: 'Group sections' })
+    expect(within(sections).getByRole('link', { name: 'Chat' })).toBeInTheDocument()
+  })
+
+  it('offers a way back to the overview from chat', async () => {
+    renderAt('/groups/g1/chat')
+    expect(await screen.findByRole('link', { name: 'Back to Flat 4B overview' })).toHaveAttribute('href', '/groups/g1')
   })
 
   it('lists only this group’s expenses in the Expenses section', async () => {
@@ -151,11 +266,12 @@ describe('GroupWorkspace sections', () => {
     expect(calls).toContainEqual({ method: 'eq', args: ['group_id', 'g1'] })
   })
 
-  it('suggests settling up on the overview when I owe money', async () => {
+  it('names the payment to make on the overview and links to it pre-filled', async () => {
     renderAt('/groups/g1')
 
-    expect(await screen.findByText('You owe $25.00 in this group.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'See who to pay' })).toHaveAttribute('href', '/groups/g1/balances')
+    // Phase 9 (P9): the header states the position; the next step names the payment.
+    expect(await screen.findByText('Pay Alice $25.00.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Record your payment' })).toHaveAttribute('href', '/groups/g1/balances?settle=u2~u1')
     expect(await screen.findByRole('link', { name: 'Groceries' })).toBeInTheDocument()
   })
 

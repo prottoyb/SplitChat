@@ -1,7 +1,7 @@
 .breadcrumb {
   display: inline-block;
   margin-bottom: 20px;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 650;
   text-decoration: none;
@@ -9,6 +9,6 @@
 
 .breadcrumb:hover,
 .breadcrumb:focus-visible {
-  color: #5b41e0;
+  color: var(--brand-600);
   text-decoration: underline;
 }

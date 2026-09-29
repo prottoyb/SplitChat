@@ -95,11 +95,25 @@ current phase is in `docs/phase-state.md`.
   - Accessibility and responsive validation.
 - **Dependencies:** Phases 1–7.
 - **Gate:** start and completion.
-- **Status:** complete on `feature/phase8-hardening`, at the completion gate
-  (`docs/phase8/plan.md`). Production batch 4 (M16–M23) prepared and
-  rehearsed on SplitChat-Dev, not executed; not merged; not deployed.
+- **Status:** complete (`docs/phase8/plan.md`); merged to `main` via PR #1
+  (`dfec625`). Production batch 4 (M16–M23) executed and verified by the
+  operator on 2026-09-29. Frontend not deployed.
 
-## Phase 9 — Portfolio/release readiness
+## Phase 9 — Product experience, UX and functional refinement
+- **Outcome:** SplitChat feels like a genuinely useful, polished product.
+  UX/product review, prioritised proposal, then design-system and
+  functional refinement within the approved decision boundary
+  (`docs/phase9/scope.md`, `docs/phase9/plan.md`).
+- **Dependencies:** Phase 8.
+- **Gate:** start (approved 2026-09-29), major product/IA decisions, any
+  production write, and completion. No deployment.
+- **Status:** **complete**; accepted by the operator 2026-09-29 and
+  proposed for `main` in a pull request from `feature/phase9-product-ux`.
+  M24/M25 are on SplitChat-Dev only; production stays at M23 and the
+  frontend is not deployed.
+
+## Phase 10 — Release Readiness, Deployment & Portfolio Presentation
+_Was Phase 9; renumbered by the operator on 2026-09-29 (D6)._
 - **Outcome:**
   - Choice of deployment platform and deployment.
   - README.
@@ -107,7 +121,7 @@ current phase is in `docs/phase-state.md`.
   - Demo and screenshots.
   - Repository cleanup.
   - Release validation.
-- **Dependencies:** Phase 8.
+- **Dependencies:** Phase 9.
 - **Gate:** start, production release, and completion.
 
 Exact and percentage split modes remain post-MVP unless explicitly approved.

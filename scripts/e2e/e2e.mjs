@@ -26,7 +26,7 @@ const run = Date.now()
 const password = crypto.randomBytes(18).toString('base64url') + 'Aa9!'
 const email = (k) => `splitchat-rehearsal+e2e-${k}-${run}@example.com`
 const admin = createClient(t.url, t.serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
-for (const [key, name] of [['priya', 'Priya Raman'], ['sam', 'Sam Lee'], ['jo', 'Jo Nguyen'], ['oscar', 'Oscar Outsider']]) {
+for (const [key, name] of [['priya', 'Priya Raman'], ['sam', 'Sam Lee'], ['jo', 'Jo Nguyen'], ['oscar', 'Oscar Outsider'], ['rita', 'Rita Reset']]) {
   const { error } = await admin.auth.admin.createUser({ email: email(key), password, email_confirm: true, user_metadata: { full_name: name } })
   if (error) throw new Error(`create ${key}: ${error.message}`)
 }
@@ -70,10 +70,20 @@ async function signIn(key, opts = {}) {
   return page
 }
 
-/** A workspace section tab (the sidebar has same-named global links). */
+// Secondary group pages live in the group menu (operator decision D2, Phase 9).
+const MENU_PAGES = new Set(['Members', 'Activity', 'Group settings'])
+
+/** A workspace section: a tab, or a group-menu page (the sidebar has same-named global links). */
 async function tab(page, name) {
-  const nav = await page.find('navigation', 'Group sections')
-  await page.click('link', name, { within: nav })
+  if (MENU_PAGES.has(name)) {
+    await page.click('button', 'Group options')
+    const menu = await page.find('list', 'Group options')
+    await page.click('link', `/^${name}( |$)/`, { within: menu })
+  } else {
+    const nav = await page.find('navigation', 'Group sections')
+    // A tab may carry a badge (e.g. "Chat" with open proposals).
+    await page.click('link', `/^${name}($|[^A-Za-z])/`, { within: nav })
+  }
   await page.find('heading', name)
 }
 
@@ -259,6 +269,56 @@ try {
     await jo.find('heading', 'Members')
     await tab(jo, 'Balances')
     await jo.find('heading', 'Balances')
+  })
+
+  await step('the owner renames the group; a member sees the details read-only', async () => {
+    await priya.goto(`${app.origin}${groupPath}`)
+    await tab(priya, 'Group settings')
+    await priya.type('Name', `${groupName} renamed`)
+    await priya.click('button', 'Save changes')
+    await priya.waitForText('Group details saved.')
+    await priya.find('heading', `${groupName} renamed`)
+    await sam.goto(`${app.origin}${groupPath}/settings`)
+    await sam.waitForText('Only the group owner can change these.')
+    await sam.waitForText(`${groupName} renamed`)
+    assert((await sam.count('textbox', 'Name')) === 0, 'a member can edit the group name')
+  })
+
+  await step('a user changes their display name on the profile page', async () => {
+    await sam.goto(`${app.origin}/profile`)
+    await sam.type('Display name', 'Sam L.')
+    await sam.click('button', 'Save name')
+    await sam.waitForText('Your name has been updated')
+    await sam.type('Display name', 'Deleted user')
+    await sam.click('button', 'Save name')
+    await sam.waitForText('That name is reserved')
+  })
+
+  await step('a hand-typed recovery URL on a signed-in session offers no password form', async () => {
+    await priya.goto(`${app.origin}/reset-password#type=recovery`)
+    await priya.waitForText('This reset link is invalid or has expired.')
+    assert((await priya.count('button', 'Save new password')) === 0, 'password form offered without a reset link')
+  })
+
+  await step('a genuine reset link lets the user choose a new password, then sign in with it', async () => {
+    // A real recovery link from the Dev Auth server (no email needed on Dev).
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: 'recovery', email: email('rita'), options: { redirectTo: `${app.origin}/reset-password` },
+    })
+    if (error) throw new Error(`generateLink: ${error.message}`)
+    const rita = await openBrowser({ allowedOrigins })
+    pages.push(rita)
+    await rita.goto(data.properties.action_link)
+    await rita.waitForText('Choose a new password', 20000)
+    const fresh = `${password}-new`
+    await rita.type('New password', fresh)
+    await rita.type('Confirm new password', fresh)
+    await rita.click('button', 'Save new password')
+    await rita.waitForText('Your password has been changed. Sign in with your new password.')
+    await rita.type('Email address', email('rita'))
+    await rita.type('Password', fresh)
+    await rita.press('Enter')
+    await rita.waitFor(`location.pathname === '/'`, 20000, 'the dashboard after signing in with the new password')
   })
 
   await step('no request left localhost and SplitChat-Dev; no uncaught page errors', async () => {

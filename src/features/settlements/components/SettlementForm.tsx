@@ -128,6 +128,9 @@ export function SettlementForm({ people, currentUserId, isOwner, initial, onSubm
         </div>
       </div>
       {fieldError('parties')}
+      {isOwner && values.fromUserId && values.toUserId && values.fromUserId !== currentUserId && values.toUserId !== currentUserId && (
+        <p className={styles.muted}>As the group owner, you are recording this payment on their behalf.</p>
+      )}
 
       <div className={styles.pair}>
         <div className={styles.field}>

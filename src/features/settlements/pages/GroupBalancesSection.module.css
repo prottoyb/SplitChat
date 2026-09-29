@@ -1,36 +1,46 @@
 .refreshing {
   margin: 0 0 12px;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-areas:
+    'suggest form'
+    'balances form';
+  align-items: start;
   gap: 18px;
   margin-bottom: 18px;
 }
 
-.column {
-  display: grid;
-  align-content: start;
-  gap: 18px;
+.suggestPanel {
+  grid-area: suggest;
+}
+
+.formPanel {
+  grid-area: form;
+}
+
+.balancePanel {
+  grid-area: balances;
 }
 
 .panel {
   display: grid;
   align-content: start;
   gap: 12px;
-  border: 1px solid #e4e6eb;
-  border-radius: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 20px;
-  background: #ffffff;
+  background: var(--surface-card);
   scroll-margin-top: 16px;
 }
 
 .panel h4 {
   margin: 0;
-  color: #1c1e26;
+  color: var(--text-primary);
   font-size: 17px;
 }
 
@@ -40,17 +50,17 @@
 
 .muted {
   margin: 0;
-  color: #5f6470;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .inlineButton {
   flex-shrink: 0;
-  border: 1px solid #d9d2ff;
-  border-radius: 8px;
+  border: 1px solid var(--brand-subtle-border);
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
-  color: #5b41e0;
-  background: #f5f3ff;
+  color: var(--brand-600);
+  background: var(--brand-subtle-bg);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -58,12 +68,16 @@
 }
 
 .inlineButton:focus-visible {
-  outline: 2px solid #6549ed;
+  outline: 2px solid var(--brand-600);
   outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'suggest'
+      'form'
+      'balances';
   }
 }

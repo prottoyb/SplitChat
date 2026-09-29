@@ -17,11 +17,12 @@ export type EventKind =
   | 'expense_deleted'
   | 'settlement_recorded'
   | 'settlement_voided'
+  | 'group_updated'
 
 const KNOWN_KINDS: ReadonlySet<string> = new Set<EventKind>([
   'group_created', 'member_added', 'member_rejoined', 'member_left', 'member_removed', 'member_account_deleted',
   'ownership_transferred', 'expense_created', 'expense_updated', 'expense_deleted',
-  'settlement_recorded', 'settlement_voided',
+  'settlement_recorded', 'settlement_voided', 'group_updated',
 ])
 
 export type ActivityEvent = {
