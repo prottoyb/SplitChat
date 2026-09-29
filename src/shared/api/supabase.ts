@@ -29,7 +29,11 @@ export const supabase = createClient(
 let recoverySessionId: string | null = null
 const recoveryListeners = new Set<(session: Session) => void>()
 
-/** The `session_id` claim of the session's access token, or null if unreadable. */
+/**
+ * The `session_id` claim of the session's access token, or null if unreadable.
+ * Decoded, not verified: it is only a key matching a session to the one the
+ * PASSWORD_RECOVERY event named, never an authority in itself.
+ */
 function sessionIdOf(session: Session | null): string | null {
   const payload = session?.access_token?.split('.')[1]
   if (!payload) return null

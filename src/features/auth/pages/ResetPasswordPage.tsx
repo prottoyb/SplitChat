@@ -35,6 +35,8 @@ function ResetPasswordPage() {
     }
     // Only the recovery event (or the session it created) unlocks the form;
     // it may arrive after getSession has resolved, or before this page mounts.
+    // A genuine event that arrives even after "invalid" is shown (a very slow
+    // device) still unlocks it: deliberate, and safe because only the event can.
     const unsubscribe = onPasswordRecovery((session) => {
       if (!cancelled && isPasswordRecovery(session)) setStage('ready')
     })

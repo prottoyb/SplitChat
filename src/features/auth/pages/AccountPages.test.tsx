@@ -157,6 +157,30 @@ describe('Reset password page', () => {
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
   })
 
+  it('still unlocks for a genuine event that arrives after "invalid" was shown (slow device)', async () => {
+    vi.useFakeTimers()
+    api.getSession.mockResolvedValue(recoverySession)
+    at('/reset-password')
+    await settle()
+    await advance(2000)
+    expect(screen.getByRole('status')).toHaveTextContent(INVALID)
+    emitRecovery(recoverySession)
+    expect(screen.getByLabelText('New password')).toBeInTheDocument()
+  })
+
+  it('stops listening and waiting once the page is gone', async () => {
+    vi.useFakeTimers()
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { unmount } = at('/reset-password')
+    await settle()
+    unmount()
+    expect(api.recoveryListeners.size).toBe(0)
+    await advance(20000)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(errors).not.toHaveBeenCalled()
+    errors.mockRestore()
+  })
+
   it('sets the new password from a reset link, signs out and asks to sign in again', async () => {
     const user = userEvent.setup()
     api.recoverySession = recoverySession

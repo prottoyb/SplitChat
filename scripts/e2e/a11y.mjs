@@ -186,8 +186,11 @@ for (const [label, width, height, mobile] of [['desktop', 1280, 900, false], ['m
   for (const [pageName, path, signedIn, opts = {}] of PAGES) {
     const own = opts.slowAuth ? await openBrowser({ allowedOrigins, width, height, mobile, delays: [{ match: /\/auth\/v1\/user(\?|$)/, ms: 120000 }] }) : null
     if (own) pages.push(own)
-    await audit(own ?? page, { pageName, path, signedIn, opts, label, mobile })
-    if (own) await own.close()
+    try {
+      await audit(own ?? page, { pageName, path, signedIn, opts, label, mobile })
+    } finally {
+      if (own) await own.close()
+    }
   }
 }
 
