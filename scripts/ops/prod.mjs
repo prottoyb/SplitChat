@@ -23,7 +23,7 @@
 //     starting history;
 //   - secrets are never printed.
 //
-// Usage (every command takes --batch batch1|batch2|batch3a|batch3b|batch4):
+// Usage (every command takes --batch batch1|batch2|batch3a|batch3b|batch4|batch5):
 //   node scripts/ops/prod.mjs identify
 //   node scripts/ops/prod.mjs preflight <evidence-dir>   (read-only)
 //   node scripts/ops/prod.mjs repair-m0                  (WRITE, batch1 only)
@@ -85,6 +85,9 @@ const M = {
   '20260930100000_membership_and_expense_edit_locks.sql': 'e681e7cb7951df0c2cfe61132dbb3c885b034c282667afa605a51f183f625975',
   '20260930110000_index_cleanup.sql': '60324cf9ea346a2384c4271137b3dded5ac51e2898bbdd393fe406f17288591f',
   '20260930120000_realtime_anon_silence.sql': '75e672d334486c551378c80a9a5c52ce752f1222cd068e35c0d79e1c16d54b19',
+  // Batch 5 (Phase 9, ADR-0013), reviewed and rehearsed on SplitChat-Dev.
+  '20261001100000_group_details.sql': '200c9a177c985f4f5f3ee6602b556e14736faa9231375bd38fdd1ec52826e0bc',
+  '20261001110000_profile_name_rules.sql': '746e2a2e9a3cd15a363882656e3b23dda07b62eb4465e8b9a34cdd696288510c',
 }
 const pick = (n) => Object.fromEntries(Object.entries(M).slice(0, n))
 const versions = (n) => Object.keys(M).slice(0, n).map((f) => f.slice(0, 14))
@@ -165,6 +168,24 @@ const BATCHES = {
     zeroChecks: ['Q4', 'Q5', 'Q20', 'Q21', 'Q22'],
     postchecks: 'batch4_postchecks.sql',
     expectedSchema: ['batch4_expected_schema.sql', 'c571e828719a14c4991657fb53b3ff6f270501c8c19b72e6a30e93dee5c3c46c'],
+    frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
+  },
+  // M24 owner-only group rename RPC, M25 display-name rule (CHECK NOT VALID,
+  // tombstones exempt) and sign-up name cleaning (ADR-0013). Additive for
+  // every earlier frontend: no existing RPC, grant or policy changes, and
+  // sign-up names are cleaned rather than refused, so any frontend containing
+  // the M12 commit may be live; the Phase 9 frontend needs this batch first.
+  // Q23 is the M25 compatibility check: live names breaking the rule stop the
+  // release (they are never changed by this tool).
+  batch5: {
+    migrations: pick(27),
+    before: ['batch4_expected_schema.sql', 'c571e828719a14c4991657fb53b3ff6f270501c8c19b72e6a30e93dee5c3c46c'],
+    preflightHistory: versions(25),
+    startHistory: versions(25),
+    prechecks: 'batch5_prechecks.sql',
+    zeroChecks: ['Q4', 'Q5', 'Q23', 'Q24', 'Q25', 'Q26', 'Q27', 'Q28'],
+    postchecks: 'batch5_postchecks.sql',
+    expectedSchema: ['batch5_expected_schema.sql', '7f2859003c5f31e0ccd3b1540bb5ad12f4fa92060aade72c2dd525499fda462a'],
     frontendMinCommit: 'a5ed4e85e9a184e3acdf8f529f673ee2bbb07753',
   },
 }
