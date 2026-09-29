@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import { isPasswordRecovery, supabase } from '../../../shared/api/supabase'
+import { isPasswordRecovery, onPasswordRecovery, supabase } from '../../../shared/api/supabase'
 import { fail, failureFrom, guard, ok, type Result } from '../../../shared/api/result'
 import type { Profile } from '../authState'
 
@@ -86,7 +86,7 @@ export function signOut(): Promise<Result<void>> {
   }, 'Unable to sign out.')
 }
 
-export { isPasswordRecovery }
+export { isPasswordRecovery, onPasswordRecovery }
 
 /**
  * Sends a password-reset link. The outcome is the same whether or not the

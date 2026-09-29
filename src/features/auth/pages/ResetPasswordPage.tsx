@@ -1,13 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getSession, isPasswordRecovery, setNewPassword, signOut } from '../api/auth'
+import { getSession, isPasswordRecovery, onPasswordRecovery, setNewPassword, signOut } from '../api/auth'
 import { validateNewPassword } from '../domain/displayName'
 import styles from '../AuthPage.module.css'
 
 type Stage = 'checking' | 'ready' | 'invalid'
 
+// auth-js finishes start-up (getSession resolves) and only then emits
+// PASSWORD_RECOVERY, in a zero-delay timer. How long to keep waiting for it
+// after the session is known before calling the link invalid.
+const RECOVERY_EVENT_GRACE_MS = 2000
+// Upper bound on "Checking…" if Auth never answers (e.g. a stalled network).
+const CHECK_DEADLINE_MS = 20000
+
 /**
- * Where a password-reset email link lands. The form is offered only for a
+ * Where a password-reset email link lands. The form is offered only for the
  * recovery session started by that link on this page load, never for an
  * ordinary signed-in session (which must confirm the current password on the
  * profile page instead). After the change the user signs in again.
@@ -22,11 +29,27 @@ function ResetPasswordPage() {
 
   useEffect(() => {
     let cancelled = false
+    let graceTimer: ReturnType<typeof setTimeout> | undefined
+    const giveUp = () => {
+      if (!cancelled) setStage((current) => (current === 'checking' ? 'invalid' : current))
+    }
+    // Only the recovery event (or the session it created) unlocks the form;
+    // it may arrive after getSession has resolved, or before this page mounts.
+    const unsubscribe = onPasswordRecovery((session) => {
+      if (!cancelled && isPasswordRecovery(session)) setStage('ready')
+    })
+    const deadline = setTimeout(giveUp, CHECK_DEADLINE_MS)
     void getSession().then((session) => {
-      if (!cancelled) setStage(session && isPasswordRecovery() ? 'ready' : 'invalid')
+      if (cancelled) return
+      if (isPasswordRecovery(session)) setStage('ready')
+      else if (!session) giveUp()
+      else graceTimer = setTimeout(giveUp, RECOVERY_EVENT_GRACE_MS)
     })
     return () => {
       cancelled = true
+      unsubscribe()
+      clearTimeout(deadline)
+      clearTimeout(graceTimer)
     }
   }, [])
 
@@ -56,18 +79,15 @@ function ResetPasswordPage() {
           <div className={styles.heading}>
             <p className={styles.eyebrow}>RESET PASSWORD</p>
             <h2>Choose a new password</h2>
-            <p>
-              {stage === 'invalid'
-                ? 'This reset link is invalid or has expired.'
-                : 'Pick a password of at least 8 characters. You will then sign in with it.'}
+            {/* One live region, so the outcome of the check is announced. */}
+            <p role="status">
+              {stage === 'checking'
+                ? 'Checking your reset link…'
+                : stage === 'invalid'
+                  ? 'This reset link is invalid or has expired.'
+                  : 'Pick a password of at least 8 characters. You will then sign in with it.'}
             </p>
           </div>
-
-          {stage === 'checking' && (
-            <p className={styles.switchText} role="status">
-              Checking your reset link…
-            </p>
-          )}
 
           {stage === 'invalid' && (
             <p className={styles.switchText}>
