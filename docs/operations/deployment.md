@@ -67,11 +67,20 @@ Changing production Auth settings is a human-gated action (CLAUDE.md).
 1. Production database batch 4 applied **and verified**
    (`docs/operations/release-runbook.md`). Done: production is at M23
    (25 versions) since 2026-09-29.
-2. **For a Phase 9 frontend:** M24 `20261001100000_group_details` and M25
-   `20261001110000_profile_name_rules` applied and verified in production
-   (their own release approval; ADR-0013), and the Phase 9 Auth settings
-   above completed and tested. Without M24 the group settings rename fails;
-   without the Auth settings password reset fails.
+2. **For a Phase 9 frontend:**
+   - **Required, not yet done:** batch 5 must be applied and verified in
+     production (production is at M23 until then). Batch 5 is M24
+     `20261001100000_group_details` and M25
+     `20261001110000_profile_name_rules`. It needs its own release approval
+     (ADR-0013). Tool, pre/post-checks and runbook:
+     `prod.mjs --batch batch5`, `docs/phase9/release-batch5.md`. Its
+     preflight includes the M25 compatibility count (Q23), which must be 0.
+     Without M24, group rename fails.
+   - The Phase 9 Auth settings above are completed and tested. Without
+     them, password reset fails.
+   - The reset-link race in `ResetPasswordPage` is fixed and the E2E
+     genuine reset-link journey passes. It fails on Dev as of 2026-09-29;
+     see `docs/phase9/release-batch5.md`.
 3. Build the frontend from the release commit (must contain `a5ed4e8`, the
    integer-cents frontend, and the Phase 8 commits).
 4. Deploy; smoke-test sign-in, a group, an expense, balances, chat, and
