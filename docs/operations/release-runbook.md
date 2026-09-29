@@ -1,5 +1,9 @@
 # Production release runbook — batch 4 (M16–M23)
 
+> Batch 4 was executed and verified by the operator on 2026-09-29
+> (production at M23, 25 versions). The next batch, **batch 5 (M24–M25)**,
+> has its own evidence package and runbook: `docs/phase9/release-batch5.md`.
+
 **Status:** prepared, NOT executed. Every step that touches production is
 run by the operator in their own shell, and only after explicit execution
 approval of this batch (Mandatory Gate #5). Evidence and rationale:
