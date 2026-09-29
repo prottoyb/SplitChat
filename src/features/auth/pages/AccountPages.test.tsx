@@ -1,14 +1,16 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AuthPage from '../AuthPage'
 import ProfilePage from './ProfilePage'
 import ResetPasswordPage from './ResetPasswordPage'
 
+// A fake of the recovery state in shared/api/supabase: unlocked only for the
+// session a PASSWORD_RECOVERY event named (tests emit it with emitRecovery).
 const api = vi.hoisted(() => ({
-  recovery: false,
-  session: null as unknown,
+  recoverySession: null as unknown,
+  recoveryListeners: new Set<(session: unknown) => void>(),
   getSession: vi.fn(),
   setNewPassword: vi.fn(),
   signOut: vi.fn(),
@@ -20,7 +22,11 @@ const api = vi.hoisted(() => ({
 }))
 
 vi.mock('../api/auth', () => ({
-  isPasswordRecovery: () => api.recovery,
+  isPasswordRecovery: (session: unknown) => session != null && session === api.recoverySession,
+  onPasswordRecovery: (listener: (session: unknown) => void) => {
+    api.recoveryListeners.add(listener)
+    return () => api.recoveryListeners.delete(listener)
+  },
   getSession: api.getSession,
   setNewPassword: api.setNewPassword,
   signOut: api.signOut,
@@ -42,12 +48,32 @@ vi.mock('../useAuth', () => ({
   }),
 }))
 
+const ordinarySession = { user: { id: 'u1' }, kind: 'ordinary password sign-in' }
+const recoverySession = { user: { id: 'u1' }, kind: 'recovery link' }
+
+/** The PASSWORD_RECOVERY event auth-js emits for a link the Auth server accepted. */
+function emitRecovery(session: unknown) {
+  act(() => {
+    api.recoverySession = session
+    for (const listener of api.recoveryListeners) listener(session)
+  })
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
-  api.recovery = false
-  api.getSession.mockResolvedValue({ user: { id: 'u1' } })
+  api.recoverySession = null
+  api.recoveryListeners.clear()
+  api.getSession.mockResolvedValue(ordinarySession)
   api.signOut.mockResolvedValue({ ok: true, value: undefined })
 })
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+const INVALID = 'This reset link is invalid or has expired.'
+// Lets the page's getSession() promise settle.
+const settle = () => act(async () => {})
+const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
 
 const at = (path: string) =>
   render(
@@ -61,22 +87,104 @@ const at = (path: string) =>
   )
 
 describe('Reset password page', () => {
-  it('refuses an ordinary signed-in session: only a reset link may set a password here', async () => {
+  it('unlocks for a genuine link whose PASSWORD_RECOVERY arrives after the session is known (regression: reset-link race)', async () => {
+    vi.useFakeTimers()
+    api.getSession.mockResolvedValue(recoverySession)
     at('/reset-password')
-    expect(await screen.findByText('This reset link is invalid or has expired.')).toBeInTheDocument()
+    await settle()
+    // auth-js has saved the session but not yet emitted the event: neutral, never "invalid".
+    expect(screen.getByRole('status')).toHaveTextContent('Checking your reset link…')
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument()
+    await advance(1500)
+    expect(screen.queryByText(INVALID)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+    emitRecovery(recoverySession)
+    expect(screen.getByLabelText('New password')).toBeInTheDocument()
+    expect(screen.queryByText(INVALID)).not.toBeInTheDocument()
+  })
+
+  it('unlocks when the recovery event arrived before the page loaded', async () => {
+    api.recoverySession = recoverySession
+    api.getSession.mockResolvedValue(recoverySession)
+    at('/reset-password')
+    expect(await screen.findByLabelText('New password')).toBeInTheDocument()
+  })
+
+  it('refuses a hand-typed #type=recovery on a signed-in session (regression: QA CRITICAL)', async () => {
+    vi.useFakeTimers()
+    at('/reset-password#type=recovery')
+    await settle()
+    await advance(2000)
+    expect(screen.getByRole('status')).toHaveTextContent(INVALID)
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
   })
 
-  it('refuses a recovery flag without a session', async () => {
-    api.recovery = true
+  it('refuses a direct visit without any session', async () => {
     api.getSession.mockResolvedValue(null)
     at('/reset-password')
-    expect(await screen.findByText('This reset link is invalid or has expired.')).toBeInTheDocument()
+    expect(await screen.findByText(INVALID)).toBeInTheDocument()
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+  })
+
+  it('refuses an ordinary signed-in session: only a reset link may set a password here', async () => {
+    vi.useFakeTimers()
+    at('/reset-password')
+    await settle()
+    await advance(2000)
+    expect(screen.getByText(INVALID)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Request a new link from the sign-in page' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+  })
+
+  it('refuses an ordinary session even when an earlier recovery session exists in this page load', async () => {
+    vi.useFakeTimers()
+    api.recoverySession = recoverySession
+    at('/reset-password')
+    await settle()
+    await advance(2000)
+    expect(screen.getByText(INVALID)).toBeInTheDocument()
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+  })
+
+  it('does not wait forever when Auth never answers, and still offers no form', async () => {
+    vi.useFakeTimers()
+    api.getSession.mockReturnValue(new Promise(() => {}))
+    at('/reset-password')
+    await advance(19000)
+    expect(screen.getByRole('status')).toHaveTextContent('Checking your reset link…')
+    await advance(1000)
+    expect(screen.getByRole('status')).toHaveTextContent(INVALID)
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+  })
+
+  it('still unlocks for a genuine event that arrives after "invalid" was shown (slow device)', async () => {
+    vi.useFakeTimers()
+    api.getSession.mockResolvedValue(recoverySession)
+    at('/reset-password')
+    await settle()
+    await advance(2000)
+    expect(screen.getByRole('status')).toHaveTextContent(INVALID)
+    emitRecovery(recoverySession)
+    expect(screen.getByLabelText('New password')).toBeInTheDocument()
+  })
+
+  it('stops listening and waiting once the page is gone', async () => {
+    vi.useFakeTimers()
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { unmount } = at('/reset-password')
+    await settle()
+    unmount()
+    expect(api.recoveryListeners.size).toBe(0)
+    await advance(20000)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(errors).not.toHaveBeenCalled()
+    errors.mockRestore()
   })
 
   it('sets the new password from a reset link, signs out and asks to sign in again', async () => {
     const user = userEvent.setup()
-    api.recovery = true
+    api.recoverySession = recoverySession
+    api.getSession.mockResolvedValue(recoverySession)
     api.setNewPassword.mockResolvedValue({ ok: true, value: undefined })
     at('/reset-password')
     await user.type(await screen.findByLabelText('New password'), 'a new secret')
@@ -89,7 +197,8 @@ describe('Reset password page', () => {
 
   it('checks the new password before calling Auth', async () => {
     const user = userEvent.setup()
-    api.recovery = true
+    api.recoverySession = recoverySession
+    api.getSession.mockResolvedValue(recoverySession)
     at('/reset-password')
     await user.type(await screen.findByLabelText('New password'), 'short')
     await user.type(screen.getByLabelText('Confirm new password'), 'short')

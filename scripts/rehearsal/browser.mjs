@@ -69,8 +69,12 @@ window.__e2e = (() => {
   return { norm, all, tag, nameOf, text: () => norm(document.body.innerText) }
 })()`
 
-/** A Chrome instance (its own profile, so its own session) with one page. */
-export async function openBrowser({ allowedOrigins, width = 1280, height = 900, mobile = false }) {
+/**
+ * A Chrome instance (its own profile, so its own session) with one page.
+ * `delays`: [{ match: RegExp, ms }] holds matching allowed requests for `ms`
+ * before letting them through (to force a timing order, e.g. slow Auth).
+ */
+export async function openBrowser({ allowedOrigins, width = 1280, height = 900, mobile = false, delays = [] }) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'splitchat-browser-'))
   const chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' })
   const portFile = path.join(profile, 'DevToolsActivePort')
@@ -132,8 +136,11 @@ export async function openBrowser({ allowedOrigins, width = 1280, height = 900, 
     } catch {
       ok = false
     }
-    if (ok && !request.url.includes(PROD_REF)) void send('Fetch.continueRequest', { requestId })
-    else {
+    if (ok && !request.url.includes(PROD_REF)) {
+      const ms = delays.find((d) => d.match.test(request.url))?.ms ?? 0
+      if (ms > 0) setTimeout(() => void send('Fetch.continueRequest', { requestId }), ms)
+      else void send('Fetch.continueRequest', { requestId })
+    } else {
       violations.push(request.url)
       void send('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' })
     }

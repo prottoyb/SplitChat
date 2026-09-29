@@ -85,7 +85,16 @@ const PAGES = [
   ['group settings', `${g}/settings`, true],
   ['profile', '/profile', true],
   ['reset password (no link)', '/reset-password', false],
+  // The reset page's other states. `link`: open a genuine recovery link from
+  // the Dev Auth server; `slowAuth`: hold Auth's token check so the neutral
+  // "Checking" state stays up for the whole audit (own browser).
+  ['reset password (checking a link)', '/reset-password', false, { link: true, slowAuth: true, waitText: 'Checking your reset link…' }],
+  ['reset password (genuine link, form)', '/reset-password', false, { link: true, waitText: 'Pick a password of at least 8 characters.' }],
+  ['reset password (signed in, no link)', '/reset-password', true, { waitText: 'This reset link is invalid or has expired.' }],
 ]
+const recoveryLink = async () => must(await admin.auth.admin.generateLink({
+  type: 'recovery', email: email('sam'), options: { redirectTo: `${app.origin}/reset-password` },
+}), 'recovery link').properties.action_link
 
 // Colour maths shared by the in-page checks. Backgrounds: solid layers are
 // composited; a gradient contributes each of its colour stops (the text must
@@ -174,67 +183,79 @@ let pages = []
 for (const [label, width, height, mobile] of [['desktop', 1280, 900, false], ['mobile', 390, 844, true]]) {
   const page = await openBrowser({ allowedOrigins, width, height, mobile })
   pages.push(page)
-  for (const [pageName, path, signedIn] of PAGES) {
-    await page.goto(`${app.origin}/login`)
-    await page.evaluate(signedIn ? `localStorage.setItem(${JSON.stringify(`sb-${t.ref}-auth-token`)}, ${JSON.stringify(JSON.stringify(me.session))})` : 'localStorage.clear()')
-    await page.goto(app.origin + path)
-    await page.waitFor(`!document.querySelector('[aria-busy="true"]')`, 15000).catch(() => {})
-    await new Promise((r) => setTimeout(r, 800))
-    const findings = []
-
-    // Names, from Chrome's accessibility tree.
-    await page.send('DOM.getDocument', { depth: 0 })
-    const { nodes } = await page.send('Accessibility.getFullAXTree')
-    const INTERACTIVE = new Set(['button', 'link', 'textbox', 'combobox', 'checkbox', 'radio', 'searchbox', 'spinbutton', 'tab', 'menuitem', 'switch'])
-    for (const n of nodes) {
-      if (n.ignored || !INTERACTIVE.has(n.role?.value)) continue
-      if (!String(n.name?.value ?? '').trim()) {
-        const html = n.backendDOMNodeId
-          ? (await page.send('DOM.getOuterHTML', { backendNodeId: n.backendDOMNodeId }).catch(() => ({ outerHTML: '' }))).outerHTML
-          : ''
-        findings.push({ kind: 'name', text: `${n.role.value} without an accessible name: ${html.replace(/\s+/g, ' ').slice(0, 120)}` })
-      }
+  for (const [pageName, path, signedIn, opts = {}] of PAGES) {
+    const own = opts.slowAuth ? await openBrowser({ allowedOrigins, width, height, mobile, delays: [{ match: /\/auth\/v1\/user(\?|$)/, ms: 120000 }] }) : null
+    if (own) pages.push(own)
+    try {
+      await audit(own ?? page, { pageName, path, signedIn, opts, label, mobile })
+    } finally {
+      if (own) await own.close()
     }
-
-    findings.push(...(await page.evaluate(PAGE_CHECKS)))
-
-    // Touch targets on phones: buttons at least 44px tall (inline text links exempt).
-    if (mobile) {
-      const small = await page.evaluate(`[...document.querySelectorAll('button, [role="button"], .primary-button, .secondary-button')]
-        .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden' && r.height < 43.5 })
-        .map((el) => (el.getAttribute('aria-label') || el.innerText || '').trim().slice(0, 30) + ' ' + Math.round(el.getBoundingClientRect().height) + 'px')`)
-      for (const s of small) findings.push({ kind: 'target', text: `touch target under 44px: ${s}` })
-    }
-
-    // Keyboard: Tab through up to 40 stops; each must show a focus indicator.
-    await page.evaluate('document.activeElement?.blur(); window.scrollTo(0, 0)')
-    const stops = []
-    for (let i = 0; i < 40; i++) {
-      await page.press('Tab')
-      const focused = await page.evaluate(FOCUS_STYLE)
-      if (!focused) break
-      // Compare with the element's unfocused look (blur, read, refocus).
-      const plain = await page.evaluate(`(() => { const el = document.activeElement; el.blur(); const cs = getComputedStyle(el); const p = el.parentElement ? getComputedStyle(el.parentElement) : null;
-        const s = { border: cs.borderColor, bg: cs.backgroundColor, shadow: cs.boxShadow !== 'none', parent: p ? p.boxShadow + '|' + p.borderColor + '|' + p.outlineStyle : '' }; el.focus(); return s })()`)
-      // A wrapper's :focus-within ring counts (e.g. the amount field's "$" box).
-      const indicated = focused.outline || (focused.shadow && !plain.shadow) || focused.border !== plain.border || focused.bg !== plain.bg || focused.parent !== plain.parent
-      if (!indicated) findings.push({ kind: 'focus', text: `no visible focus indicator on ${focused.tag} "${focused.name}"` })
-      // A ring that is there but barely visible does not count (a shadow ring
-      // is judged only when it appears on focus; an outline always).
-      else if ((focused.outline || (focused.shadow && !plain.shadow)) && focused.indicatorContrast !== null && focused.indicatorContrast < 3 && focused.border === plain.border && focused.bg === plain.bg && focused.parent === plain.parent)
-        findings.push({ kind: 'focus', text: `focus indicator contrast ${Math.round(focused.indicatorContrast * 100) / 100}:1 (needs 3:1) on ${focused.tag} "${focused.name}"` })
-      stops.push(focused.name)
-      if (stops.length > 3 && stops.at(-1) === stops[0]) break
-    }
-    if (stops.length === 0) findings.push({ kind: 'keyboard', text: 'Tab reaches no control' })
-
-    const unique = [...new Map(findings.map((f) => [JSON.stringify(f), f])).values()]
-    report.push({ page: pageName, width: label, stops: stops.length, findings: unique })
-    console.log(`${unique.length ? 'FIND' : 'PASS'}  ${pageName} (${label}): ${stops.length} tab stops, ${unique.length} findings`)
-    for (const f of unique.slice(0, 12)) console.log(`      ${f.kind}: ${f.text}${f.ratio ? ` (${f.ratio}:1, needs ${f.need}:1, ${f.color}, ${f.size}px)` : ''}`)
   }
 }
-for (const p of pages) await p.close()
+
+async function audit(page, { pageName, path, signedIn, opts, label, mobile }) {
+  await page.goto(`${app.origin}/login`)
+  await page.evaluate(signedIn ? `localStorage.setItem(${JSON.stringify(`sb-${t.ref}-auth-token`)}, ${JSON.stringify(JSON.stringify(me.session))})` : 'localStorage.clear()')
+  await page.goto(opts.link ? await recoveryLink() : app.origin + path)
+  if (opts.waitText) await page.waitForText(opts.waitText, 20000)
+  await page.waitFor(`!document.querySelector('[aria-busy="true"]')`, 15000).catch(() => {})
+  await new Promise((r) => setTimeout(r, 800))
+  if (opts.waitText && !(await page.hasText(opts.waitText))) throw new Error(`${pageName}: the audited state changed ("${opts.waitText}" gone)`)
+  const findings = []
+
+  // Names, from Chrome's accessibility tree.
+  await page.send('DOM.getDocument', { depth: 0 })
+  const { nodes } = await page.send('Accessibility.getFullAXTree')
+  const INTERACTIVE = new Set(['button', 'link', 'textbox', 'combobox', 'checkbox', 'radio', 'searchbox', 'spinbutton', 'tab', 'menuitem', 'switch'])
+  for (const n of nodes) {
+    if (n.ignored || !INTERACTIVE.has(n.role?.value)) continue
+    if (!String(n.name?.value ?? '').trim()) {
+      const html = n.backendDOMNodeId
+        ? (await page.send('DOM.getOuterHTML', { backendNodeId: n.backendDOMNodeId }).catch(() => ({ outerHTML: '' }))).outerHTML
+        : ''
+      findings.push({ kind: 'name', text: `${n.role.value} without an accessible name: ${html.replace(/\s+/g, ' ').slice(0, 120)}` })
+    }
+  }
+
+  findings.push(...(await page.evaluate(PAGE_CHECKS)))
+
+  // Touch targets on phones: buttons at least 44px tall (inline text links exempt).
+  if (mobile) {
+    const small = await page.evaluate(`[...document.querySelectorAll('button, [role="button"], .primary-button, .secondary-button')]
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden' && r.height < 43.5 })
+      .map((el) => (el.getAttribute('aria-label') || el.innerText || '').trim().slice(0, 30) + ' ' + Math.round(el.getBoundingClientRect().height) + 'px')`)
+    for (const s of small) findings.push({ kind: 'target', text: `touch target under 44px: ${s}` })
+  }
+
+  // Keyboard: Tab through up to 40 stops; each must show a focus indicator.
+  await page.evaluate('document.activeElement?.blur(); window.scrollTo(0, 0)')
+  const stops = []
+  for (let i = 0; i < 40; i++) {
+    await page.press('Tab')
+    const focused = await page.evaluate(FOCUS_STYLE)
+    if (!focused) break
+    // Compare with the element's unfocused look (blur, read, refocus).
+    const plain = await page.evaluate(`(() => { const el = document.activeElement; el.blur(); const cs = getComputedStyle(el); const p = el.parentElement ? getComputedStyle(el.parentElement) : null;
+      const s = { border: cs.borderColor, bg: cs.backgroundColor, shadow: cs.boxShadow !== 'none', parent: p ? p.boxShadow + '|' + p.borderColor + '|' + p.outlineStyle : '' }; el.focus(); return s })()`)
+    // A wrapper's :focus-within ring counts (e.g. the amount field's "$" box).
+    const indicated = focused.outline || (focused.shadow && !plain.shadow) || focused.border !== plain.border || focused.bg !== plain.bg || focused.parent !== plain.parent
+    if (!indicated) findings.push({ kind: 'focus', text: `no visible focus indicator on ${focused.tag} "${focused.name}"` })
+    // A ring that is there but barely visible does not count (a shadow ring
+    // is judged only when it appears on focus; an outline always).
+    else if ((focused.outline || (focused.shadow && !plain.shadow)) && focused.indicatorContrast !== null && focused.indicatorContrast < 3 && focused.border === plain.border && focused.bg === plain.bg && focused.parent === plain.parent)
+      findings.push({ kind: 'focus', text: `focus indicator contrast ${Math.round(focused.indicatorContrast * 100) / 100}:1 (needs 3:1) on ${focused.tag} "${focused.name}"` })
+    stops.push(focused.name)
+    if (stops.length > 3 && stops.at(-1) === stops[0]) break
+  }
+  if (stops.length === 0) findings.push({ kind: 'keyboard', text: 'Tab reaches no control' })
+
+  const unique = [...new Map(findings.map((f) => [JSON.stringify(f), f])).values()]
+  report.push({ page: pageName, width: label, stops: stops.length, findings: unique })
+  console.log(`${unique.length ? 'FIND' : 'PASS'}  ${pageName} (${label}): ${stops.length} tab stops, ${unique.length} findings`)
+  for (const f of unique.slice(0, 12)) console.log(`      ${f.kind}: ${f.text}${f.ratio ? ` (${f.ratio}:1, needs ${f.need}:1, ${f.color}, ${f.size}px)` : ''}`)
+}
+for (const p of pages) await p.close().catch(() => {})
 app.stop()
 const violations = pages.flatMap((p) => p.violations)
 if (violations.length) console.log(`FAIL  blocked requests outside localhost/Dev: ${violations.length}`)
