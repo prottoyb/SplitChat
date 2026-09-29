@@ -58,7 +58,7 @@ const argv = process.argv.slice(2)
 const REHEARSE = argv.includes('--rehearse-on-dev')
 
 // Full SHA-256 of LF-normalised text, for every reviewed file.
-const M = {
+export const M = {
   '20260926000000_baseline_public_schema.sql': '7d7b627b2cbfd2709620fbba9eca9358885a565b648ed039fe47605db8ed2370',
   '20260926100000_guard_expense_immutable_columns.sql': 'cc322ff60c033443b23ee0856cbf5d5d5c9a0e6970576b0a0cd34593c857c207',
   '20260926110000_revoke_anon_harden_definer_functions.sql': '1a91b339524aea24a658db13ccd296c530c1835088d2d480fa48ccc2ccdfa0c0',
@@ -97,7 +97,7 @@ const BATCH3A = Object.fromEntries(Object.entries(M).filter(([f]) => f < '202609
 // Reviewed batches. `before` is the schema production must match before the
 // batch (exact, CR-insensitive); `startHistory` is the required migration
 // history before the batch's write; `after*` describe the verified end state.
-const BATCHES = {
+export const BATCHES = {
   batch1: {
     migrations: pick(6),
     before: ['../baseline/public_schema.sql', '7d4971e08e87a98bd23bc205961b06b067423ed535af5aedd85cd4dacd429d9d'],
@@ -453,9 +453,13 @@ function main() {
   process.exit(r.status ?? 1)
 }
 
-try {
-  main()
-} catch (error) {
-  console.error(`ERROR: ${error.message}`)
-  process.exit(1)
+// Runs only as a script; importing the module (scripts/ops/manifest.test.mjs
+// reads the reviewed manifest) connects to nothing and executes nothing.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main()
+  } catch (error) {
+    console.error(`ERROR: ${error.message}`)
+    process.exit(1)
+  }
 }

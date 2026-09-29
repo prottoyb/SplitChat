@@ -68,7 +68,8 @@ Changing production Auth settings is a human-gated action (CLAUDE.md).
    (`docs/operations/release-runbook.md`). Done: production is at M23
    (25 versions) since 2026-09-29.
 2. **For a Phase 9 frontend:**
-   - **Batch 5** is applied and verified in production: M24
+   - **Required, not yet done:** batch 5 must be applied and verified in
+     production (production is at M23 until then). Batch 5 is M24
      `20261001100000_group_details` and M25
      `20261001110000_profile_name_rules`. It needs its own release approval
      (ADR-0013). Tool, pre/post-checks and runbook:

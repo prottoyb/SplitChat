@@ -1,7 +1,13 @@
 -- Production batch 5 (M24-M25, Phase 9) read-only post-apply verification.
 -- Catalog checks plus aggregate data invariants; no row contents.
 -- Every row must report ok = true (scripts/ops/prod.mjs verify). The exact
--- schema comparison with batch5_expected_schema.sql runs separately.
+-- schema comparison with batch5_expected_schema.sql runs separately; these
+-- checks are named, readable defence in depth on top of it.
+-- Pinned to PostgreSQL 17 output: the M25 check compares
+-- pg_get_constraintdef() exactly and the handle_new_user check matches
+-- fragments of its source (LIKE, where "_" matches any character, so it can
+-- only over-match). A major-version upgrade may require re-pinning the text;
+-- both fail closed.
 
 SELECT check_name, ok FROM (VALUES
   ('history: the 25 batch 4 versions plus M24 and M25, nothing else (27)',
@@ -37,7 +43,11 @@ SELECT check_name, ok FROM (VALUES
                     WHERE table_schema = 'public' AND table_name = 'groups' AND privilege_type = 'UPDATE'
                       AND grantee IN ('anon', 'authenticated', 'PUBLIC'))
    AND NOT EXISTS (SELECT 1 FROM pg_policies
-                    WHERE schemaname = 'public' AND tablename = 'groups' AND cmd IN ('UPDATE', 'ALL'))),
+                    WHERE schemaname = 'public' AND tablename = 'groups' AND cmd IN ('UPDATE', 'ALL'))
+   -- effective privileges, whoever granted them
+   AND NOT has_any_column_privilege('anon', 'public.groups', 'UPDATE')
+   AND NOT has_any_column_privilege('authenticated', 'public.groups', 'UPDATE')
+   AND NOT has_any_column_privilege('public', 'public.groups', 'UPDATE')),
   ('M24: group_events_kind_check is validated and allows group_updated; clients hold no write privilege on group_events',
    EXISTS (SELECT 1 FROM pg_constraint
             WHERE conrelid = 'public.group_events'::regclass AND conname = 'group_events_kind_check'
@@ -78,6 +88,8 @@ SELECT check_name, ok FROM (VALUES
                     WHERE table_schema = 'public' AND table_name = 'profiles' AND grantee IN ('anon', 'PUBLIC'))
    AND NOT EXISTS (SELECT 1 FROM information_schema.column_privileges
                     WHERE table_schema = 'public' AND table_name = 'profiles' AND grantee IN ('anon', 'PUBLIC'))
+   AND NOT has_any_column_privilege('anon', 'public.profiles', 'SELECT, INSERT, UPDATE, REFERENCES')
+   AND NOT has_table_privilege('authenticated', 'public.profiles', 'INSERT, DELETE, TRUNCATE')
    AND (SELECT array_agg(privilege_type::text ORDER BY privilege_type) FROM information_schema.role_table_grants
          WHERE table_schema = 'public' AND table_name = 'profiles' AND grantee = 'authenticated'
            AND privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) = ARRAY['SELECT']

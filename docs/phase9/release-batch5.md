@@ -106,13 +106,30 @@ The Phase 9 frontend needs batch 5 first (group rename).
 | Post-check negatives: the M25 rollback | caught |
 | Post-check negatives: a disabled trigger | caught |
 | Post-check negatives: an extra profiles grant | caught |
+| Pre/post-check negatives (review hardening): UPDATE on `groups` or INSERT on `profiles` inherited through a hidden role granted to `authenticated` (invisible to `information_schema`) | caught by the `has_any_column_privilege` / `has_table_privilege` clauses (Q27; M24 and profiles post-checks) |
 | Post-check negatives: a reserved live name | caught |
 | Post-check negatives: missing history | caught |
 | `npm run test:db` | 37/37, 828 assertions |
 
-**CI:** `scripts/ops/manifest.test.mjs` (Vitest) fails CI if any committed
-migration or expected schema stops matching its pinned digest. It also
-checks the batch5 manifest and zero-check list.
+**CI:** `scripts/ops/manifest.test.mjs` (Vitest) imports the manifest from
+`prod.mjs`. That is safe because `prod.mjs` now runs only as a script:
+importing it connects to nothing and executes nothing.
+
+The test fails CI if:
+
+- any committed migration or expected schema of any batch stops matching
+  its pin;
+- a batch's pre-checks lack one of its zero-checks;
+- a new migration has not been reviewed into a batch yet.
+
+It also checks that batch5 is exactly M24 and M25 on top of batch 4, and
+that its Q23 is the M25 rule applied to live profiles.
+
+**After the review hardening** (read-only on the post-batch-5 Dev):
+
+- The revised post-checks pass 15/15.
+- The revised pre-checks run cleanly.
+- Q27 is still 0 on real Supabase.
 
 ## Dress rehearsal on SplitChat-Dev (2026-09-29)
 
@@ -197,6 +214,39 @@ About the E2E failure:
   rename and display-name journeys pass.
 - It **blocks the Phase 9 frontend deployment** until it is fixed on its
   own branch, with QA/Security review.
+
+## Reviews (2026-09-29, independent, on `3253387`)
+
+**QA/Security: PASS**, no CRITICAL, HIGH or MEDIUM.
+
+- The reviewer recomputed the four digests.
+- The reviewer checked:
+  - that the guards are unchanged;
+  - Q23, exactly the operator's query;
+  - that missing or NULL rows fail closed;
+  - the offline guard refusals.
+- LOW findings, all fixed:
+  - `deployment.md` read as if batch 5 were done.
+  - The runbook's stale batch 4 status.
+  - Hardening: use effective-privilege functions alongside
+    `information_schema`.
+
+**Senior Review: APPROVE WITH CHANGES**, no CRITICAL or HIGH in the tooling.
+
+- **MEDIUM, fixed:** the manifest test parsed `prod.mjs` as text. `prod.mjs`
+  now exports `M` and `BATCHES` and runs `main()` only as a script (the
+  guard `db-test.mjs` and `dev.mjs` use). The test imports them and covers
+  every batch.
+- **LOW, fixed:** the `deployment.md` wording.
+- **LOW, fixed:** the runbook title.
+- **LOW, fixed:** the PostgreSQL-version pinning of the exact constraint
+  text and the `LIKE` fragments is now noted in `batch5_postchecks.sql`.
+- **HIGH, outside this change:** the `ResetPasswordPage` race, independently
+  confirmed against auth-js 2.112.3.
+  - Every genuine reset link shows "invalid or expired".
+  - It fails safe: no bypass.
+  - It blocks the **Phase 9 frontend release**, not batch 5.
+  - It needs its own fix branch with QA/Security review.
 
 ## Runbook (operator's own PowerShell; `DB_URL` = production session pooler, port 5432)
 

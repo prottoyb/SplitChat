@@ -66,6 +66,11 @@ SELECT 'Q27 direct client UPDATE paths on public.groups', count(*)
     UNION ALL
     SELECT 1 FROM pg_policies
      WHERE schemaname = 'public' AND tablename = 'groups' AND cmd IN ('UPDATE', 'ALL')
+    UNION ALL
+    -- Effective privileges, whoever granted them (information_schema shows
+    -- only grants visible to the current role).
+    SELECT 1 FROM (VALUES ('anon'), ('authenticated'), ('public')) r(role)
+     WHERE has_any_column_privilege(r.role, 'public.groups', 'UPDATE')
   ) x
 UNION ALL
 SELECT 'Q28 missing M24/M25 prerequisites', count(*)
