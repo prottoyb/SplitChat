@@ -89,6 +89,12 @@ function ResetPasswordPage() {
             </p>
           </div>
 
+          {stage === 'checking' && (
+            <p className={styles.switchText}>
+              <Link to="/login">Back to sign in</Link>
+            </p>
+          )}
+
           {stage === 'invalid' && (
             <p className={styles.switchText}>
               <Link to="/login">Request a new link from the sign-in page</Link>

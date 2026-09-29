@@ -294,22 +294,44 @@ try {
     await sam.waitForText('That name is reserved')
   })
 
+  const INVALID_LINK = 'This reset link is invalid or has expired.'
   await step('a hand-typed recovery URL on a signed-in session offers no password form', async () => {
     await priya.goto(`${app.origin}/reset-password#type=recovery`)
-    await priya.waitForText('This reset link is invalid or has expired.')
+    await priya.waitForText(INVALID_LINK)
     assert((await priya.count('button', 'Save new password')) === 0, 'password form offered without a reset link')
   })
 
-  await step('a genuine reset link lets the user choose a new password, then sign in with it', async () => {
+  await step('/reset-password offers no password form to a signed-in session or to a visitor without a link', async () => {
+    await priya.goto(`${app.origin}/reset-password`)
+    await priya.waitForText(INVALID_LINK)
+    assert((await priya.count('button', 'Save new password')) === 0, 'password form offered to an ordinary session')
+    const visitor = await openBrowser({ allowedOrigins })
+    pages.push(visitor)
+    await visitor.goto(`${app.origin}/reset-password`)
+    await visitor.waitForText(INVALID_LINK)
+    assert((await visitor.count('button', 'Save new password')) === 0, 'password form offered without a session')
+  })
+
+  const recoveryLink = async (key) => {
     // A real recovery link from the Dev Auth server (no email needed on Dev).
     const { data, error } = await admin.auth.admin.generateLink({
-      type: 'recovery', email: email('rita'), options: { redirectTo: `${app.origin}/reset-password` },
+      type: 'recovery', email: email(key), options: { redirectTo: `${app.origin}/reset-password` },
     })
     if (error) throw new Error(`generateLink: ${error.message}`)
-    const rita = await openBrowser({ allowedOrigins })
+    return data.properties.action_link
+  }
+  let rita
+  let usedLink
+  await step('a genuine reset link works even when Auth answers slowly, then sign-in with the new password works', async () => {
+    // Auth's token check is held back so the page loads before auth-js has
+    // processed the link and emitted PASSWORD_RECOVERY: the order that used to
+    // show "invalid or expired" for every such link (reset-link race).
+    rita = await openBrowser({ allowedOrigins, delays: [{ match: /\/auth\/v1\/user(\?|$)/, ms: 1500 }] })
     pages.push(rita)
-    await rita.goto(data.properties.action_link)
-    await rita.waitForText('Choose a new password', 20000)
+    usedLink = await recoveryLink('rita')
+    await rita.goto(usedLink)
+    await rita.find('textbox', 'New password', { ms: 20000 })
+    assert(!(await rita.hasText(INVALID_LINK)), 'a genuine link was called invalid')
     const fresh = `${password}-new`
     await rita.type('New password', fresh)
     await rita.type('Confirm new password', fresh)
@@ -319,6 +341,21 @@ try {
     await rita.type('Password', fresh)
     await rita.press('Enter')
     await rita.waitFor(`location.pathname === '/'`, 20000, 'the dashboard after signing in with the new password')
+  })
+
+  await step('after a reset, a password sign-in in the same page load cannot reopen the reset form', async () => {
+    // In-app navigation keeps the page load (and any recovery state) alive.
+    await rita.evaluate(`history.pushState({}, '', '/reset-password'); dispatchEvent(new PopStateEvent('popstate'))`)
+    await rita.waitForText(INVALID_LINK)
+    assert((await rita.count('button', 'Save new password')) === 0, 'stale recovery state reopened the form')
+  })
+
+  await step('a used reset link offers no password form; a fresh one does', async () => {
+    await rita.goto(usedLink)
+    await rita.waitForText(INVALID_LINK, 20000)
+    assert((await rita.count('button', 'Save new password')) === 0, 'a used link offered the form')
+    await rita.goto(await recoveryLink('rita'))
+    await rita.find('textbox', 'New password', { ms: 20000 })
   })
 
   await step('no request left localhost and SplitChat-Dev; no uncaught page errors', async () => {

@@ -94,6 +94,7 @@ describe('Reset password page', () => {
     await settle()
     // auth-js has saved the session but not yet emitted the event: neutral, never "invalid".
     expect(screen.getByRole('status')).toHaveTextContent('Checking your reset link…')
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toBeInTheDocument()
     await advance(1500)
     expect(screen.queryByText(INVALID)).not.toBeInTheDocument()
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
