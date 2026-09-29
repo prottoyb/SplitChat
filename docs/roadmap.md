@@ -107,7 +107,10 @@ current phase is in `docs/phase-state.md`.
 - **Dependencies:** Phase 8.
 - **Gate:** start (approved 2026-09-29), major product/IA decisions, any
   production write, and completion. No deployment.
-- **Status:** started 2026-09-29 on `feature/phase9-product-ux`.
+- **Status:** **complete**; accepted by the operator 2026-09-29 and
+  proposed for `main` in a pull request from `feature/phase9-product-ux`.
+  M24/M25 are on SplitChat-Dev only; production stays at M23 and the
+  frontend is not deployed.
 
 ## Phase 10 — Release Readiness, Deployment & Portfolio Presentation
 _Was Phase 9; renumbered by the operator on 2026-09-29 (D6)._

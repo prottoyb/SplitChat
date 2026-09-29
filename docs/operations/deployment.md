@@ -48,19 +48,38 @@ configuration:
 - **Redirect URLs:** the production origin (and any preview origin you
   intend to use). Without it, confirmation links fall back to the Site URL.
 
+Phase 9 adds password reset, which needs more before the Phase 9 frontend
+goes live:
+
+- **Redirect URLs** must also allow `<production origin>/reset-password`
+  (the reset email links there).
+- **Email delivery** must work for the production project (a reset link
+  that never arrives is a dead end); test it with a real reset.
+- **"Secure password change"** (recent sign-in or reauthentication before
+  `updateUser` sets a password) must be confirmed enabled. It is the
+  server-side control behind the reset/change-password UI (Phase 9
+  QA/Security, `docs/phase9/plan.md`).
+
 Changing production Auth settings is a human-gated action (CLAUDE.md).
 
 ## Ordering (mandatory)
 
 1. Production database batch 4 applied **and verified**
-   (`docs/operations/release-runbook.md`). The Phase 3–8 frontend needs
-   the batch-4 schema (activity, settlements, chat, proposals); against the
-   current production schema it would fail.
-2. Build the frontend from the release commit (must contain `a5ed4e8`, the
+   (`docs/operations/release-runbook.md`). Done: production is at M23
+   (25 versions) since 2026-09-29.
+2. **For a Phase 9 frontend:** M24 `20261001100000_group_details` and M25
+   `20261001110000_profile_name_rules` applied and verified in production
+   (their own release approval; ADR-0013), and the Phase 9 Auth settings
+   above completed and tested. Without M24 the group settings rename fails;
+   without the Auth settings password reset fails.
+3. Build the frontend from the release commit (must contain `a5ed4e8`, the
    integer-cents frontend, and the Phase 8 commits).
-3. Deploy; smoke-test sign-in, a group, an expense, balances, chat.
-4. Record the deployed commit (it becomes the frontend attestation for any
+4. Deploy; smoke-test sign-in, a group, an expense, balances, chat, and
+   (Phase 9) rename a group, edit a display name, change and reset a
+   password.
+5. Record the deployed commit (it becomes the frontend attestation for any
    later database batch).
 
-Rollback of the frontend: redeploy the previous build. Batch 4 is additive
-for older frontends, so a frontend rollback never needs a database rollback.
+Rollback of the frontend: redeploy the previous build. Batch 4, M24 and M25
+are additive for older frontends, so a frontend rollback never needs a
+database rollback.
